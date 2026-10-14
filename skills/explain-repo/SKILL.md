@@ -17,11 +17,11 @@ Inputs: each repo as a key and an absolute path, the doc root path, and the loca
 
 For each repo:
 
-- Count lines per module over every tracked file, tests included: `git ls-files -z <prefix> | xargs -0 cat | wc -l`. A module is a workspace member (crate, package) or, without a workspace, a top-level directory. Tracked files outside every module form one more module per repo, `(root)`.
-- Read the manifests and the entry points. A README, `AGENTS.md`, design doc, or code comment may point you to entry points, but it proves nothing. Take each module's role from the code it runs. Leave module bodies for the page writers.
+- Count lines per module over every tracked file, tests included, leaving out generated files such as lockfiles: `git ls-files -z <prefix> | xargs -0 cat | wc -l`. A module is a workspace member (crate, package) or, without a workspace, a top-level directory. Tracked files outside every module form one more module per repo, `(root)`.
+- Read the manifests, the entry points, the public declarations, and the short functions that wire modules together, enough to phrase each module's questions. A README, `AGENTS.md`, design doc, or code comment may point you to entry points, but it proves nothing. Take each module's role from the code it runs. Leave module bodies for the page writers.
 - Find seams: a manifest that depends on another target repo. Record each pinned package with its rev or version, and compare the rev with that checkout's `HEAD`.
 
-Done when every module of every repo has a row with repo, path, lines, and a one-line role citing the code file it came from.
+Done when every module of every repo has a row with repo, path, lines, and a one-line role citing the code files it came from.
 
 ## 2. Plan
 
@@ -39,9 +39,9 @@ Write `<doc root>/plan.md` and `<doc root>/explain.json`.
 
 ### <id>: <title in the default locale>
 
-- Question: the one question this page answers for a new maintainer.
+- Question: the one question this page answers for a new maintainer, in the default locale.
 - Read: what the writer reads, in citation form: a directory prefix such as `xapi:crates/gate/src/`, a file, or a file with ranges.
-- Lines: total lines under Read, counted as in step 1.
+- Lines: total lines under Read, counted as in step 1. A range counts its own length.
 
 ## Skipped
 
@@ -54,12 +54,12 @@ Write `<doc root>/plan.md` and `<doc root>/explain.json`.
 
 - A page answers a question a maintainer asks ("how does an order reach the exchange"). Directory layout suggests modules; it does not decide pages.
 - `index` comes first. It says what the system is, maps the repos, and shows how the parts connect.
-- Each seam between repos gets a page. Pages may read the same files; each cites what its Question needs.
+- Each pair of dependent repos gets one seam page. Pages may read the same files; each cites what its Question needs.
 - Keep each page's Read under 4000 lines. Split a larger module into several questions.
-- A question of the form "what does X provide" is a catalog, not an explanation. When a module repeats one pattern many times (endpoints, handlers, commands), plan one page that explains the pattern by following one instance end to end, and one catalog page per repo that lists every instance in a table. A catalog's Read may exceed the cap, because its writer reads declarations, not bodies.
+- A question of the form "what does X provide" is a catalog, not an explanation. When a module repeats one pattern many times (endpoints, handlers, commands), plan one page that explains the pattern by following one instance end to end, and one catalog page per repo that lists every instance in a table. Pick for the walkthrough an instance that another repo or an entry point calls. A repo without such a pattern gets no catalog. A catalog's Read may exceed the cap, because its writer reads declarations, not bodies.
 - `explain.json` nav lists exactly the planned page ids, grouped in reading order.
 
-Done when every tracked file of every non-skipped module, except prose docs, lies under some page's Read, and every page has a Question, Read, and Lines.
+Done when every tracked file of every non-skipped module, except prose docs and generated files, lies under some page's Read, and every page has a Question, Read, and Lines.
 
 Stop here. Show the user the module table, the page list with each question, the skipped modules, and the seams. Continue after they approve, applying their edits to both files.
 
