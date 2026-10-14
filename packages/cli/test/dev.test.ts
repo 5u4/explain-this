@@ -98,4 +98,41 @@ describe("explain dev", () => {
       expect(await refused.text()).not.toContain("do-not-serve");
     }
   });
+
+  it("compiles widget classes into one stylesheet and rebuilds it when a widget changes", async () => {
+    const docs = makeDocRoot();
+    mkdirSync(join(docs, "widgets"));
+    const widget = join(docs, "widgets", "fold-play.js");
+    writeFileSync(widget, "const tw = String.raw;\nexport const row = tw`bg-raised p-3`;\n");
+    const base = await startDev(docs);
+    const stylesheet = async () => {
+      const response = await fetch(`${base}/@explain/widgets.css`);
+      expect(response.headers.get("content-type")).toBe("text/css; charset=utf-8");
+      return response.text();
+    };
+
+    const first = await stylesheet();
+    expect(first).toContain(
+      ".bg-raised {\n    background-color: var(--surface-raised) !important;",
+    );
+    expect(first).toContain(".p-3 {\n    padding: calc(var(--space-1) * 3) !important;");
+    expect((await fetch(`${base}/@explain/widgets/fold-play.js`)).status).toBe(200);
+    expect((await fetch(`${base}/@explain/widgets/fold-play.css`)).status).toBe(404);
+
+    const socket = new WebSocket(base.replace("http", "ws"), "vite-hmr");
+    const connected = Promise.withResolvers<void>();
+    const reloaded = Promise.withResolvers<void>();
+    socket.addEventListener("message", (event) => {
+      const message = JSON.parse(String(event.data)) as { readonly type: string };
+      if (message.type === "connected") connected.resolve();
+      if (message.type === "full-reload") reloaded.resolve();
+    });
+    await connected.promise;
+    writeFileSync(widget, "const tw = String.raw;\nexport const row = tw`bg-inset`;\n");
+    await reloaded.promise;
+    socket.close();
+    const next = await stylesheet();
+    expect(next).toContain(".bg-inset {\n    background-color: var(--surface-inset) !important;");
+    expect(next).not.toContain(".bg-raised");
+  });
 });

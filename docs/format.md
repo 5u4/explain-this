@@ -13,8 +13,7 @@ the working directory to the nearest `explain.json`).
 │   ├── glossary.md              term definitions for this locale
 │   └── glossary.sources.json
 └── widgets/
-    ├── <name>.js                one ES module per widget, shared by all locales
-    └── <name>.css               optional, loaded by the viewer next to the module
+    └── <name>.js                one ES module per widget, shared by all locales
 ```
 
 Each locale is written independently from the code. A zh-CN page is not a translation of the en page,
@@ -178,9 +177,55 @@ type WidgetContext = {
 
 - Show only what the cited code or its tests contain. A widget does not invent data and does not let
   the reader edit inputs; the reader chooses among fixed cases.
-- Style only with the viewer's tokens and base classes. `widgets/<name>.css` must not contain color
-  literals (`#…`, `rgb(`, `hsl(`, `oklch(`, named colors); `explain check` rejects them.
+- Style only with Tailwind classes from the widget theme below, plus the viewer's base classes. A
+  widget has no stylesheet: `explain check` rejects any `.css` file in `widgets/`.
 - UI strings live in the module, keyed by locale, with an `en` fallback.
+
+### Classes
+
+Write every Tailwind class inside a `tw` tagged template, with `const tw = String.raw;` at the top of
+the module. Text inside `tw` templates is the only text the build and the lint read as classes, so
+ordinary strings and identifiers are never checked, and a class written anywhere else gets no CSS.
+
+```js
+const tw = String.raw;
+const ROW = tw`flex items-center gap-2 rounded-small bg-raised`;
+el("li", { class: dropped ? tw`opacity-60 line-through decoration-removed` : ROW });
+el("select", { class: `ui-select ${tw`min-w-0 max-sm:w-full`}` });
+```
+
+- A `tw` template takes no `${}` substitutions. Pick between whole `tw` strings in JS, or toggle a
+  boolean `data-*` attribute and style it with a `data-name:` variant.
+- Base classes (`ui-select`, …) are plain strings outside `tw`.
+- `explain check` reports, as `widgets/<name>.js:line:col`, every class in a `tw` template that is an
+  arbitrary value, property, or variant (anything with `[`, `]`, `(`, or `)`, such as `p-[3px]`,
+  `bg-[#f00]`, `[color:red]`, `data-[x=y]:hidden`) and every class the widget theme does not generate
+  (`bg-red-500`, `text-lg`, `rounded-xl`).
+
+`explain dev` compiles the classes of every `widgets/*.js` into one stylesheet at
+`/@explain/widgets.css` and rebuilds it when a module changes. Utilities are `!important`: the viewer's
+own CSS is unlayered and would otherwise win inside a widget. Properties a widget does not set still
+inherit from the page, such as the prose margins on `p`, `ol`, and `li`.
+
+The widget theme (`packages/viewer/src/styles/widgets.css`) replaces Tailwind's colors, fonts, font
+sizes, and radii with the tokens below. Everything else keeps Tailwind's defaults: font weights,
+letter spacing, line heights, breakpoints (`sm` is 40rem), transitions, and variants.
+
+| Utility family | Classes | Token |
+|---|---|---|
+| Color (`bg-`, `text-`, `border-`, `inset-ring-`, `decoration-`, `fill-`, `stroke-`, …) | `page`, `raised`, `inset` | `--surface-page`, `--surface-raised`, `--surface-inset` |
+| | `border`, `border-strong` | `--border`, `--border-strong` |
+| | `strong`, `body`, `muted`, `faint` | `--text-strong`, `--text-body`, `--text-muted`, `--text-faint` |
+| | `mark`, `removed`, `added`, `fresh`, `stale`, `note`, `important`, `warning`, `focus`, `pass`, `pass-wash`, `fail`, `fail-wash` | the token of the same name |
+| Font family | `font-body`, `font-display`, `font-mono` | `--font-body`, `--font-display`, `--font-mono` |
+| Font size | `text-step--1`, `text-step-0`, `text-step-1`, `text-step-2` | `--step--1` … `--step-2` |
+| Radius | `rounded-small`, `rounded-medium` | `--radius-s`, `--radius-m` |
+| Spacing (`p-`, `m-`, `gap-`, `w-`, `min-w-`, `leading-`, …) | `N` in steps of 0.25 | `N × --space-1` (4px) |
+
+Spacing keeps Tailwind's multiplier scale with `--space-1` as the unit instead of mapping names to
+`--space-*`. Every `--space-N` is a step on it (`--space-5` is `6`, `--space-6` is `8`, `--space-7` is
+`12`), and fixed sizes such as `min-w-24.5` or `leading-4.75` stay expressible without arbitrary
+values. A named scale would leave those sizes reachable only through `[…]`.
 
 Tokens exposed to widgets (CSS custom properties on `:root`):
 
@@ -188,14 +233,18 @@ Tokens exposed to widgets (CSS custom properties on `:root`):
 |---|---|
 | Surface | `--surface-page`, `--surface-raised`, `--surface-inset`, `--border`, `--border-strong` |
 | Text | `--text-strong`, `--text-body`, `--text-muted`, `--text-faint` |
-| Meaning | `--mark` (ties prose to source), `--removed`, `--added`, `--fresh`, `--stale`, `--note`, `--important`, `--warning`, `--focus` |
+| Meaning | `--mark` (ties prose to source), `--removed`, `--added`, `--fresh`, `--stale`, `--note`, `--important`, `--warning`, `--focus`, `--pass`, `--pass-wash`, `--fail`, `--fail-wash` |
 | Type | `--font-body`, `--font-display`, `--font-mono`, `--step--1`, `--step-0`, `--step-1`, `--step-2` |
 | Space and shape | `--space-1` … `--space-8`, `--radius-s`, `--radius-m` |
 
 Base classes: `ui-button`, `ui-select`, `ui-segmented`, `ui-table`, `ui-code`, `ui-tag`.
 
 A color means one thing across the site. Strike-through in `--removed` means "removed or folded
-away"; a widget that shows a different outcome uses a different token.
+away"; `--fresh` and `--stale` mean page freshness; `--pass` and `--fail` mean a widget's port
+agrees or disagrees with the test it reproduces. Pass is a cyan and fail a rose, placed on hues no
+other meaning token uses, so neither reads as fresh, added, removed, or stale; pair them with ✓ and ✗
+so the hue is never the only signal. A categorical value that is neither good nor bad, such as which
+branch a function returned, gets no meaning color at all.
 
 ## Generated pages
 

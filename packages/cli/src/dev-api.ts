@@ -48,13 +48,6 @@ const json = (status: number, body: JsonBody): DevResponse => ({
   body: JSON.stringify(body),
 });
 
-const widgetNamePattern = /^[a-z0-9][a-z0-9-]*$/;
-
-const widgetContentTypes = {
-  js: "text/javascript",
-  css: "text/css; charset=utf-8",
-} as const;
-
 const textDecoder = new TextDecoder();
 
 const sourceKey = (repo: string, path: string): string => `${repo}\u0000${path}`;
@@ -94,23 +87,9 @@ const glossaryTerms = (glossary: DocPage | undefined): ReadonlyArray<GlossaryTer
   return terms;
 };
 
-const widgetIndex = Effect.fnUntraced(function* (root: string) {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const directory = path.join(root, "widgets");
-  const files = (yield* fs.exists(directory))
-    ? new Set(yield* fs.readDirectory(directory))
-    : new Set<string>();
-  const widgets: Record<string, { readonly css: boolean }> = {};
-  for (const file of [...files].sort()) {
-    const name = file.slice(0, -".js".length);
-    if (!file.endsWith(".js") || !widgetNamePattern.test(name)) continue;
-    widgets[name] = { css: files.has(`${name}.css`) };
-  }
-  return widgets;
-});
+const invalidState = json(503, { error: "explain.json is invalid; see /@explain/api/site" });
 
-const siteResponse = Effect.fnUntraced(function* (docRoot: DocRoot) {
+const siteResponse = (docRoot: DocRoot): SiteResponse => {
   const { config } = docRoot;
   const pages = new Map(docRoot.pages.map((page) => [`${page.locale}/${page.id}`, page]));
   const navEntry = (locale: string, id: string): NavPage => {
@@ -134,11 +113,11 @@ const siteResponse = Effect.fnUntraced(function* (docRoot: DocRoot) {
     locales: config.locales,
     defaultLocale: config.defaultLocale,
     repos: Object.keys(config.repos),
-    widgets: yield* widgetIndex(docRoot.root),
+    widgets: docRoot.widgets,
     errors: docRoot.errors,
     byLocale,
-  } satisfies SiteResponse;
-});
+  };
+};
 
 const sourceEntries = (page: ParsedDocPage): ReadonlyArray<SourceEntry> => {
   const recorded = new Map(
@@ -292,20 +271,17 @@ const searchEntries = (page: ParsedDocPage): ReadonlyArray<SearchEntry> => {
   }));
 };
 
-const widgetResponse = Effect.fnUntraced(function* (root: string, file: string) {
+const widgetResponse = Effect.fnUntraced(function* (docRoot: DocRoot, file: string) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const dot = file.lastIndexOf(".");
-  const name = file.slice(0, dot);
-  const extension = file.slice(dot + 1);
-  if (dot < 0 || !widgetNamePattern.test(name) || !(extension === "js" || extension === "css")) {
+  if (!(file.endsWith(".js") && docRoot.widgets.includes(file.slice(0, -".js".length)))) {
     return json(404, { error: `no widget file "${file}"` });
   }
-  const bytes = yield* fs.readFile(path.join(root, "widgets", file)).pipe(Effect.option);
+  const bytes = yield* fs.readFile(path.join(docRoot.root, "widgets", file)).pipe(Effect.option);
   if (bytes._tag === "None") return json(404, { error: `no widget file "${file}"` });
   return {
     status: 200,
-    headers: { "Content-Type": widgetContentTypes[extension], "Cache-Control": "no-store" },
+    headers: { "Content-Type": "text/javascript", "Cache-Control": "no-store" },
     body: bytes.value,
   } satisfies DevResponse;
 });
@@ -321,8 +297,17 @@ export const handleExplainRequest = Effect.fnUntraced(function* (
   if (empty !== "" || prefix !== "@explain" || rest === undefined) {
     return json(404, { error: `no route for ${rawPath}` });
   }
+  if (area === "widgets.css" && rest.length === 0) {
+    if (state.status === "invalid") return invalidState;
+    return {
+      status: 200,
+      headers: { "Content-Type": "text/css; charset=utf-8", "Cache-Control": "no-store" },
+      body: state.docRoot.widgetCss,
+    } satisfies DevResponse;
+  }
   if (area === "widgets" && rest.length === 1 && rest[0] !== undefined) {
-    return yield* widgetResponse(state.status === "ok" ? state.docRoot.root : state.root, rest[0]);
+    if (state.status === "invalid") return invalidState;
+    return yield* widgetResponse(state.docRoot, rest[0]);
   }
   if (area !== "api") return json(404, { error: `no route for ${rawPath}` });
   const [route, ...args] = rest;
@@ -330,11 +315,9 @@ export const handleExplainRequest = Effect.fnUntraced(function* (
     if (state.status === "invalid") {
       return json(200, { status: "invalid", errors: state.errors } satisfies SiteResponse);
     }
-    return json(200, yield* siteResponse(state.docRoot));
+    return json(200, siteResponse(state.docRoot));
   }
-  if (state.status === "invalid") {
-    return json(503, { error: "explain.json is invalid; see /@explain/api/site" });
-  }
+  if (state.status === "invalid") return invalidState;
   const { docRoot } = state;
   const [first, ...more] = args;
   if (route === "page" && first !== undefined && more.length === 1 && more[0] !== undefined) {

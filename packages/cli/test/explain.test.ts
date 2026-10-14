@@ -184,26 +184,45 @@ describe("explain hash and check", () => {
     expect(result.stderr).toContain("zh-CN/index.md:3:3 src:outside.ts resolves outside the repo");
   });
 
-  it("rejects a widget without a module and color literals in widget CSS", () => {
+  it("rejects a widget without a module, a widget stylesheet, and classes outside the widget theme", () => {
     const docRoot = makeDocRoot({
       git: false,
       page: '# 折叠\n\n<Widget name="fold-play" title="演练" source="src:fold.ts">\n\n说明。\n\n</Widget>\n',
     });
     mkdirSync(join(docRoot.docs, "widgets"));
-    writeFileSync(
-      join(docRoot.docs, "widgets", "fold-play.css"),
-      ".removed {\n  color: var(--removed);\n  border: 1px solid #fff;\n  background: red;\n}\n",
-    );
+    writeFileSync(join(docRoot.docs, "widgets", "fold-play.css"), ".row { color: red; }\n");
     const missingModule = docRoot.explain("check");
     expect(missingModule.code).toBe(2);
     expect(missingModule.stderr).toContain("zh-CN/index.md:3:1 ");
-    expect(missingModule.stderr).toContain("widgets/fold-play.css:3:21 ");
-    expect(missingModule.stderr).toContain("widgets/fold-play.css:4:15 ");
+    expect(missingModule.stderr).toContain(
+      "widgets/fold-play.css:1:1 widget stylesheets are not supported",
+    );
 
-    writeFileSync(join(docRoot.docs, "widgets", "fold-play.js"), "export function mount() {}\n");
+    rmSync(join(docRoot.docs, "widgets", "fold-play.css"));
     writeFileSync(
-      join(docRoot.docs, "widgets", "fold-play.css"),
-      ".removed {\n  color: var(--removed);\n}\n",
+      join(docRoot.docs, "widgets", "fold-play.js"),
+      [
+        "const tw = String.raw;",
+        "export function mount(root) {",
+        "  root.className = tw`flex bg-red-500 p-[3px] text-muted`;",
+        '  root.dataset.kind = "bg-red-500 overflow text";',
+        // biome-ignore lint/suspicious/noTemplateCurlyInString: the widget source under test has a substitution
+        "  root.title = tw`gap-${1}`;",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    const badClasses = docRoot.explain("check");
+    expect(badClasses.code).toBe(2);
+    expect(badClasses.stderr.trim().split("\n")).toEqual([
+      'widgets/fold-play.js:3:28 "bg-red-500" is not a class of the widget theme',
+      'widgets/fold-play.js:3:39 "p-[3px]" is an arbitrary value; use a theme class',
+      "widgets/fold-play.js:5:23 tw`…` takes no substitutions; choose between whole tw`…` strings in JS",
+    ]);
+
+    writeFileSync(
+      join(docRoot.docs, "widgets", "fold-play.js"),
+      "const tw = String.raw;\nexport function mount(root) {\n  root.className = tw`flex gap-2 bg-raised text-pass`;\n}\n",
     );
     expect(docRoot.explain("hash", "zh-CN/index.md", "zh-CN/glossary.md").code).toBe(0);
     expect(docRoot.explain("check").code).toBe(0);

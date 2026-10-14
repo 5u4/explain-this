@@ -6,7 +6,13 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!repos", "!**/dist", "!prototype"]
+    "includes": [
+      "**",
+      "!repos",
+      "!**/dist",
+      "!prototype",
+      "!packages/viewer/src/styles/widgets.css"
+    ]
   },
   "formatter": {
     "enabled": true,

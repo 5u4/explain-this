@@ -1,5 +1,6 @@
 import type { Block } from "@explain/contract/page";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
+import type { WidgetPath } from "./api.ts";
 import { useViewer } from "./context.ts";
 import { loadSourceLines } from "./data.ts";
 import { Inlines } from "./inlines.tsx";
@@ -18,14 +19,19 @@ type Mount = (root: HTMLElement, ctx: WidgetContext) => (() => void) | undefined
 
 const isMount = (value: unknown): value is Mount => typeof value === "function";
 
-const ensureStylesheet = (name: string) => {
-  const href = `/@explain/widgets/${name}.css`;
-  if (document.head.querySelector(`link[data-widget="${name}"]`) !== null) return;
+let widgetStyles: Promise<void> | undefined;
+
+const loadWidgetStyles = (): Promise<void> => {
+  if (widgetStyles !== undefined) return widgetStyles;
+  const { promise, resolve, reject } = Promise.withResolvers<void>();
   const link = document.createElement("link");
   link.rel = "stylesheet";
-  link.href = href;
-  link.dataset.widget = name;
+  link.href = "/@explain/widgets.css" satisfies WidgetPath;
+  link.onload = () => resolve();
+  link.onerror = () => reject(new Error("/@explain/widgets.css failed to load"));
   document.head.append(link);
+  widgetStyles = promise;
+  return promise;
 };
 
 export function WidgetFrame({ block }: { readonly block: WidgetBlock }): ReactNode {
@@ -33,17 +39,16 @@ export function WidgetFrame({ block }: { readonly block: WidgetBlock }): ReactNo
   const titleId = useId();
   const body = useRef<HTMLDivElement>(null);
   const [failure, setFailure] = useState<string | null>(null);
-  const entry = site.widgets[block.name];
+  const known = site.widgets.includes(block.name);
   const propsKey = JSON.stringify(block.props);
 
   useEffect(() => {
     const root = body.current;
     if (root === null) return;
-    if (entry === undefined) {
+    if (!known) {
       setFailure(`widgets/${block.name}.js`);
       return;
     }
-    if (entry.css) ensureStylesheet(block.name);
     const ctx: WidgetContext = {
       props: JSON.parse(propsKey) as Readonly<Record<string, string>>,
       locale,
@@ -69,8 +74,9 @@ export function WidgetFrame({ block }: { readonly block: WidgetBlock }): ReactNo
     let live = true;
     let cleanup: (() => void) | undefined;
     setFailure(null);
-    import(/* @vite-ignore */ `/@explain/widgets/${block.name}.js`)
-      .then((module: { readonly mount?: unknown }) => {
+    const modulePath: WidgetPath = `/@explain/widgets/${block.name}.js`;
+    Promise.all([import(/* @vite-ignore */ modulePath), loadWidgetStyles()])
+      .then(([module]: [{ readonly mount?: unknown }, unknown]) => {
         if (!live) return;
         if (!isMount(module.mount)) throw new Error("the module does not export mount(root, ctx)");
         const result = module.mount(root, ctx);
@@ -84,7 +90,7 @@ export function WidgetFrame({ block }: { readonly block: WidgetBlock }): ReactNo
       cleanup?.();
       root.replaceChildren();
     };
-  }, [block.name, entry, locale, propsKey, strings]);
+  }, [block.name, known, locale, propsKey, strings]);
 
   return (
     <section className="widget-frame" aria-labelledby={titleId}>

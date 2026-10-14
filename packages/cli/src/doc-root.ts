@@ -21,6 +21,7 @@ import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import * as Schema from "effect/Schema";
 import * as SchemaIssue from "effect/SchemaIssue";
 import * as Stream from "effect/Stream";
+import { buildWidgetStyles, type WidgetModule } from "./widget-styles.ts";
 
 export interface Diagnostic {
   readonly file: string;
@@ -63,6 +64,8 @@ export interface DocRoot {
   readonly config: ExplainConfig;
   readonly pages: ReadonlyArray<DocPage>;
   readonly errors: ReadonlyArray<Diagnostic>;
+  readonly widgets: ReadonlyArray<string>;
+  readonly widgetCss: string;
   readonly resolveSource: (
     repo: string,
     path: string,
@@ -93,58 +96,6 @@ export class InvalidConfig extends Schema.TaggedError<InvalidConfig>()("InvalidC
 const configFileName = "explain.json";
 
 const blobHeaderEncoder = new TextEncoder();
-
-const colorFunctionPattern = /\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\(/gi;
-const hexColorPattern = /#[0-9a-fA-F]{3,8}\b/g;
-const identifierPattern = /-?[A-Za-z_][\w-]*/g;
-const declarationPattern = /[-\w]+\s*:\s*([^;{}]*)(?=[;}])/g;
-const namedColors: ReadonlySet<string> = new Set(
-  (
-    "aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue blueviolet " +
-    "brown burlywood cadetblue chartreuse chocolate coral cornflowerblue cornsilk crimson cyan " +
-    "darkblue darkcyan darkgoldenrod darkgray darkgreen darkgrey darkkhaki darkmagenta " +
-    "darkolivegreen darkorange darkorchid darkred darksalmon darkseagreen darkslateblue " +
-    "darkslategray darkslategrey darkturquoise darkviolet deeppink deepskyblue dimgray dimgrey " +
-    "dodgerblue firebrick floralwhite forestgreen fuchsia gainsboro ghostwhite gold goldenrod gray " +
-    "green greenyellow grey honeydew hotpink indianred indigo ivory khaki lavender lavenderblush " +
-    "lawngreen lemonchiffon lightblue lightcoral lightcyan lightgoldenrodyellow lightgray " +
-    "lightgreen lightgrey lightpink lightsalmon lightseagreen lightskyblue lightslategray " +
-    "lightslategrey lightsteelblue lightyellow lime limegreen linen magenta maroon " +
-    "mediumaquamarine mediumblue mediumorchid mediumpurple mediumseagreen mediumslateblue " +
-    "mediumspringgreen mediumturquoise mediumvioletred midnightblue mintcream mistyrose moccasin " +
-    "navajowhite navy oldlace olive olivedrab orange orangered orchid palegoldenrod palegreen " +
-    "paleturquoise palevioletred papayawhip peachpuff peru pink plum powderblue purple " +
-    "rebeccapurple red rosybrown royalblue saddlebrown salmon sandybrown seagreen seashell sienna " +
-    "silver skyblue slateblue slategray slategrey snow springgreen steelblue tan teal thistle " +
-    "tomato turquoise violet wheat white whitesmoke yellow yellowgreen"
-  ).split(" "),
-);
-
-const positionAt = (text: string, offset: number): Position => {
-  const before = text.slice(0, offset);
-  const lineStart = before.lastIndexOf("\n");
-  return { line: before.split("\n").length, column: offset - lineStart };
-};
-
-const cssColorLiterals = (css: string): ReadonlyArray<Position & { literal: string }> => {
-  const text = css.replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, " "));
-  const found: Array<Position & { literal: string }> = [];
-  for (const declaration of text.matchAll(declarationPattern)) {
-    const value = declaration[1] ?? "";
-    const valueOffset = declaration.index + declaration[0].length - value.length;
-    const literals = [
-      ...value.matchAll(hexColorPattern),
-      ...value.matchAll(colorFunctionPattern),
-      ...[...value.matchAll(identifierPattern)].filter((match) =>
-        namedColors.has(match[0].toLowerCase()),
-      ),
-    ];
-    for (const literal of literals) {
-      found.push({ ...positionAt(text, valueOffset + literal.index), literal: literal[0] });
-    }
-  }
-  return found.sort((a, b) => a.line - b.line || a.column - b.column);
-};
 
 const countLines = (bytes: Uint8Array): number => {
   let lines = 0;
@@ -299,17 +250,24 @@ export const loadDocRoot = Effect.fnUntraced(function* (
   const widgetFiles = (yield* fs.exists(widgetsDirectory))
     ? new Set(yield* fs.readDirectory(widgetsDirectory))
     : new Set<string>();
-  for (const name of [...widgetFiles].filter((file) => file.endsWith(".css")).sort()) {
-    const css = yield* fs.readFileString(path.join(widgetsDirectory, name));
-    for (const literal of cssColorLiterals(css)) {
+  const widgetModules: Array<WidgetModule> = [];
+  for (const file of [...widgetFiles].sort()) {
+    if (file.endsWith(".css")) {
       rootErrors.push({
-        file: `widgets/${name}`,
-        line: literal.line,
-        column: literal.column,
-        message: `color literal "${literal.literal}"; use the viewer's color tokens`,
+        file: `widgets/${file}`,
+        line: 1,
+        column: 1,
+        message: "widget stylesheets are not supported; style the widget with Tailwind classes",
+      });
+    } else if (file.endsWith(".js")) {
+      widgetModules.push({
+        name: file.slice(0, -".js".length),
+        text: yield* fs.readFileString(path.join(widgetsDirectory, file)),
       });
     }
   }
+  const widgetStyles = yield* buildWidgetStyles(widgetModules);
+  rootErrors.push(...widgetStyles.diagnostics);
 
   const readPage = Effect.fnUntraced(function* (locale: string, id: string) {
     if (!existing.has(`${locale}/${id}`)) return undefined;
@@ -430,7 +388,15 @@ export const loadDocRoot = Effect.fnUntraced(function* (
     const terms = new Set(glossary === undefined ? [] : glossaryTermIds(glossary));
     for (const id of pageIds) pages.push(yield* checkPage(locale, id, parsed.get(id), terms));
   }
-  return { root, config, pages, errors: rootErrors, resolveSource: resolve } satisfies DocRoot;
+  return {
+    root,
+    config,
+    pages,
+    errors: rootErrors,
+    widgets: widgetModules.map((module) => module.name),
+    widgetCss: widgetStyles.css,
+    resolveSource: resolve,
+  } satisfies DocRoot;
 });
 
 const refProblem = (ref: Ref, resolved: Resolved): string | undefined => {

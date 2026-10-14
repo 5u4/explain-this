@@ -25,6 +25,7 @@
         "@explain/contract": "workspace:*",
         "@explain/viewer": "workspace:*",
         "effect": "catalog:",
+        "tailwindcss": "catalog:",
         "vite": "catalog:",
       },
       "devDependencies": {
@@ -86,6 +87,7 @@
     "micromark-extension-mdx-jsx": "3.0.2",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "tailwindcss": "4.3.3",
     "typescript": "7.0.2",
     "vite": "8.3.4",
     "vitest": "5.0.3",
@@ -466,6 +468,8 @@
     "std-env": ["std-env@4.3.0", "", {}, "sha512-OtU/EgQ1kIm5KwqQpBC6ZEMXrZRui11w8zgfTWp8cdO9B8OaPsbA8bTHO2P+HNo1VlUTGMVBwPhydu6poeXiag=="],
 
     "stringify-entities": ["stringify-entities@4.0.4", "", { "dependencies": { "character-entities-html4": "^2.0.0", "character-entities-legacy": "^3.0.0" } }, "sha512-IwfBptatlO+QCJUo19AqvrPNqlVMpW9YEL2LIVY+Rpv2qsjCGxaDLNRgeGsQWJhfItebuJhsGSLjaBbNSQ+ieg=="],
+
+    "tailwindcss": ["tailwindcss@4.3.3", "", {}, "sha512-gOhV3P7ufE62QDGg1zVaTgCR+EtPv92k2nIhVcVKcLmxT1sUBsQGhnZj175j+MqRt4zLF7ic+sCYjfhxMxj7YQ=="],
 
     "tinybench": ["tinybench@6.2.2", "", {}, "sha512-nIZ2N2dFpjBsg2hgitKu7mA+FvsIJuGJOwysRngmVRRmWgR/UyPjwJj8c/fT/dhm8EkHnF5EOogRf+0Z2qrimA=="],
 

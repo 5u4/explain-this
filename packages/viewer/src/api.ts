@@ -7,7 +7,7 @@ export type ApiPath =
   | `/@explain/api/source/${string}/${string}`
   | `/@explain/api/search/${string}`;
 
-export type WidgetPath = `/@explain/widgets/${string}.js` | `/@explain/widgets/${string}.css`;
+export type WidgetPath = `/@explain/widgets/${string}.js` | "/@explain/widgets.css";
 
 export type Diagnostic = Located & { readonly file: string };
 
@@ -43,7 +43,7 @@ export type SiteResponse =
       readonly locales: ReadonlyArray<string>;
       readonly defaultLocale: string;
       readonly repos: ReadonlyArray<string>;
-      readonly widgets: Readonly<Record<string, { readonly css: boolean }>>;
+      readonly widgets: ReadonlyArray<string>;
       readonly errors: ReadonlyArray<Diagnostic>;
       readonly byLocale: Readonly<Record<string, LocaleSite>>;
     }

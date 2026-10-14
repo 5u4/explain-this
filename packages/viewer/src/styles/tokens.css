@@ -20,6 +20,8 @@
   --amber-6: oklch(0.83 0.13 80);
   --indigo-6: oklch(0.78 0.08 250);
   --violet-6: oklch(0.78 0.1 305);
+  --sky-6: oklch(0.8 0.1 205);
+  --rose-6: oklch(0.74 0.15 355);
 
   --surface-page: var(--ink-1);
   --surface-raised: var(--ink-2);
@@ -40,6 +42,8 @@
   --note: var(--indigo-6);
   --important: var(--violet-6);
   --warning: var(--amber-6);
+  --pass: var(--sky-6);
+  --fail: var(--rose-6);
   --focus: var(--ink-9);
 
   --font-display: "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif;
@@ -77,6 +81,8 @@
   --stale-wash: oklch(0.83 0.13 80 / 0.13);
   --note-wash: oklch(0.78 0.08 250 / 0.08);
   --important-wash: oklch(0.78 0.1 305 / 0.08);
+  --pass-wash: oklch(0.8 0.1 205 / 0.12);
+  --fail-wash: oklch(0.74 0.15 355 / 0.13);
   --warning-wash: oklch(0.83 0.13 80 / 0.08);
   --selection: oklch(0.66 0.19 33 / 0.35);
 
