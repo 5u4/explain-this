@@ -435,9 +435,10 @@ a:hover {
 /* citation: the red-pen underline that threads to the pane */
 a.cite {
   color: inherit;
+  text-decoration-style: wavy;
   text-decoration-color: var(--mark-line);
-  text-decoration-thickness: 1.25px;
-  text-underline-offset: 0.32em;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.4em;
   border-radius: 3px;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;

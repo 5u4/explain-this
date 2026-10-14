@@ -37,7 +37,7 @@ function InlineView({ inline }: { readonly inline: Inline }): ReactNode {
       return <br />;
     case "link":
       return (
-        <a className="ext" href={inline.href} rel="noopener">
+        <a className="ext" href={inline.href} target="_blank" rel="noopener noreferrer">
           <Inlines inlines={inline.children} />
         </a>
       );
