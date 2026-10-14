@@ -12,8 +12,9 @@ the working directory to the nearest `explain.json`).
 │   ├── <page>.sources.json      written only by `explain hash`
 │   ├── glossary.md              term definitions for this locale
 │   └── glossary.sources.json
-└── widgets/
-    └── <name>.js                one ES module per widget, shared by all locales
+├── widgets/
+│   └── <name>.js                one ES module per widget, shared by all locales
+└── dist/                        written only by `explain build`
 ```
 
 Each locale is written independently from the code. A zh-CN page is not a translation of the en page,
@@ -253,3 +254,31 @@ The viewer builds these; the LLM writes none of them.
 - Navigation, search, page table of contents, freshness badge, sources panel, previous/next.
 - Glossary page, from `glossary.md` (`## Label {#id}` followed by the definition).
 - Source viewer at `source/<repo>/<path>`, with the pages that cite the file.
+
+## Static build
+
+`explain build [--out <dir>]` writes the viewer as a static site that any static host serves with no
+server code and no rewrite rules. `--out` defaults to `dist/` in the doc root. The build refuses a doc
+root that `explain check` would exit 2 on, and refuses to replace a non-empty `--out` that is not a
+previous build.
+
+```text
+<out>/
+├── index.html, 404.html, assets/      the viewer bundle
+├── <locale>/index.html                one copy of index.html per route
+├── <locale>/<page>/index.html
+├── <locale>/source/<repo>/<path>/index.html
+└── @explain/                          every response `explain dev` would give, frozen
+    ├── api/site
+    ├── api/page/<locale>/<page>
+    ├── api/search/<locale>
+    ├── api/source/<repo>/<path>
+    ├── widgets/<name>.js
+    └── widgets.css
+```
+
+- The site is served from the host root, not a subdirectory.
+- Every file a page cites or records in its sources file is copied into `@explain/api/source/`. Do
+  not publish a build of a private repo.
+- Freshness is frozen at build time: a page stale when built shows stale, and later changes to the
+  repos do not reach the site until the next build.
