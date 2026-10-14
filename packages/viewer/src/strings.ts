@@ -76,6 +76,7 @@ export interface Strings {
   readonly paneGone: string;
   readonly recordedHash: string;
   readonly modes: { readonly follow: string; readonly pinned: string; readonly preview: string };
+  readonly resumeFollow: string;
   readonly citeCount: (index: number, total: number) => string;
   readonly citeTotal: (total: number) => string;
   readonly prevCite: string;
@@ -186,11 +187,8 @@ const en: Strings = {
   paneChanged: "Changed",
   paneGone: "Gone",
   recordedHash: "git hash-object recorded by explain hash",
-  modes: {
-    follow: "Following the text",
-    pinned: "Pinned · scroll to follow again",
-    preview: "Preview",
-  },
+  modes: { follow: "Following", pinned: "Pinned", preview: "Preview" },
+  resumeFollow: "Resume following",
   citeCount: (index, total) => `Citation ${index} / ${total}`,
   citeTotal: (total) => `${total} ${total === 1 ? "citation" : "citations"}`,
   prevCite: "Previous citation ([)",
@@ -291,7 +289,8 @@ const zhCN: Strings = {
   paneChanged: "已改动",
   paneGone: "已删除",
   recordedHash: "explain hash 记录的 git hash-object",
-  modes: { follow: "跟随阅读", pinned: "已固定 · 滚动即恢复跟随", preview: "预览" },
+  modes: { follow: "跟随中", pinned: "已固定", preview: "预览" },
+  resumeFollow: "恢复跟随",
   citeCount: (index, total) => `引用 ${index} / ${total}`,
   citeTotal: (total) => `${total} 处引用`,
   prevCite: "上一处引用（[）",

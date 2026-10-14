@@ -17,11 +17,34 @@ export interface NoteMarker {
   readonly ref: Ref;
 }
 
-export type PaneMode = "follow" | "pinned" | "preview";
+export type PaneMode =
+  | { readonly kind: "follow" }
+  | { readonly kind: "pinned"; readonly anchor: Anchor };
+
+type PaneEvent =
+  | { readonly type: "toggle"; readonly anchor: Anchor }
+  | { readonly type: "pin"; readonly anchor: Anchor }
+  | { readonly type: "resume" };
+
+const following: PaneMode = { kind: "follow" };
+
+const transition = (mode: PaneMode, event: PaneEvent): PaneMode => {
+  switch (event.type) {
+    case "toggle":
+      return mode.kind === "pinned" && mode.anchor.el === event.anchor.el
+        ? following
+        : { kind: "pinned", anchor: event.anchor };
+    case "pin":
+      return { kind: "pinned", anchor: event.anchor };
+    case "resume":
+      return following;
+  }
+};
 
 export interface PaneState {
   readonly shown: Anchor | null;
   readonly mode: PaneMode;
+  readonly preview: boolean;
   readonly position: number;
   readonly total: number;
   readonly notes: ReadonlyArray<NoteMarker>;
@@ -38,8 +61,7 @@ const anchorKinds: Readonly<Record<string, AnchorKind>> = {
 export const splitQuery = "(min-width: 1080px)";
 
 const readingLine = 0.4;
-const releaseDistance = 140;
-const programmaticWindow = 900;
+const settleDelay = 150;
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
 const isSplit = () => matchMedia(splitQuery).matches;
@@ -54,23 +76,23 @@ export class PaneController {
   readonly #main: HTMLElement;
   #anchors: ReadonlyArray<Anchor> = [];
   readonly #byElement = new WeakMap<Element, Anchor>();
-  #following = true;
-  #pinned: Anchor | null = null;
+  #mode: PaneMode = following;
+  #followed: Anchor | null = null;
+  #hold: Anchor | null = null;
   #preview: Anchor | null = null;
-  #held: Anchor | null = null;
-  #pinY = 0;
-  #programmaticUntil = 0;
+  #settleTimer: number | undefined;
   #leaveTimer: number | undefined;
   #refreshFrame = 0;
   #leaderFrame = 0;
-  #settleUntil = 0;
+  #leaderUntil = 0;
   #pane: HTMLElement | null = null;
   #leader: SVGSVGElement | null = null;
   #leaderFor: Anchor | null = null;
   #sheetReturn: HTMLElement | null = null;
   #state: PaneState = {
     shown: null,
-    mode: "follow",
+    mode: following,
+    preview: false,
     position: -1,
     total: 0,
     notes: [],
@@ -118,6 +140,7 @@ export class PaneController {
       removeEventListener("scroll", this.#onScroll);
       removeEventListener("resize", this.#onResize);
       clearTimeout(this.#leaveTimer);
+      clearTimeout(this.#settleTimer);
       cancelAnimationFrame(this.#refreshFrame);
       cancelAnimationFrame(this.#leaderFrame);
       if (this.#state.sheetOpen) this.setSheet(false);
@@ -163,23 +186,26 @@ export class PaneController {
     const index = this.#state.shown === null ? -1 : list.indexOf(this.#state.shown);
     const next = list[Math.max(0, Math.min(list.length - 1, (index < 0 ? 0 : index) + direction))];
     if (next === undefined) return;
-    this.#following = true;
-    this.#pinned = null;
+    this.#mode = transition(this.#mode, { type: "resume" });
     this.#preview = null;
-    this.#held = next;
-    this.#programmaticUntil = performance.now() + programmaticWindow;
+    this.#followed = next;
+    this.#hold = next;
     const top = scrollY + next.el.getBoundingClientRect().top - innerHeight * readingLine + 4;
     scrollTo({ top, behavior: scrollBehavior() });
-    this.#sync();
+    this.#arm();
+    this.#render();
   }
 
   activateNote(key: string) {
     const anchor = this.#anchors.find((item) => item.kind === "note" && item.key === key);
     if (anchor === undefined) return;
-    this.#pin(anchor);
-    this.#programmaticUntil = performance.now() + programmaticWindow;
+    this.#dispatch({ type: "pin", anchor });
     anchor.el.scrollIntoView({ block: "center", behavior: scrollBehavior() });
     anchor.el.focus({ preventScroll: true });
+  }
+
+  resume() {
+    this.#dispatch({ type: "resume" });
   }
 
   setSheet(open: boolean, from?: HTMLElement) {
@@ -200,12 +226,12 @@ export class PaneController {
   }
 
   readonly schedule = () => {
-    this.#settleUntil = performance.now() + 700;
+    this.#leaderUntil = performance.now() + 700;
     if (this.#leaderFrame !== 0) return;
     const tick = () => {
       this.#leaderFrame = 0;
       this.#drawLeader();
-      if (performance.now() < this.#settleUntil) this.#leaderFrame = requestAnimationFrame(tick);
+      if (performance.now() < this.#leaderUntil) this.#leaderFrame = requestAnimationFrame(tick);
     };
     this.#leaderFrame = requestAnimationFrame(tick);
   };
@@ -236,13 +262,18 @@ export class PaneController {
       this.#byElement.set(el, anchor);
       return [anchor];
     });
-    const pinned = this.#pinned;
-    if (pinned !== null && !pinned.el.isConnected) {
-      this.#pinned = this.#anchors.find((anchor) => anchor.key === pinned.key) ?? null;
+    const mode = this.#mode;
+    if (mode.kind === "pinned" && !mode.anchor.el.isConnected) {
+      const anchor = this.#anchors.find((item) => item.key === mode.anchor.key);
+      this.#mode = transition(
+        mode,
+        anchor === undefined ? { type: "resume" } : { type: "pin", anchor },
+      );
     }
     if (this.#preview !== null && !this.#preview.el.isConnected) this.#preview = null;
-    if (this.#held !== null && !this.#held.el.isConnected) this.#held = null;
-    this.#sync();
+    if (this.#followed !== null && !this.#followed.el.isConnected) this.#followed = null;
+    if (this.#hold !== null && !this.#hold.el.isConnected) this.#hold = null;
+    this.#update();
     this.schedule();
   }
 
@@ -250,7 +281,8 @@ export class PaneController {
     return this.#anchors.filter((anchor) => anchor.follow && isVisible(anchor));
   }
 
-  #readingAnchor(list: ReadonlyArray<Anchor>): Anchor | null {
+  #readingAnchor(): Anchor | null {
+    const list = this.#followable();
     const line = innerHeight * readingLine;
     let best: Anchor | null = null;
     for (const anchor of list) {
@@ -260,16 +292,44 @@ export class PaneController {
     return best ?? list[0] ?? null;
   }
 
-  #sync() {
+  #arm() {
+    clearTimeout(this.#settleTimer);
+    this.#settleTimer = setTimeout(this.#settle, settleDelay);
+  }
+
+  readonly #settle = () => {
+    this.#settleTimer = undefined;
+    this.#update();
+  };
+
+  #rest() {
+    this.#followed = this.#hold ?? this.#readingAnchor();
+    this.#hold = null;
+  }
+
+  #update() {
+    if (this.#settleTimer !== undefined) return;
+    this.#rest();
+    this.#render();
+  }
+
+  #dispatch(event: PaneEvent) {
+    const active = document.activeElement;
+    const fromResume = active instanceof Element && active.closest(".pane-resume") !== null;
+    this.#mode = transition(this.#mode, event);
+    this.#preview = null;
+    if (this.#settleTimer === undefined) this.#rest();
+    this.#render();
+    if (fromResume && this.#mode.kind === "follow") {
+      this.#pane?.querySelector<HTMLElement>(".pane-state")?.focus({ preventScroll: true });
+    }
+  }
+
+  #render() {
     const list = this.#followable();
-    const held = performance.now() < this.#programmaticUntil ? this.#held : null;
+    const pinned = this.#mode.kind === "pinned" ? this.#mode.anchor : null;
     const current = this.#state.shown?.el.isConnected === true ? this.#state.shown : null;
-    const shown =
-      this.#preview ??
-      (this.#following ? null : this.#pinned) ??
-      held ??
-      this.#readingAnchor(list) ??
-      current;
+    const shown = this.#preview ?? pinned ?? this.#followed ?? current;
     const group = shown?.kind === "note" ? shown.el.closest(".annotated") : null;
     const notes =
       shown === this.#state.shown
@@ -284,7 +344,8 @@ export class PaneController {
             });
     this.#emit({
       shown,
-      mode: this.#preview !== null ? "preview" : this.#following ? "follow" : "pinned",
+      mode: this.#mode,
+      preview: this.#preview !== null,
       position: shown === null ? -1 : list.indexOf(shown),
       total: list.length,
       notes,
@@ -297,6 +358,7 @@ export class PaneController {
     if (
       previous.shown === next.shown &&
       previous.mode === next.mode &&
+      previous.preview === next.preview &&
       previous.position === next.position &&
       previous.total === next.total &&
       previous.notes === next.notes &&
@@ -311,14 +373,6 @@ export class PaneController {
     this.#state = next;
     for (const listener of this.#listeners) listener();
     this.schedule();
-  }
-
-  #pin(anchor: Anchor) {
-    this.#following = false;
-    this.#pinned = anchor;
-    this.#pinY = scrollY;
-    this.#preview = null;
-    this.#sync();
   }
 
   #anchorFor(target: EventTarget | null): Anchor | undefined {
@@ -354,17 +408,17 @@ export class PaneController {
   };
 
   #enter(anchor: Anchor) {
-    if (!isSplit()) return;
+    if (!isSplit() || this.#settleTimer !== undefined) return;
     clearTimeout(this.#leaveTimer);
     this.#preview = anchor;
-    this.#sync();
+    this.#update();
   }
 
   #leave() {
     clearTimeout(this.#leaveTimer);
     this.#leaveTimer = setTimeout(() => {
       this.#preview = null;
-      this.#sync();
+      this.#update();
     }, 160);
   }
 
@@ -373,8 +427,12 @@ export class PaneController {
     const anchor = this.#anchorFor(event.target);
     if (anchor === undefined) return;
     event.preventDefault();
-    this.#pin(anchor);
-    if (!isSplit()) this.setSheet(true, anchor.el);
+    if (isSplit()) {
+      this.#dispatch({ type: "toggle", anchor });
+      return;
+    }
+    this.#dispatch({ type: "pin", anchor });
+    this.setSheet(true, anchor.el);
   };
 
   readonly #onKeyDown = (event: KeyboardEvent) => {
@@ -388,24 +446,21 @@ export class PaneController {
     ) {
       return;
     }
+    if (event.key === "Escape" && this.#mode.kind === "pinned" && !this.#main.inert) {
+      this.#dispatch({ type: "resume" });
+    }
     if (event.key === "]") this.step(1);
     if (event.key === "[") this.step(-1);
   };
 
   readonly #onScroll = () => {
-    if (!this.#following) {
-      if (performance.now() <= this.#programmaticUntil) this.#pinY = scrollY;
-      else if (Math.abs(scrollY - this.#pinY) > releaseDistance) {
-        this.#following = true;
-        this.#pinned = null;
-      }
-    }
-    this.#sync();
+    this.#arm();
+    this.schedule();
   };
 
   readonly #onResize = () => {
     if (isSplit() && this.#state.sheetOpen) this.setSheet(false);
-    this.#sync();
+    this.#update();
     this.schedule();
   };
 
@@ -448,8 +503,8 @@ export class PaneController {
     end.setAttribute("cx", `${x2}`);
     end.setAttribute("cy", `${y2}`);
     leader.classList.add("on");
-    leader.dataset.mode = this.#state.mode;
-    if (this.#leaderFor !== anchor && !reducedMotion.matches && this.#state.mode !== "preview") {
+    leader.dataset.mode = this.#state.preview ? "preview" : this.#state.mode.kind;
+    if (this.#leaderFor !== anchor && !reducedMotion.matches && !this.#state.preview) {
       const length = path.getTotalLength();
       for (const animation of path.getAnimations()) animation.cancel();
       path.animate(

@@ -33,6 +33,9 @@ export function SourcePane({ controller }: { readonly controller: PaneController
   const [peek, setPeek] = useState<Peek | null>(null);
   const shown = state.shown;
   const shownKey = shown === null ? null : fileKey(shown.ref);
+  if (shown !== null && !files.some((file) => fileKey(file) === shownKey)) {
+    setFiles([...files, { repo: shown.ref.repo, path: shown.ref.path }]);
+  }
 
   useEffect(() => {
     if (pane.current === null || leader.current === null) return;
@@ -42,11 +45,6 @@ export function SourcePane({ controller }: { readonly controller: PaneController
   useEffect(() => {
     if (shown === null) return;
     const { repo, path } = shown.ref;
-    setFiles((current) =>
-      current.some((file) => file.repo === repo && file.path === path)
-        ? current
-        : [...current, { repo, path }],
-    );
     const line = shown.ref.ranges[0]?.from ?? 1;
     let live = true;
     loadSourceLines(repo, path).then(
@@ -80,13 +78,14 @@ export function SourcePane({ controller }: { readonly controller: PaneController
   const range = shown === null ? "" : rangeLabel(shown.ref, strings);
   const toggleSheet = () => controller.setSheet(!state.sheetOpen);
   const narrow = () => !matchMedia(splitQuery).matches;
+  const view = state.preview ? "preview" : state.mode.kind;
 
   return (
     <>
       <aside
         className="pane"
         ref={pane}
-        data-mode={state.mode}
+        data-mode={view}
         aria-label={shown === null ? strings.pane : strings.paneLabel(path, range)}
       >
         <div className="pane-head">
@@ -111,6 +110,17 @@ export function SourcePane({ controller }: { readonly controller: PaneController
               {entry?.recorded?.hash.slice(0, 7) ?? ""}
             </span>
             {flag !== null && <span className="pane-flag">{flag}</span>}
+          </div>
+          <div className="pane-mode">
+            <span className="pane-state" role="status" tabIndex={-1}>
+              <span className="mode-dot" aria-hidden="true" />
+              {strings.modes[view]}
+            </span>
+            {state.mode.kind === "pinned" && (
+              <button type="button" className="pane-resume" onClick={() => controller.resume()}>
+                {strings.resumeFollow}
+              </button>
+            )}
           </div>
           <div className="pane-actions">
             {shown !== null && (
@@ -163,10 +173,6 @@ export function SourcePane({ controller }: { readonly controller: PaneController
           })}
         </div>
         <div className="pane-foot">
-          <span className="pane-mode" role="status">
-            <span className="mode-dot" aria-hidden="true" />
-            <span className="mode-text">{strings.modes[state.mode]}</span>
-          </span>
           <span className="pane-count">
             {state.position >= 0
               ? strings.citeCount(state.position + 1, state.total)
@@ -232,27 +238,8 @@ const SourceView = memo(function SourceView({
     const box = code.current;
     const scroll = scroller.current;
     if (focusKey === null || lines.status !== "file" || box === null || scroll === null) return;
-    const rows = box.querySelectorAll<HTMLElement>(":scope > .ln");
-    const bands = box.querySelectorAll<HTMLElement>(":scope > .band");
     const behavior: ScrollBehavior = reducedMotion.matches ? "auto" : "smooth";
-    const spans = ranges.flatMap((range) => {
-      const first = rows[range.from - 1];
-      const last = rows[Math.min(range.to, rows.length) - 1];
-      return first === undefined || last === undefined
-        ? []
-        : [{ top: first.offsetTop, height: last.offsetTop + last.offsetHeight - first.offsetTop }];
-    });
-    spans.forEach((span, index) => {
-      const band = bands[index];
-      if (band === undefined) return;
-      band.style.transform = `translateY(${span.top}px)`;
-      band.style.height = `${span.height}px`;
-    });
-    for (const marker of box.querySelectorAll<HTMLElement>(".marker")) {
-      const row = rows[Number(marker.dataset.line) - 1];
-      if (row !== undefined) marker.style.top = `${row.offsetTop}px`;
-    }
-    const target = spans[0];
+    const target = placeBands(box, ranges)[0];
     if (target === undefined) scroll.scrollTo({ top: 0, behavior });
     else {
       const viewport = scroll.clientHeight;
@@ -263,6 +250,12 @@ const SourceView = memo(function SourceView({
       scroll.scrollTo({ top: Math.max(0, top), behavior });
     }
     controller.schedule();
+    const reflow = new ResizeObserver(() => {
+      placeBands(box, ranges);
+      controller.schedule();
+    });
+    reflow.observe(box);
+    return () => reflow.disconnect();
   }, [controller, focusKey, lines.status, sheetOpen, notes]);
 
   const focused = ranges.length > 0;
@@ -331,3 +324,29 @@ const SourceView = memo(function SourceView({
     </div>
   );
 });
+
+function placeBands(
+  box: HTMLElement,
+  ranges: ReadonlyArray<{ readonly from: number; readonly to: number }>,
+): ReadonlyArray<{ readonly top: number; readonly height: number }> {
+  const rows = box.querySelectorAll<HTMLElement>(":scope > .ln");
+  const bands = box.querySelectorAll<HTMLElement>(":scope > .band");
+  const spans = ranges.flatMap((range) => {
+    const first = rows[range.from - 1];
+    const last = rows[Math.min(range.to, rows.length) - 1];
+    return first === undefined || last === undefined
+      ? []
+      : [{ top: first.offsetTop, height: last.offsetTop + last.offsetHeight - first.offsetTop }];
+  });
+  spans.forEach((span, index) => {
+    const band = bands[index];
+    if (band === undefined) return;
+    band.style.transform = `translateY(${span.top}px)`;
+    band.style.height = `${span.height}px`;
+  });
+  for (const marker of box.querySelectorAll<HTMLElement>(".marker")) {
+    const row = rows[Number(marker.dataset.line) - 1];
+    if (row !== undefined) marker.style.top = `${row.offsetTop}px`;
+  }
+  return spans;
+}
