@@ -23,18 +23,19 @@ import { gfm } from "micromark-extension-gfm";
 import { mdxJsx } from "micromark-extension-mdx-jsx";
 import { parseRef, type Ref } from "./citation.ts";
 import { glossaryPageId, pageIdPattern } from "./config.ts";
-import type {
-  AlertKind,
-  Block,
-  Diagnostic,
-  Inline,
-  LabeledBlocks,
-  ListItem,
-  Page,
-  Position,
-  SourceNote,
-  TocEntry,
-  TreeItem,
+import {
+  type AlertKind,
+  type Block,
+  type Diagnostic,
+  type Inline,
+  type LabeledBlocks,
+  type ListItem,
+  type Page,
+  type Position,
+  plainText,
+  type SourceNote,
+  type TocEntry,
+  type TreeItem,
 } from "./page.ts";
 
 export interface ParseResult {
@@ -84,21 +85,6 @@ const positionOf = (node: Pick<Nodes, "position">): Position => ({
   line: node.position?.start.line ?? 1,
   column: node.position?.start.column ?? 1,
 });
-
-const plainText = (inlines: ReadonlyArray<Inline>): string =>
-  inlines
-    .map((inline) => {
-      switch (inline.type) {
-        case "text":
-        case "inlineCode":
-          return inline.value;
-        case "break":
-          return " ";
-        default:
-          return plainText(inline.children);
-      }
-    })
-    .join("");
 
 const isWhitespaceText = (node: PhrasingContent): boolean =>
   node.type === "text" && node.value.trim() === "";

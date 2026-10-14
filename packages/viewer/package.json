@@ -1,0 +1,21 @@
+{
+  "name": "@explain/viewer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./api": "./src/api.ts",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "beautiful-mermaid": "catalog:",
+    "highlight.js": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@explain/contract": "workspace:*",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:"
+  }
+}

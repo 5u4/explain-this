@@ -1,19 +1,21 @@
 #!/usr/bin/env bun
 import { BunRuntime, BunServices } from "@effect/platform-bun";
 import { formatRef } from "@explain/contract/citation";
+import type { StaleReason } from "@explain/contract/sources";
 import * as Console from "effect/Console";
 import * as Argument from "effect/cli/Argument";
 import * as Command from "effect/cli/Command";
+import * as Flag from "effect/cli/Flag";
 import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";
 import * as Path from "effect/Path";
 import * as Runtime from "effect/Runtime";
+import { serveDocRoot } from "./dev.ts";
 import {
   type Diagnostic,
   type DocRoot,
   findDocRoot,
   loadDocRoot,
-  type StaleReason,
   writeSources,
 } from "./doc-root.ts";
 
@@ -94,9 +96,10 @@ const hash = Command.make(
         refused = true;
         continue;
       }
-      const blocking = [...page.errors, ...page.refProblems];
-      if (page.page === undefined || blocking.length > 0) {
-        yield* printDiagnostics(blocking);
+      if (page.status !== "parsed" || page.errors.length > 0 || page.refProblems.length > 0) {
+        yield* printDiagnostics(
+          page.status === "parsed" ? [...page.errors, ...page.refProblems] : page.errors,
+        );
         yield* Console.error(`refused to hash ${display(page.file)}: fix the errors above`);
         refused = true;
         continue;
@@ -119,14 +122,16 @@ const check = Command.make(
     for (const page of docRoot.pages) {
       yield* printDiagnostics(page.errors);
       if (page.errors.length > 0) invalid++;
-      if (page.freshness?.status !== "stale") continue;
+      if (page.status !== "parsed" || page.freshness.status !== "stale") continue;
       stale++;
       yield* Console.log(`stale ${display(page.file)}`);
       for (const reason of page.freshness.reasons) {
         yield* Console.log(`  ${describeReason(reason, display(page.file))}`);
       }
     }
-    const fresh = docRoot.pages.filter((page) => page.freshness?.status === "fresh").length;
+    const fresh = docRoot.pages.filter(
+      (page) => page.status === "parsed" && page.freshness.status === "fresh",
+    ).length;
     yield* Console.log(
       `${docRoot.pages.length} pages: ${fresh} fresh, ${stale} stale, ${invalid === 0 ? "no" : "with"} validation errors`,
     );
@@ -135,8 +140,25 @@ const check = Command.make(
   }),
 ).pipe(Command.withDescription("Validate every page and report stale pages"));
 
+const dev = Command.make(
+  "dev",
+  { port: Flag.Int("port").pipe(Flag.withDefault(4321)) },
+  Effect.fnUntraced(function* ({ port }) {
+    const { docRoot } = yield* openDocRoot;
+    const url = yield* serveDocRoot(docRoot, port).pipe(
+      Effect.catchTag("DevServerFailed", (error) =>
+        Console.error(`explain dev: ${error.message}`).pipe(
+          Effect.andThen(Effect.fail(new ExitWith({ code: 2 }))),
+        ),
+      ),
+    );
+    yield* Console.log(`explain dev: ${url}`);
+    return yield* Effect.never;
+  }, Effect.scoped),
+).pipe(Command.withDescription("Serve the doc root in the browser and reload on change"));
+
 Command.make("explain").pipe(
-  Command.withSubcommands([hash, check]),
+  Command.withSubcommands([hash, check, dev]),
   Command.run({ version: "0.1.0" }),
   Effect.provide(BunServices.layer),
   BunRuntime.runMain,

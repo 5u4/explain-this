@@ -5,9 +5,11 @@ import { glossaryTermIds } from "@explain/contract/page";
 import { type ParseResult, parsePage } from "@explain/contract/parse-page";
 import {
   compareSourceKeys,
+  type Freshness,
   formatSourcesFile,
   type SourceFile,
   SourcesFileFromJson,
+  type StaleReason,
 } from "@explain/contract/sources";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
@@ -27,34 +29,44 @@ export interface Diagnostic {
   readonly message: string;
 }
 
-export type StaleReason =
-  | { readonly kind: "sources-missing" }
-  | { readonly kind: "not-recorded"; readonly repo: string; readonly path: string }
-  | { readonly kind: "not-cited"; readonly repo: string; readonly path: string }
-  | { readonly kind: "missing"; readonly repo: string; readonly path: string }
-  | { readonly kind: "changed"; readonly repo: string; readonly path: string };
-
-export type Freshness =
-  | { readonly status: "fresh" }
-  | { readonly status: "stale"; readonly reasons: ReadonlyArray<StaleReason> };
-
-export interface DocPage {
+interface PageAddress {
   readonly locale: string;
   readonly id: string;
   readonly file: string;
   readonly sourcesFile: string;
-  readonly page: Page | undefined;
+}
+
+export type ParsedDocPage = PageAddress & {
+  readonly status: "parsed";
+  readonly page: Page;
   readonly errors: ReadonlyArray<Diagnostic>;
   readonly refProblems: ReadonlyArray<Diagnostic>;
   readonly sources: ReadonlyArray<SourceFile>;
-  readonly freshness: Freshness | undefined;
-}
+  readonly recorded: ReadonlyArray<SourceFile> | undefined;
+  readonly freshness: Freshness;
+};
+
+export type DocPage =
+  | (PageAddress & { readonly status: "missing"; readonly errors: ReadonlyArray<Diagnostic> })
+  | (PageAddress & { readonly status: "invalid"; readonly errors: ReadonlyArray<Diagnostic> })
+  | ParsedDocPage;
+
+export type Resolved =
+  | { readonly status: "file"; readonly bytes: Uint8Array; readonly lines: number }
+  | { readonly status: "unknown-repo" }
+  | { readonly status: "missing" }
+  | { readonly status: "escapes" }
+  | { readonly status: "not-a-file" };
 
 export interface DocRoot {
   readonly root: string;
   readonly config: ExplainConfig;
   readonly pages: ReadonlyArray<DocPage>;
   readonly errors: ReadonlyArray<Diagnostic>;
+  readonly resolveSource: (
+    repo: string,
+    path: string,
+  ) => Effect.Effect<Resolved, PlatformError.PlatformError>;
 }
 
 export type DocRootServices =
@@ -79,13 +91,6 @@ export class InvalidConfig extends Schema.TaggedError<InvalidConfig>()("InvalidC
 }) {}
 
 const configFileName = "explain.json";
-
-type Resolved =
-  | { readonly status: "file"; readonly bytes: Uint8Array; readonly lines: number }
-  | { readonly status: "unknown-repo" }
-  | { readonly status: "missing" }
-  | { readonly status: "escapes" }
-  | { readonly status: "not-a-file" };
 
 const blobHeaderEncoder = new TextEncoder();
 
@@ -223,7 +228,10 @@ export const loadDocRoot = Effect.fnUntraced(function* (
     resolvedCache.set(key, resolved);
     return resolved;
   });
-  const resolveUncached = Effect.fnUntraced(function* (repo: string, sourcePath: string) {
+  const resolveUncached = Effect.fnUntraced(function* (
+    repo: string,
+    sourcePath: string,
+  ): Effect.fn.Return<Resolved, PlatformError.PlatformError> {
     if (!Object.hasOwn(config.repos, repo)) return { status: "unknown-repo" } satisfies Resolved;
     const repoRoot = repoRoots.get(repo);
     if (repoRoot === undefined) return { status: "missing" } satisfies Resolved;
@@ -326,33 +334,13 @@ export const loadDocRoot = Effect.fnUntraced(function* (
           ? `${file} is missing; every locale has a glossary`
           : `${file} is missing; nav lists page "${id}"`,
       );
-      return {
-        locale,
-        id,
-        file,
-        sourcesFile,
-        page: undefined,
-        errors,
-        refProblems: [],
-        sources: [],
-        freshness: undefined,
-      } satisfies DocPage;
+      return { locale, id, file, sourcesFile, status: "missing", errors } satisfies DocPage;
     }
 
     for (const error of parsed.errors) at(error, error.message);
     const page = parsed.page;
     if (page === undefined) {
-      return {
-        locale,
-        id,
-        file,
-        sourcesFile,
-        page,
-        errors,
-        refProblems: [],
-        sources: [],
-        freshness: undefined,
-      } satisfies DocPage;
+      return { locale, id, file, sourcesFile, status: "invalid", errors } satisfies DocPage;
     }
 
     const cited = new Map<string, { repo: string; path: string }>();
@@ -424,10 +412,12 @@ export const loadDocRoot = Effect.fnUntraced(function* (
       id,
       file,
       sourcesFile,
+      status: "parsed",
       page,
       errors,
       refProblems,
       sources,
+      recorded,
       freshness,
     } satisfies DocPage;
   });
@@ -440,7 +430,7 @@ export const loadDocRoot = Effect.fnUntraced(function* (
     const terms = new Set(glossary === undefined ? [] : glossaryTermIds(glossary));
     for (const id of pageIds) pages.push(yield* checkPage(locale, id, parsed.get(id), terms));
   }
-  return { root, config, pages, errors: rootErrors };
+  return { root, config, pages, errors: rootErrors, resolveSource: resolve } satisfies DocRoot;
 });
 
 const refProblem = (ref: Ref, resolved: Resolved): string | undefined => {
@@ -503,7 +493,7 @@ const compareSources = Effect.fnUntraced(function* <E, R>(
     : ({ status: "stale", reasons } satisfies Freshness);
 });
 
-export const writeSources = Effect.fnUntraced(function* (root: string, page: DocPage) {
+export const writeSources = Effect.fnUntraced(function* (root: string, page: ParsedDocPage) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   yield* fs.writeFileString(path.join(root, page.sourcesFile), formatSourcesFile(page.sources));

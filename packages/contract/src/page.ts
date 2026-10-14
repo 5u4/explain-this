@@ -123,3 +123,18 @@ export interface Page {
 
 export const glossaryTermIds = (glossary: Page): ReadonlyArray<string> =>
   glossary.toc.filter((entry) => entry.depth === 2).map((entry) => entry.id);
+
+export const plainText = (inlines: ReadonlyArray<Inline>): string =>
+  inlines
+    .map((inline) => {
+      switch (inline.type) {
+        case "text":
+        case "inlineCode":
+          return inline.value;
+        case "break":
+          return " ";
+        default:
+          return plainText(inline.children);
+      }
+    })
+    .join("");

@@ -21,6 +21,17 @@ export type SourcesFile = typeof SourcesFile.Type;
 
 export const SourcesFileFromJson = Schema.fromJsonString(SourcesFile);
 
+export type StaleReason =
+  | { readonly kind: "sources-missing" }
+  | { readonly kind: "not-recorded"; readonly repo: string; readonly path: string }
+  | { readonly kind: "not-cited"; readonly repo: string; readonly path: string }
+  | { readonly kind: "missing"; readonly repo: string; readonly path: string }
+  | { readonly kind: "changed"; readonly repo: string; readonly path: string };
+
+export type Freshness =
+  | { readonly status: "fresh" }
+  | { readonly status: "stale"; readonly reasons: ReadonlyArray<StaleReason> };
+
 export const compareSourceKeys = (
   a: { readonly repo: string; readonly path: string },
   b: { readonly repo: string; readonly path: string },

@@ -1,6 +1,10 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.5.8/schema.json",
-  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
   "files": {
     "includes": ["**", "!repos", "!**/dist", "!prototype"]
   },
@@ -20,7 +24,11 @@
   },
   "assist": {
     "enabled": true,
-    "actions": { "source": { "organizeImports": "on" } }
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
   },
   "linter": {
     "enabled": true,
@@ -30,7 +38,12 @@
       "a11y": "off",
       "suspicious": {
         "noExplicitAny": "error",
-        "noConsole": { "level": "error", "options": { "allow": ["error", "warn"] } },
+        "noConsole": {
+          "level": "error",
+          "options": {
+            "allow": ["error", "warn"]
+          }
+        },
         "noShadowRestrictedNames": "off"
       },
       "style": {
@@ -53,14 +66,24 @@
   "overrides": [
     {
       "includes": ["vitest.config.ts"],
-      "linter": { "rules": { "style": { "noDefaultExport": "off" } } }
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off"
+          }
+        }
+      }
     },
     {
       "includes": ["scripts/**"],
       "linter": {
         "rules": {
-          "suspicious": { "noConsole": "off" },
-          "correctness": { "noNodejsModules": "off" }
+          "suspicious": {
+            "noConsole": "off"
+          },
+          "correctness": {
+            "noNodejsModules": "off"
+          }
         }
       }
     },
@@ -89,6 +112,42 @@
                 ]
               }
             }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/viewer/**"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noNodejsModules": "error"
+          },
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["effect", "effect/*", "@effect/*", "bun", "bun:*"],
+                    "message": "the viewer runs in the browser; Effect, Bun, and Node stay in the cli and contract."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/viewer/src/styles/**"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noImportantStyles": "off"
+          },
+          "style": {
+            "noDescendingSpecificity": "off"
           }
         }
       }

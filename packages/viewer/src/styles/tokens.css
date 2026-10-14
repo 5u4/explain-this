@@ -1,0 +1,126 @@
+:root {
+  --ink-0: oklch(0.135 0.007 70);
+  --ink-1: oklch(0.165 0.008 70);
+  --ink-2: oklch(0.198 0.009 70);
+  --ink-3: oklch(0.238 0.01 70);
+  --ink-4: oklch(0.3 0.011 70);
+  --ink-5: oklch(0.4 0.012 72);
+  --ink-55: oklch(0.52 0.012 74);
+  --ink-6: oklch(0.62 0.012 75);
+  --ink-7: oklch(0.72 0.012 78);
+  --ink-8: oklch(0.86 0.01 82);
+  --ink-9: oklch(0.95 0.008 85);
+
+  --zhu-4: oklch(0.56 0.17 33);
+  --zhu-5: oklch(0.66 0.19 33);
+  --zhu-6: oklch(0.76 0.15 38);
+
+  --jade-6: oklch(0.79 0.11 165);
+  --leaf-6: oklch(0.8 0.12 140);
+  --amber-6: oklch(0.83 0.13 80);
+  --indigo-6: oklch(0.78 0.08 250);
+  --violet-6: oklch(0.78 0.1 305);
+
+  --surface-page: var(--ink-1);
+  --surface-raised: var(--ink-2);
+  --surface-inset: oklch(0.145 0.007 70);
+  --border: oklch(0.3 0.011 70 / 0.7);
+  --border-strong: var(--ink-4);
+
+  --text-strong: var(--ink-9);
+  --text-body: var(--ink-8);
+  --text-muted: var(--ink-6);
+  --text-faint: var(--ink-55);
+
+  --mark: var(--zhu-5);
+  --removed: var(--zhu-5);
+  --added: var(--leaf-6);
+  --fresh: var(--jade-6);
+  --stale: var(--amber-6);
+  --note: var(--indigo-6);
+  --important: var(--violet-6);
+  --warning: var(--amber-6);
+  --focus: var(--ink-9);
+
+  --font-display: "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif;
+  --font-body:
+    "Inter", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, "PingFang SC", monospace;
+
+  --step--1: 0.8125rem;
+  --step-0: 1.0625rem;
+  --step-1: 1.1875rem;
+  --step-2: 1.625rem;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  --radius-s: 6px;
+  --radius-m: 10px;
+
+  --surface-pane: var(--ink-0);
+  --surface-hover: var(--ink-3);
+  --scrim: oklch(0.08 0.005 70 / 0.62);
+  --text-secondary: var(--ink-7);
+  --mark-text: var(--zhu-6);
+  --mark-strong: var(--zhu-4);
+  --mark-wash: oklch(0.66 0.19 33 / 0.13);
+  --mark-wash-strong: oklch(0.66 0.19 33 / 0.22);
+  --mark-line: oklch(0.66 0.19 33 / 0.55);
+  --fresh-wash: oklch(0.79 0.11 165 / 0.12);
+  --stale-wash: oklch(0.83 0.13 80 / 0.13);
+  --note-wash: oklch(0.78 0.08 250 / 0.08);
+  --important-wash: oklch(0.78 0.1 305 / 0.08);
+  --warning-wash: oklch(0.83 0.13 80 / 0.08);
+  --selection: oklch(0.66 0.19 33 / 0.35);
+
+  --syn-keyword: oklch(0.79 0.075 300);
+  --syn-string: oklch(0.8 0.085 150);
+  --syn-func: oklch(0.86 0.08 88);
+  --syn-type: oklch(0.8 0.07 225);
+  --syn-number: oklch(0.82 0.07 60);
+  --syn-comment: var(--ink-6);
+  --syn-punct: var(--ink-7);
+
+  --diagram-fg: var(--ink-8);
+  --diagram-line: var(--ink-5);
+  --diagram-accent: var(--ink-7);
+  --diagram-muted: var(--ink-6);
+  --diagram-surface: var(--ink-2);
+  --diagram-border: var(--ink-4);
+
+  --size-caption: 0.75rem;
+  --size-ui-lg: 0.875rem;
+  --size-h1: clamp(2.25rem, 1.3rem + 2.6vw, 3.5rem);
+
+  --leading-body: 1.85;
+  --leading-ui: 1.5;
+  --leading-code: 1.7;
+  --leading-heading: 1.2;
+  --leading-display: 1.08;
+
+  --space-9: 96px;
+
+  --radius-xs: 4px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --dur-fast: 140ms;
+  --dur-base: 280ms;
+  --dur-slow: 460ms;
+
+  --shadow-pop:
+    0 1px 0 oklch(1 0 0 / 0.04) inset, 0 12px 32px oklch(0 0 0 / 0.45),
+    0 2px 6px oklch(0 0 0 / 0.35);
+
+  --rail-w: 232px;
+  --prose-w: 704px;
+  --pane-min: 440px;
+}

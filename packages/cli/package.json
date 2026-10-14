@@ -12,7 +12,9 @@
   "dependencies": {
     "@effect/platform-bun": "catalog:",
     "@explain/contract": "workspace:*",
-    "effect": "catalog:"
+    "@explain/viewer": "workspace:*",
+    "effect": "catalog:",
+    "vite": "catalog:"
   },
   "devDependencies": {
     "@effect/vitest": "catalog:"
