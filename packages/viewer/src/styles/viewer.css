@@ -2302,6 +2302,12 @@ body[data-missing] .pane {
   border-radius: var(--radius-m);
   box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.05);
 }
+@media (max-width: 1079px) {
+  .widget-frame {
+    margin-inline: -8px;
+    padding: 20px 16px;
+  }
+}
 .widget-head {
   margin-bottom: 16px;
 }
