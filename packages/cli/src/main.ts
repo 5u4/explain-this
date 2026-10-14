@@ -10,6 +10,7 @@ import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";
 import * as Path from "effect/Path";
 import * as Runtime from "effect/Runtime";
+import { buildSite } from "./build.ts";
 import { serveDocRoot } from "./dev.ts";
 import {
   type Diagnostic,
@@ -157,8 +158,35 @@ const dev = Command.make(
   }, Effect.scoped),
 ).pipe(Command.withDescription("Serve the doc root in the browser and reload on change"));
 
+const build = Command.make(
+  "build",
+  { out: Flag.String("out").pipe(Flag.optional) },
+  Effect.fnUntraced(function* ({ out }) {
+    const path = yield* Path.Path;
+    const { cwd, docRoot, printDiagnostics } = yield* openDocRoot;
+    const diagnostics = [...docRoot.errors, ...docRoot.pages.flatMap((page) => page.errors)];
+    if (diagnostics.length > 0) {
+      yield* printDiagnostics(diagnostics);
+      yield* Console.error("refused to build: fix the errors above");
+      return yield* new ExitWith({ code: 2 });
+    }
+    const directory =
+      out._tag === "Some" ? path.resolve(cwd, out.value) : path.join(docRoot.root, "dist");
+    const counts = yield* buildSite(docRoot, directory).pipe(
+      Effect.catchTag("BuildFailed", (error) =>
+        Console.error(`explain build: ${error.message}`).pipe(
+          Effect.andThen(Effect.fail(new ExitWith({ code: 2 }))),
+        ),
+      ),
+    );
+    yield* Console.log(
+      `explain build: ${directory} (${counts.pages} pages, ${counts.sources} sources, ${counts.widgets} widgets)`,
+    );
+  }),
+).pipe(Command.withDescription("Write the doc root as a static site"));
+
 Command.make("explain").pipe(
-  Command.withSubcommands([hash, check, dev]),
+  Command.withSubcommands([hash, check, dev, build]),
   Command.run({ version: "0.1.0" }),
   Effect.provide(BunServices.layer),
   BunRuntime.runMain,
