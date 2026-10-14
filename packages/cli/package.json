@@ -1,0 +1,20 @@
+{
+  "name": "@explain/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "explain": "./src/main.ts"
+  },
+  "exports": {
+    "./doc-root": "./src/doc-root.ts"
+  },
+  "dependencies": {
+    "@effect/platform-bun": "catalog:",
+    "@explain/contract": "workspace:*",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "@effect/vitest": "catalog:"
+  }
+}
