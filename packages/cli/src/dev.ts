@@ -1,6 +1,5 @@
 import * as Console from "effect/Console";
 import * as Effect from "effect/Effect";
-import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import * as Queue from "effect/Queue";
 import * as Schema from "effect/Schema";
@@ -9,23 +8,16 @@ import * as Stream from "effect/Stream";
 import { createServer, type Plugin, type ViteDevServer } from "vite";
 import { type DevState, handleExplainRequest } from "./dev-api.ts";
 import { type DocRoot, type DocRootServices, loadDocRoot } from "./doc-root.ts";
+import { viewerImportGuard, viewerRoot } from "./viewer.ts";
 
 export class DevServerFailed extends Schema.TaggedError<DevServerFailed>()("DevServerFailed", {
   message: Schema.String,
 }) {}
 
-const viewerRuntimeForbidden =
-  /^(?:effect(?:\/.*)?|@effect\/.*|bun(?::.*)?|node:.*|@explain\/contract\/.*)$/;
-
 export const serveDocRoot = Effect.fnUntraced(function* (initial: DocRoot, port: number) {
-  const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const run = Effect.runPromiseWith(yield* Effect.context<DocRootServices>());
-  const viewerRoot = yield* fs.realPath(
-    path.dirname(
-      yield* path.fromFileUrl(new URL(import.meta.resolve("@explain/viewer/package.json"))),
-    ),
-  );
+  const viewer = yield* viewerRoot;
   const { root } = initial;
   const lock = yield* Semaphore.make(1);
   const changes = yield* Queue.unbounded<string>();
@@ -72,19 +64,6 @@ export const serveDocRoot = Effect.fnUntraced(function* (initial: DocRoot, port:
 
   const plugin: Plugin = {
     name: "explain",
-    enforce: "pre",
-    resolveId(source, importer) {
-      if (
-        importer?.startsWith(`${viewerRoot}${path.sep}`) &&
-        !importer.includes(`${path.sep}node_modules${path.sep}`) &&
-        viewerRuntimeForbidden.test(source)
-      ) {
-        this.error(
-          `${importer} imports ${source} at runtime; the viewer may import it only with \`import type\``,
-        );
-      }
-      return null;
-    },
     configureServer(server) {
       server.watcher.add([...watched]);
       server.watcher.on("all", (event, file) => {
@@ -132,11 +111,11 @@ export const serveDocRoot = Effect.fnUntraced(function* (initial: DocRoot, port:
       try: async () => {
         const server = await createServer({
           configFile: false,
-          root: viewerRoot,
+          root: viewer,
           appType: "spa",
           clearScreen: false,
           server: { port, strictPort: true },
-          plugins: [plugin],
+          plugins: [viewerImportGuard(viewer, path.sep), plugin],
         });
         try {
           await server.listen();
