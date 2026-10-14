@@ -340,14 +340,14 @@ function BeforeAfterView({ block }: { readonly block: BlockOf<"beforeAfter"> }):
     if (left > 0) remaining[key] = left - 1;
     else struck.add(item);
   }
-  const side = (name: "before" | "after", count: string) => {
+  const side = (name: "before" | "after", count: string | null) => {
     let order = 0;
     const labeled = block[name];
     return (
       <section className={`ba-side ba-${name}`}>
         <header className="ba-head">
           <span className="ba-label">{labeled.label}</span>
-          <span className="ba-count">{count}</span>
+          {count === null ? null : <span className="ba-count">{count}</span>}
         </header>
         <div className="ba-body">
           {labeled.children.map((child, index) =>
@@ -380,11 +380,13 @@ function BeforeAfterView({ block }: { readonly block: BlockOf<"beforeAfter"> }):
       </section>
     );
   };
+  const beforeCount = sideItems(block.before.children).length;
   const afterCount = sideItems(block.after.children).length;
+  const counted = beforeCount + afterCount > 0;
   return (
     <div className={drawn ? "ba drawn" : "ba"} ref={root}>
-      {side("before", strings.itemCount(sideItems(block.before.children).length))}
-      {side("after", strings.itemsRemoved(afterCount, struck.size))}
+      {side("before", counted ? strings.itemCount(beforeCount) : null)}
+      {side("after", counted ? strings.itemsRemoved(afterCount, struck.size) : null)}
     </div>
   );
 }
