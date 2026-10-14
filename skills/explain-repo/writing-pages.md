@@ -13,6 +13,7 @@ You write one page of an explain doc root. Your brief gives the doc root, the lo
 
 - Open with a paragraph that answers the Question. The rest of the page is the evidence and the detail.
 - Put a citation on the words of every claim about code. Cite the narrowest range that proves it.
+- Code is the only evidence. READMEs, `AGENTS.md`, design docs, and comments can point you to code but prove nothing, so cite the code that does the thing. When a doc or comment disagrees with the code, write what the code does. Leave out anything that exists only in docs.
 - Show code with excerpt fences (`file=`). Use `<AnnotatedSource>` when the code needs notes on specific lines.
 - Pick the smallest view for each point:
   - a table for comparisons and state transitions;

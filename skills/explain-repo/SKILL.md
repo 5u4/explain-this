@@ -18,10 +18,10 @@ Inputs: each repo as a key and an absolute path, the doc root path, and the loca
 For each repo:
 
 - Count lines per module over every tracked file, tests included: `git ls-files -z <prefix> | xargs -0 cat | wc -l`. A module is a workspace member (crate, package) or, without a workspace, a top-level directory. Tracked files outside every module form one more module per repo, `(root)`.
-- Read the README, `AGENTS.md`, the docs they point to, the manifests, and the entry points. Leave module bodies for the page writers.
+- Read the manifests and the entry points. A README, `AGENTS.md`, or design doc may point you to entry points, but it proves nothing. Take each module's role from its code. Leave module bodies for the page writers.
 - Find seams: a manifest that depends on another target repo. Record each pinned package with its rev or version, and compare the rev with that checkout's `HEAD`.
 
-Done when every module of every repo has a row with repo, path, lines, and a one-line role citing the file it came from.
+Done when every module of every repo has a row with repo, path, lines, and a one-line role citing the code file it came from.
 
 ## 2. Plan
 
@@ -58,7 +58,7 @@ Write `<doc root>/plan.md` and `<doc root>/explain.json`.
 - Keep each page's Read under 4000 lines. Split a larger module into several questions.
 - `explain.json` nav lists exactly the planned page ids, grouped in reading order.
 
-Done when every tracked file of every non-skipped module lies under some page's Read, and every page has a Question, Read, and Lines.
+Done when every tracked file of every non-skipped module, except prose docs, lies under some page's Read, and every page has a Question, Read, and Lines.
 
 Stop here. Show the user the module table, the page list with each question, the skipped modules, and the seams. Continue after they approve, applying their edits to both files.
 
@@ -94,7 +94,7 @@ Done when every module is cited or skipped.
 
 ## 7. Review
 
-Dispatch a fresh subagent per page. It reads the page and every cited range, and lists each sentence the cited lines do not support and each claim about code with no citation. Send the list to a fresh writer for that page, then rerun step 5.
+Dispatch a fresh subagent per page. It reads the page and every cited range, and lists each sentence the cited lines do not support and each claim about code with no citation. A cited doc or comment does not support a claim about what the code does. Send the list to a fresh writer for that page, then rerun step 5.
 
 Done when every page's review lists nothing.
 
