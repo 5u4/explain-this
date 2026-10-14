@@ -1,0 +1,25 @@
+{
+  "name": "@explain/contract",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./citation": "./src/citation.ts",
+    "./config": "./src/config.ts",
+    "./sources": "./src/sources.ts",
+    "./page": "./src/page.ts",
+    "./parse-page": "./src/parse-page.ts"
+  },
+  "dependencies": {
+    "effect": "catalog:",
+    "github-slugger": "catalog:",
+    "mdast-util-from-markdown": "catalog:",
+    "mdast-util-gfm": "catalog:",
+    "mdast-util-mdx-jsx": "catalog:",
+    "micromark-extension-gfm": "catalog:",
+    "micromark-extension-mdx-jsx": "catalog:"
+  },
+  "devDependencies": {
+    "@types/mdast": "catalog:"
+  }
+}
