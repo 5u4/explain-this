@@ -18,7 +18,7 @@ Inputs: each repo as a key and an absolute path, the doc root path, and the loca
 For each repo:
 
 - Count lines per module over every tracked file, tests included: `git ls-files -z <prefix> | xargs -0 cat | wc -l`. A module is a workspace member (crate, package) or, without a workspace, a top-level directory. Tracked files outside every module form one more module per repo, `(root)`.
-- Read the manifests and the entry points. A README, `AGENTS.md`, or design doc may point you to entry points, but it proves nothing. Take each module's role from its code. Leave module bodies for the page writers.
+- Read the manifests and the entry points. A README, `AGENTS.md`, design doc, or code comment may point you to entry points, but it proves nothing. Take each module's role from the code it runs. Leave module bodies for the page writers.
 - Find seams: a manifest that depends on another target repo. Record each pinned package with its rev or version, and compare the rev with that checkout's `HEAD`.
 
 Done when every module of every repo has a row with repo, path, lines, and a one-line role citing the code file it came from.
@@ -56,6 +56,7 @@ Write `<doc root>/plan.md` and `<doc root>/explain.json`.
 - `index` comes first. It says what the system is, maps the repos, and shows how the parts connect.
 - Each seam between repos gets a page. Pages may read the same files; each cites what its Question needs.
 - Keep each page's Read under 4000 lines. Split a larger module into several questions.
+- A question of the form "what does X provide" is a catalog, not an explanation. When a module repeats one pattern many times (endpoints, handlers, commands), plan one page that explains the pattern by following one instance end to end, and one catalog page per repo that lists every instance in a table. A catalog's Read may exceed the cap, because its writer reads declarations, not bodies.
 - `explain.json` nav lists exactly the planned page ids, grouped in reading order.
 
 Done when every tracked file of every non-skipped module, except prose docs, lies under some page's Read, and every page has a Question, Read, and Lines.
