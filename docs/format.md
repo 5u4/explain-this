@@ -39,8 +39,24 @@ same way for every locale.
 - `locales` is non-empty and unique. `defaultLocale` is one of them. A missing `defaultLocale`
   means `en`, which must then be listed.
 - Every localized string (`title`, each nav `title`) has an entry for every locale.
-- Repo keys match `^[a-z][a-z0-9-]*$` and are not `term`, `http`, `https`, or `mailto`. Values are
-  absolute paths.
+- Repo keys match `^[a-z][a-z0-9-]*$` and are not `term`, `http`, `https`, or `mailto`.
+- A repo value is either an absolute path or an object `{ "path": "<absolute path>", "commit":
+  "<40-hex commit id>" }`.
+  - A path is a work tree. Citations read the files on disk, including uncommitted, untracked, and
+    ignored files.
+  - An object pins the key to a commit. `path` is a git repository and `commit` must name a commit in
+    it, or `explain.json` is invalid. Citations read the file as stored in that commit; the work tree
+    is ignored. A symlink or submodule entry is not a file.
+  - Several keys may share one `path`. A pull request doc pins one key to the base commit and one to
+    the head commit, and one more key per intermediate commit it cites:
+
+```json
+"repos": {
+  "tael-base": { "path": "/Users/senhung/Workspaces/tael", "commit": "fda46002919a2bf9e30be4cf2cabc31e3aacfe0d" },
+  "tael": { "path": "/Users/senhung/Workspaces/tael", "commit": "f427dce30c8934c399772084d51fbfa9ec96598a" }
+}
+```
+
 - Page ids match `^[a-z0-9][a-z0-9-]*$`, appear once across `nav`, and are not `glossary` or
   `source`. Every listed page must exist as `<locale>/<id>.md` in every locale. `nav` order is the
   reading order used by the pager.
@@ -77,8 +93,8 @@ Citation grammar: `<repo>:<path>[:<ranges>]`.
 
 - `<repo>` is a key of `explain.json` `repos`.
 - `<path>` is relative to the repo root, uses `/`, has no `:`, no leading `/`, no `.` or `..`
-  segments, and must name an existing file when the page is hashed. Untracked and ignored files are
-  allowed.
+  segments, and must name an existing file when the page is hashed. In a work tree, untracked and
+  ignored files are allowed.
 - `<ranges>` is `N` or `N-M`, comma-separated, 1-based, `N <= M`, ascending, non-overlapping, within
   the file's line count when the page is hashed.
 
@@ -120,9 +136,16 @@ Tags need a blank line between the tag and Markdown children.
 | `<Tabs>` | none | only `<Tab label="…">` with block children |
 | `<BeforeAfter>` | none | exactly one `<Before label="…">` then one `<After label="…">`, block children |
 | `<AnnotatedSource file="<citation>">` | `file`: citation with exactly one range | only `<Note lines="N[-M]">` with inline children; note lines lie inside the file range |
+| `<Diff before="<citation>" after="<citation>" />` | `before` and `after`: citations with at most one range; at least one is required; omitting `before` means the file was added, omitting `after` means it was deleted | none |
 | `<Widget name="…" title="…" source="<citation> <citation>…" …>` | `name` matches `widgets/<name>.js`; `title` required; `source` lists the code the widget ports or reads, space-separated, required; any other attribute is passed to the widget as a string prop | block children: a one-paragraph description |
 
 Anything else is a parse error.
+
+`<Diff>` renders a line diff of the two excerpts: removed lines in `--removed`, added lines in
+`--added`, unchanged lines as context, with the line numbers of both sides. Runs of more than six
+unchanged lines fold to three lines on each side behind a toggle. The two sides may cite different
+repo keys, paths (a rename), and ranges; each side is an ordinary citation for hashing and
+freshness. Prefer `<Diff>` over `<BeforeAfter>` whenever both sides are code.
 
 ## Sources file
 
@@ -141,12 +164,14 @@ Anything else is a parse error.
 }
 ```
 
-- `files` is the set of files the page cites: every citation, excerpt, `AnnotatedSource file`, and
-  `Widget source`, reduced to `(repo, path)`, sorted by repo then path.
-- `hash` is the git blob id of the file's bytes on disk: SHA-1 of `blob <byte length>\0<bytes>`, equal
-  to `git hash-object --no-filters <file>`. It needs no git.
-- `commit` is the repo's `HEAD` when the repo is a git work tree, and absent otherwise. The LLM uses
-  it as a starting point to find what changed. No tool diffs it.
+- `files` is the set of files the page cites: every citation, excerpt, `AnnotatedSource file`,
+  `Diff before` and `after`, and `Widget source`, reduced to `(repo, path)`, sorted by repo then path.
+- `hash` is the git blob id of the file's bytes: SHA-1 of `blob <byte length>\0<bytes>`, equal to
+  `git hash-object --no-filters <file>`. For a work tree the bytes are on disk and hashing needs no
+  git; for a pinned repo the bytes are the blob stored in the commit, and the hash is its blob id.
+- `commit` is the repo's `HEAD` when a work-tree repo is a git work tree, the pinned commit for a
+  pinned repo, and absent otherwise. The LLM uses it as a starting point to find what changed. No tool
+  diffs it.
 
 ## Freshness
 
@@ -159,6 +184,9 @@ A page is `fresh` or `stale`. It is stale when any of these holds:
 
 `explain check` reports every stale page with the reasons above, per file. Exit codes: 0 when every
 page is fresh, 1 when any page is stale, 2 when any page or `explain.json` is invalid.
+
+A pinned repo never changes, so its pages go stale only when `explain.json` pins the key to another
+commit, for example after new pushes to a pull request.
 
 ## Widgets
 
@@ -253,7 +281,8 @@ The viewer builds these; the LLM writes none of them.
 
 - Navigation, search, page table of contents, freshness badge, sources panel, previous/next.
 - Glossary page, from `glossary.md` (`## Label {#id}` followed by the definition).
-- Source viewer at `source/<repo>/<path>`, with the pages that cite the file.
+- Source viewer at `source/<repo>/<path>`, with the pages that cite the file. The source pane and the
+  source viewer name the repo key, and the short commit for a pinned repo.
 
 ## Static build
 
