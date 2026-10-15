@@ -1,0 +1,85 @@
+.tree {
+  margin: 1.6em 0;
+  padding: 12px 8px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface-inset);
+  font-size: var(--size-ui-lg);
+  line-height: 1.5;
+}
+.tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tree ul ul {
+  margin-inline-start: 15px;
+  padding-inline-start: 10px;
+  border-inline-start: 1px solid var(--border-strong);
+}
+.tree li {
+  margin: 0;
+}
+.tree summary {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 5px 8px;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  list-style: none;
+}
+.tree summary::-webkit-details-marker {
+  display: none;
+}
+.tree summary:hover,
+.tree-leaf:hover {
+  background: var(--surface-raised);
+}
+.tree .chev {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+  transform: translateY(2px);
+  transition: transform var(--dur-base) var(--ease);
+}
+.tree details[open] > summary .chev {
+  transform: translateY(2px) rotate(90deg);
+}
+.tree-leaf {
+  padding: 5px 8px 5px 26px;
+  border-radius: var(--radius-s);
+}
+.tree-label {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.tree-name,
+.tree-name code {
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  color: var(--text-strong);
+}
+.tree-name code,
+.tree .tree-name:is(code) {
+  background: none;
+  border: 0;
+  padding: 0;
+}
+.tree-desc {
+  color: var(--text-muted);
+  font-size: var(--step--1);
+  text-wrap: pretty;
+}
+.tree-desc a.cite {
+  font-family: var(--font-mono);
+  color: var(--text-strong);
+}
+.tree a.cite {
+  text-decoration-thickness: 1px;
+}

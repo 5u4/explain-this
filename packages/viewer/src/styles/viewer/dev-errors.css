@@ -1,0 +1,32 @@
+.dev-errors {
+  margin: 0 0 32px;
+  padding: 16px 18px;
+  border-radius: var(--radius-m);
+  background: var(--warning-wash);
+  box-shadow: inset 2px 0 0 var(--warning);
+}
+.dev-errors-title {
+  margin: 0 0 8px;
+  font: 600 var(--size-ui-lg) / 1.4 var(--font-body);
+  color: var(--warning);
+}
+.dev-errors ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  font-size: var(--step--1);
+  line-height: 1.6;
+}
+.dev-errors li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+.dev-errors code {
+  color: var(--text-strong);
+}
+.sources .dev-errors {
+  margin-top: 16px;
+}

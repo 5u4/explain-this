@@ -1,0 +1,46 @@
+.missing-state {
+  margin-top: 8px;
+  padding: 28px;
+  border-radius: var(--radius-xl);
+  border: 1px dashed var(--border-strong);
+}
+.missing-kicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-strong);
+  font-weight: 600;
+}
+.missing-kicker svg {
+  width: 18px;
+  height: 18px;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: var(--radius-m);
+  background: var(--ink-8);
+  color: var(--ink-1);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: var(--size-ui-lg);
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    scale var(--dur-fast) var(--ease);
+}
+.btn:hover {
+  background: var(--ink-9);
+}
+.btn:active {
+  scale: 0.96;
+}
+.btn svg {
+  width: 16px;
+  height: 16px;
+}
+body[data-missing] .pane {
+  opacity: 0.6;
+}

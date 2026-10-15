@@ -1,0 +1,31 @@
+.h-anchor {
+  margin-inline-start: 0.35em;
+  color: var(--text-faint);
+  text-decoration: none;
+  font-weight: 400;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+:is(h2, h3, h4):hover > .h-anchor,
+.h-anchor:focus-visible {
+  opacity: 1;
+}
+.page-body > h4 {
+  margin: 32px 0 8px;
+  font: 600 var(--step-0) / 1.4 var(--font-body);
+  scroll-margin-top: 32px;
+}
+.page-body blockquote {
+  margin: 1.4em 0;
+  padding: 2px 0 2px 18px;
+  border-inline-start: 2px solid var(--border-strong);
+  color: var(--text-secondary);
+}
+.page-body hr {
+  margin: 48px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+.page-body details:not(.tree-branch) {
+  margin: 1.4em 0;
+}

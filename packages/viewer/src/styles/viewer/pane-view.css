@@ -1,0 +1,226 @@
+.view {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  transition:
+    opacity var(--dur-base) var(--ease),
+    transform var(--dur-base) var(--ease),
+    visibility 0s linear var(--dur-base);
+}
+.view.on {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition-delay: 0s;
+}
+.view-scroll {
+  height: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-4) transparent;
+  outline-offset: -2px;
+}
+.code {
+  position: relative;
+  padding: 20px 0 45vh;
+  font: 400 0.796875rem / var(--leading-code) var(--font-mono);
+  font-variant-ligatures: none;
+  text-autospace: no-autospace;
+}
+.lined {
+  font-variant-ligatures: none;
+}
+.ln {
+  position: relative;
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  padding-inline-end: 20px;
+  transition: opacity var(--dur-slow) var(--ease);
+}
+.ln .n {
+  padding-inline-end: 16px;
+  text-align: end;
+  color: var(--text-faint);
+  user-select: none;
+  font-variant-numeric: tabular-nums;
+  transition: color var(--dur-base) var(--ease);
+}
+.ln .t {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--text-body);
+  padding-inline-start: 4ch;
+  text-indent: -4ch;
+}
+.code.focused .ln:not(.hit) {
+  opacity: 0.38;
+}
+.ln.hit .n {
+  color: var(--mark-text);
+}
+.band {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 0;
+  background: var(--mark-wash);
+  box-shadow: inset 2px 0 0 var(--mark);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--dur-slow) var(--ease),
+    height var(--dur-slow) var(--ease),
+    opacity var(--dur-base) var(--ease);
+}
+.band.on {
+  opacity: 1;
+}
+.markers {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 30px;
+  z-index: 1;
+}
+.marker {
+  position: absolute;
+  inset-inline-start: 6px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--ink-3);
+  color: var(--text-body);
+  font: 500 10.5px / 1 var(--font-mono);
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease),
+    scale var(--dur-fast) var(--ease);
+}
+.marker:hover {
+  background: var(--ink-4);
+  color: var(--text-strong);
+}
+.marker:active {
+  scale: 0.96;
+}
+.marker.on {
+  background: var(--mark);
+  color: var(--ink-0);
+}
+.skel {
+  padding: 4px 0;
+}
+.skel i {
+  display: block;
+  height: 9px;
+  margin: 11px 20px 11px 60px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--ink-2), var(--ink-3), var(--ink-2)) 0 0 / 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+.skel i:nth-child(3n) {
+  width: 40%;
+}
+.skel i:nth-child(3n + 1) {
+  width: 65%;
+}
+.skel i:nth-child(3n + 2) {
+  width: 52%;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+.pane-error {
+  display: grid;
+  gap: 6px;
+  margin: 24px;
+  padding: 16px;
+  border-radius: var(--radius-m);
+  background: var(--warning-wash);
+  color: var(--warning);
+  font: 400 var(--step--1) var(--font-body);
+}
+.pane-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 6px 10px 6px 20px;
+  border-top: 1px solid var(--border);
+  font-size: var(--size-caption);
+  color: var(--text-muted);
+}
+.pane-count {
+  flex: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.pane-nav {
+  display: flex;
+  gap: 2px;
+}
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-secondary);
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease),
+    scale var(--dur-fast) var(--ease);
+}
+.icon-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+.icon-btn:active {
+  scale: 0.96;
+}
+.icon-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* the thread */
+.leader {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease);
+  overflow: visible;
+}
+.leader.on {
+  opacity: 1;
+}
+.leader-path {
+  fill: none;
+  stroke: var(--mark-line);
+  stroke-width: 1.25;
+}
+.leader[data-mode="preview"] .leader-path {
+  stroke-dasharray: 3 4;
+}
+.leader circle {
+  fill: var(--mark);
+  stroke: var(--surface-page);
+  stroke-width: 2;
+}

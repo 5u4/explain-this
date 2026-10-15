@@ -1,0 +1,22 @@
+.diagram {
+  margin: 2.2em -32px;
+  padding: 20px 12px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background:
+    radial-gradient(circle at 1px 1px, oklch(1 0 0 / 0.045) 1px, transparent 0) 0 0 / 16px 16px,
+    var(--surface-inset);
+  overflow-x: auto;
+}
+.diagram-canvas {
+  display: grid;
+  place-items: center;
+}
+.diagram-canvas svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  stroke: none;
+  fill: initial;
+  stroke-width: 1;
+}

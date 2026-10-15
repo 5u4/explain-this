@@ -1,0 +1,38 @@
+.shell {
+  display: grid;
+  grid-template-columns: var(--rail-w) var(--prose-w) minmax(var(--pane-min), 1fr);
+  grid-template-areas: "rail main pane";
+  min-height: 100vh;
+}
+.topbar {
+  display: none;
+}
+.rail {
+  grid-area: rail;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-inline-end: 1px solid var(--border);
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-4) transparent;
+}
+.prose-col {
+  grid-area: main;
+  min-width: 0;
+  padding: 72px 72px 120px 56px;
+  outline: none;
+}
+.pane {
+  grid-area: pane;
+  grid-row: 1 / -1;
+  align-self: start;
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-pane);
+  border-inline-start: 1px solid var(--border);
+}

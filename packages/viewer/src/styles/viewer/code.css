@@ -1,0 +1,187 @@
+.codeblock,
+.excerpt {
+  margin: 1.6em 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  background: var(--surface-inset);
+  overflow: hidden;
+}
+.code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 38px;
+  padding: 4px 6px 4px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--size-caption);
+  color: var(--text-muted);
+}
+.code-lang {
+  letter-spacing: 0.06em;
+}
+.codeblock pre {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-size: var(--step--1);
+  line-height: var(--leading-code);
+  color: var(--text-body);
+}
+.excerpt-path {
+  font-family: var(--font-mono);
+  font-size: var(--size-caption);
+  color: var(--text-secondary);
+  text-decoration: none;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.excerpt-range {
+  margin-inline-start: 8px;
+  color: var(--mark-text);
+}
+.excerpt.is-shown {
+  border-color: oklch(0.66 0.19 33 / 0.45);
+}
+.excerpt.is-shown .excerpt-path {
+  color: var(--text-strong);
+}
+.lined {
+  margin: 0;
+  padding: 12px 0;
+  overflow-x: auto;
+  font-size: var(--step--1);
+  line-height: var(--leading-code);
+}
+.lined .ln {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  padding-inline-end: 16px;
+}
+.lined .n {
+  text-align: end;
+  padding-inline-end: 14px;
+  color: var(--text-faint);
+  user-select: none;
+  font-variant-numeric: tabular-nums;
+}
+.lined .t {
+  white-space: pre;
+  padding: 0;
+  text-indent: 0;
+}
+.code-skel {
+  height: 96px;
+}
+.err {
+  padding: 12px 14px;
+  border-radius: var(--radius-m);
+  background: var(--warning-wash);
+  color: var(--warning);
+  font-size: var(--size-ui-lg);
+}
+
+.hljs-keyword,
+.hljs-built_in.hljs-keyword,
+.hljs-literal {
+  color: var(--syn-keyword);
+}
+.hljs-string,
+.hljs-regexp {
+  color: var(--syn-string);
+}
+.hljs-title,
+.hljs-title.function_ {
+  color: var(--syn-func);
+}
+.hljs-type,
+.hljs-built_in,
+.hljs-attr,
+.hljs-title.class_,
+.hljs-params {
+  color: var(--syn-type);
+}
+.hljs-number {
+  color: var(--syn-number);
+}
+.hljs-comment {
+  color: var(--syn-comment);
+  font-style: italic;
+}
+.hljs-punctuation,
+.hljs-operator {
+  color: var(--syn-punct);
+}
+.hljs-section,
+.hljs-strong {
+  color: var(--text-strong);
+  font-weight: 600;
+}
+.hljs-meta,
+.hljs-variable {
+  color: var(--text-body);
+}
+
+.copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--size-caption);
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease),
+    scale var(--dur-fast) var(--ease);
+}
+.copy:hover {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+.copy:active {
+  scale: 0.96;
+}
+.copy-icons {
+  position: relative;
+  width: 15px;
+  height: 15px;
+}
+.copy-icons svg {
+  position: absolute;
+  inset: 0;
+  width: 15px;
+  height: 15px;
+  transition:
+    opacity 200ms var(--ease),
+    scale 200ms var(--ease),
+    filter 200ms var(--ease);
+}
+.copy .i-check {
+  opacity: 0;
+  scale: 0.25;
+  filter: blur(4px);
+}
+.copy.done {
+  color: var(--fresh);
+}
+.copy.failed {
+  color: var(--warning);
+}
+.copy.done .i-copy {
+  opacity: 0;
+  scale: 0.25;
+  filter: blur(4px);
+}
+.copy.done .i-check {
+  opacity: 1;
+  scale: 1;
+  filter: blur(0);
+}
+.copy-text {
+  min-width: 3em;
+  text-align: start;
+}

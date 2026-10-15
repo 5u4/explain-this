@@ -1,0 +1,53 @@
+@media (prefers-reduced-motion: no-preference) {
+  .page-head > *,
+  .page-body > .lede {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  .ready .page-head > *,
+  .ready .page-body > .lede {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity var(--dur-slow) var(--ease),
+      transform var(--dur-slow) var(--ease);
+  }
+  .ready .page-head > :nth-child(2) {
+    transition-delay: 90ms;
+  }
+  .ready .page-head > :nth-child(3) {
+    transition-delay: 180ms;
+  }
+  .ready .page-body > .lede {
+    transition-delay: 270ms;
+  }
+  .pane {
+    animation: pane-in var(--dur-slow) var(--ease) 120ms both;
+  }
+  @keyframes pane-in {
+    from {
+      opacity: 0;
+      transform: translateX(16px);
+    }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+  .view,
+  .leader,
+  .copy-icons svg {
+    transition-duration: 120ms !important;
+    transition-property: opacity !important;
+  }
+  .view {
+    transform: none;
+  }
+  .ba .struck .msg-text::after {
+    transform: scaleX(1);
+  }
+}

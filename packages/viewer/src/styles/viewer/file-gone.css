@@ -1,0 +1,33 @@
+.file-gone {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 16px 18px;
+  color: var(--stale);
+  font: 400 var(--step--1) / 1.6 var(--font-body);
+}
+.file-gone > svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+}
+.file-gone > div {
+  display: grid;
+  gap: 2px;
+}
+.file-gone strong {
+  color: var(--stale);
+  font-weight: 600;
+}
+.file-gone span {
+  color: var(--text-muted);
+}
+.pane-error .file-gone {
+  padding: 0;
+}
+.page > .file-gone {
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-m);
+}

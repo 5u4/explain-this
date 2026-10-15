@@ -1,0 +1,71 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html {
+  background: var(--surface-page);
+  color: var(--text-body);
+  font: 400 var(--step-0) / var(--leading-body) var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-autospace: normal;
+  text-spacing-trim: trim-start;
+  line-break: strict;
+  scroll-padding-top: 24px;
+  color-scheme: dark;
+}
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+::selection {
+  background: var(--selection);
+  color: var(--text-strong);
+}
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+svg {
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+code,
+kbd,
+pre,
+.mono {
+  font-family: var(--font-mono);
+  text-autospace: no-autospace;
+  font-variant-ligatures: none;
+}
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.skip {
+  position: absolute;
+  inset-inline-start: -999px;
+  top: 12px;
+  z-index: 100;
+  padding: 8px 14px;
+  background: var(--ink-9);
+  color: var(--ink-1);
+  border-radius: var(--radius-s);
+}
+.skip:focus {
+  inset-inline-start: 12px;
+}

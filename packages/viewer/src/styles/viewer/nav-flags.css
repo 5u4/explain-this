@@ -1,0 +1,25 @@
+.nav-flag {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-inline-start: 8px;
+  border-radius: 50%;
+  background: var(--stale);
+  vertical-align: 0.15em;
+}
+.nav-flag[data-status="invalid"] {
+  background: var(--warning);
+  box-shadow: 0 0 0 2px var(--warning-wash);
+}
+.locale-switch {
+  display: flex;
+  gap: 6px;
+  margin-inline-start: auto;
+}
+.locale-switch a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.locale-switch a[aria-current] {
+  color: var(--text-strong);
+}
