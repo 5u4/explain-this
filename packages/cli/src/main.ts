@@ -8,6 +8,7 @@ import * as Command from "effect/cli/Command";
 import * as Flag from "effect/cli/Flag";
 import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";
+import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import * as Runtime from "effect/Runtime";
 import { buildSite } from "./build.ts";
@@ -185,8 +186,24 @@ const build = Command.make(
   }),
 ).pipe(Command.withDescription("Write the doc root as a static site"));
 
+const format = Command.make(
+  "format",
+  {},
+  Effect.fnUntraced(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const file = yield* path.fromFileUrl(new URL("../../../docs/format.md", import.meta.url));
+    yield* Console.log((yield* fs.readFileString(file)).trimEnd());
+  }),
+).pipe(Command.withDescription("Print the doc root format contract"));
+
+const get = Command.make("get").pipe(
+  Command.withSubcommands([format]),
+  Command.withDescription("Print reference material for writing a doc root"),
+);
+
 Command.make("explain").pipe(
-  Command.withSubcommands([hash, check, dev, build]),
+  Command.withSubcommands([hash, check, dev, build, get]),
   Command.run({ version: "0.1.0" }),
   Effect.provide(BunServices.layer),
   BunRuntime.runMain,

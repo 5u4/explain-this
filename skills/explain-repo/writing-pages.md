@@ -1,6 +1,6 @@
 # Writing a page
 
-You write one page of an explain doc root. Your brief gives the doc root, the locale, your page's id, title, Question, and Read, and the other pages. [`../../docs/format.md`](../../docs/format.md) is the contract for the page syntax. Read it in full first.
+You write one page of an explain doc root. Your brief gives the doc root, the locale, your page's id, title, Question, and Read, and the other pages. `explain get format` prints the contract for the page syntax. Read its output in full first.
 
 ## Steps
 
@@ -33,4 +33,4 @@ Write prose in the locale. Identifiers, paths, commands, test names, commit subj
 
 ## Widgets
 
-Write a widget only when the repo holds fixed cases a reader learns from by running them: tests, recorded data, or real config. Port the code the cases exercise, take the cases from the repo, and show whether the port's output matches the case's expectation. Follow the Widgets section of `format.md`. With no such cases, use a table.
+Write a widget only when the repo holds fixed cases a reader learns from by running them: tests, recorded data, or real config. Port the code the cases exercise, take the cases from the repo, and show whether the port's output matches the case's expectation. Follow the Widgets section of the format. With no such cases, use a table.

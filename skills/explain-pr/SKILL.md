@@ -7,7 +7,7 @@ description: Write an explain doc root for one pull request or commit range, a c
 
 You coordinate. You collect the PR, survey the diff, and plan the pages. Page subagents read code and write pages. You merge the glossary, validate, review, and build.
 
-[`../../docs/format.md`](../../docs/format.md) is the contract for every file in the doc root. Read it in full before step 2. Run the `explain` CLI as [`../explain-repo/SKILL.md`](../explain-repo/SKILL.md) says.
+Run the `explain` CLI as [`../explain-repo/SKILL.md`](../explain-repo/SKILL.md) says. `explain get format` prints the contract for every file in the doc root. Read its output in full before step 2.
 
 Inputs: a PR (URL or `owner/repo#N`) or a commit range `A..B`, the absolute path of a local clone, the doc root path, and the locales. Each PR gets its own doc root, named `<repo>-pr-<N>`, outside the clone. Locales default to `en`.
 

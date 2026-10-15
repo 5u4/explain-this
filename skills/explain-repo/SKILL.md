@@ -7,9 +7,9 @@ description: Write an explain doc root, a cited wiki rendered by `explain dev`, 
 
 You coordinate. You survey the repos and plan the pages. Page subagents read code and write pages. You merge the glossary, validate, and review.
 
-[`../../docs/format.md`](../../docs/format.md) is the contract for every file in the doc root. Read it in full before step 2.
-
 Run the `explain` CLI inside the doc root. When `explain` is not on `PATH`, run `bun <this skill directory>/../../packages/cli/src/main.ts` instead.
+
+`explain get format` prints the contract for every file in the doc root. Read its output in full before step 2.
 
 Inputs: each repo as a key and an absolute path, the doc root path, and the locales. The doc root lives outside every repo. Locales default to `en`.
 
@@ -69,7 +69,7 @@ Dispatch one subagent per page, all in parallel. Each brief carries:
 
 - the doc root path, the locale, and the page's id, title, Question, and Read;
 - every other page's id, title, and Question, for cross links;
-- the paths of [`writing-pages.md`](writing-pages.md) and `docs/format.md`, which the writer reads in full first.
+- the path of [`writing-pages.md`](writing-pages.md), which the writer reads in full first, together with the output of `explain get format`.
 
 Done when every planned page exists in every locale and every writer has returned its term candidates.
 
