@@ -11,23 +11,28 @@ export type Route =
     }
   | { readonly kind: "unknown"; readonly path: string };
 
-export const parseRoute = (pathname: string): Route => {
+export const parseRoute = (pathname: string, search: string): Route => {
   const segments = pathname
     .split("/")
     .filter((part) => part !== "")
     .map(decodeURIComponent);
-  const [locale, id, repo, ...path] = segments;
+  const [locale, id, ...rest] = segments;
   if (locale === undefined) return { kind: "home", locale: null };
   if (id === undefined) return { kind: "home", locale };
-  if (id === "source" && repo !== undefined && path.length > 0) {
-    return { kind: "source", locale, repo, path: path.join("/") };
+  if (rest.length > 0) return { kind: "unknown", path: pathname + search };
+  if (id !== "source") return { kind: "page", locale, id };
+  const [repo, ...path] = search.slice(1).split("/").map(decodeURIComponent);
+  if (repo === undefined || repo === "" || path.length === 0) {
+    return { kind: "unknown", path: pathname + search };
   }
-  if (repo === undefined) return { kind: "page", locale, id };
-  return { kind: "unknown", path: pathname };
+  return { kind: "source", locale, repo, path: path.join("/") };
 };
 
 export const pageHref = (locale: string, id: string, anchor?: string | null): string =>
   `/${encodeURIComponent(locale)}/${encodeURIComponent(id)}${anchor ? `#${encodeURIComponent(anchor)}` : ""}`;
+
+export const sourceRouteHref = (locale: string, repo: string, path: string): string =>
+  `/${encodeURIComponent(locale)}/source?${encodeURIComponent(repo)}/${path.split("/").map(encodeURIComponent).join("/")}`;
 
 const routeEvent = "explain:route";
 
@@ -41,7 +46,7 @@ const subscribe = (listener: () => void) => {
 };
 
 export const useLocation = (): string =>
-  useSyncExternalStore(subscribe, () => location.pathname + location.hash);
+  useSyncExternalStore(subscribe, () => location.pathname + location.search + location.hash);
 
 export const navigate = (href: string, options?: { readonly replace?: boolean }) => {
   if (options?.replace === true) history.replaceState(null, "", href);
@@ -57,9 +62,10 @@ export const interceptLinks = (): (() => void) => {
     if (!(anchor instanceof HTMLAnchorElement) || anchor.target !== "") return;
     const url = new URL(anchor.href);
     if (url.origin !== location.origin || url.pathname.startsWith("/@")) return;
-    if (url.pathname === location.pathname && url.hash !== "") return;
+    const here = url.pathname === location.pathname && url.search === location.search;
+    if (here && url.hash !== "") return;
     event.preventDefault();
-    navigate(url.pathname + url.hash);
+    navigate(url.pathname + url.search + url.hash);
   };
   document.addEventListener("click", onClick);
   return () => document.removeEventListener("click", onClick);

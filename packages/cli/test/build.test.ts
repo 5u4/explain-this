@@ -1,4 +1,12 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { BunServices } from "@effect/platform-bun";
@@ -12,12 +20,18 @@ import { loadDocRoot } from "../src/doc-root.ts";
 const run = <A, E>(effect: Effect.Effect<A, E, BunServices.BunServices>) =>
   Effect.runPromiseExit(effect.pipe(Effect.provide(BunServices.layer)));
 
+const filesUnder = (dir: string) =>
+  readdirSync(dir, { recursive: true, encoding: "utf8" })
+    .filter((file) => statSync(join(dir, file)).isFile())
+    .sort();
+
 const fixture = () => {
   const base = mkdtempSync(join(tmpdir(), "explain-build-"));
   const repo = join(base, "repo");
   const root = join(base, "docs");
   mkdirSync(join(repo, "src"), { recursive: true });
   writeFileSync(join(repo, "src", "数据.ts"), "export const a = 1;\n");
+  writeFileSync(join(repo, "src", "index.html"), "<p>home</p>\n");
   mkdirSync(join(root, "zh-CN"), { recursive: true });
   mkdirSync(join(root, "widgets"));
   writeFileSync(
@@ -32,7 +46,7 @@ const fixture = () => {
   );
   writeFileSync(
     join(root, "zh-CN", "index.md"),
-    '# 首页\n\n见 [a](fold:src/数据.ts:1)。\n\n<Widget name="probe" title="Probe" source="fold:src/数据.ts">\n\n说明。\n\n</Widget>\n',
+    '# 首页\n\n见 [a](fold:src/数据.ts:1)、[b](fold:src/index.html:1)。\n\n<Widget name="probe" title="Probe" source="fold:src/数据.ts">\n\n说明。\n\n</Widget>\n',
   );
   writeFileSync(
     join(root, "zh-CN", "index.sources.json"),
@@ -57,35 +71,50 @@ describe("buildSite", () => {
     const out = join(base, "out");
     expect(Exit.isSuccess(await run(buildSite(docRoot, out)))).toBe(true);
     expect(await run(buildSite(docRoot, out))).toEqual(
-      Exit.succeed({ pages: 2, sources: 2, widgets: 1 }),
+      Exit.succeed({ pages: 2, sources: 3, widgets: 1 }),
     );
 
-    for (const url of [
-      "/@explain/api/site",
-      "/@explain/widgets.css",
-      "/@explain/widgets/probe.js",
-      "/@explain/api/page/zh-CN/index",
-      "/@explain/api/page/zh-CN/glossary",
-      "/@explain/api/search/zh-CN",
-      `/@explain/api/source/fold/src/${encodeURIComponent("数据.ts")}`,
-      "/@explain/api/source/fold/src/old.ts",
-    ]) {
+    const explain = join(out, "@explain");
+    const written = filesUnder(explain);
+    expect(written).toEqual(
+      [
+        "api/page/zh-CN/glossary.json",
+        "api/page/zh-CN/index.json",
+        "api/search/zh-CN.json",
+        "api/site.json",
+        "api/source/fold/src/index.html.json",
+        "api/source/fold/src/old.ts.json",
+        "api/source/fold/src/数据.ts.json",
+        "widgets.css",
+        "widgets/probe.js",
+      ].sort(),
+    );
+
+    for (const file of written) {
+      const url = `/@explain/${file.split("/").map(encodeURIComponent).join("/")}`;
       const response = await run(handleExplainRequest({ status: "ok", docRoot }, "GET", url));
       if (!Exit.isSuccess(response)) throw new Error(String(response.cause));
+      expect(response.value.status).toBe(200);
       const body = response.value.body;
-      expect(new Uint8Array(readFileSync(join(out, decodeURIComponent(url))))).toEqual(
+      expect(new Uint8Array(readFileSync(join(explain, file)))).toEqual(
         typeof body === "string" ? new TextEncoder().encode(body) : new Uint8Array(body),
       );
     }
     const html = readFileSync(join(out, "index.html"), "utf8");
-    for (const route of [
-      "404.html",
-      "zh-CN/index.html",
-      "zh-CN/index/index.html",
-      "zh-CN/glossary/index.html",
-      "zh-CN/source/fold/src/数据.ts/index.html",
-      "zh-CN/source/fold/src/old.ts/index.html",
-    ]) {
+    const routes = filesUnder(out).filter(
+      (file) => !file.startsWith("@explain/") && !file.startsWith("assets/"),
+    );
+    expect(routes).toEqual(
+      [
+        "404.html",
+        "index.html",
+        "zh-CN/index.html",
+        "zh-CN/source/index.html",
+        "zh-CN/index/index.html",
+        "zh-CN/glossary/index.html",
+      ].sort(),
+    );
+    for (const route of routes) {
       expect(readFileSync(join(out, route), "utf8")).toBe(html);
     }
 

@@ -87,7 +87,7 @@ const glossaryTerms = (glossary: DocPage | undefined): ReadonlyArray<GlossaryTer
   return terms;
 };
 
-const invalidState = json(503, { error: "explain.json is invalid; see /@explain/api/site" });
+const invalidState = json(503, { error: "explain.json is invalid; see /@explain/api/site.json" });
 
 const siteResponse = (docRoot: DocRoot): SiteResponse => {
   const { config } = docRoot;
@@ -315,8 +315,11 @@ export const handleExplainRequest = Effect.fnUntraced(function* (
     if (state.status === "invalid") return invalidState;
     return yield* widgetResponse(state.docRoot, rest[0]);
   }
-  if (area !== "api") return json(404, { error: `no route for ${rawPath}` });
-  const [route, ...args] = rest;
+  const last = rest.at(-1);
+  if (area !== "api" || last === undefined || !last.endsWith(".json")) {
+    return json(404, { error: `no route for ${rawPath}` });
+  }
+  const [route, ...args] = [...rest.slice(0, -1), last.slice(0, -".json".length)];
   if (route === "site" && args.length === 0) {
     if (state.status === "invalid") {
       return json(200, { status: "invalid", errors: state.errors } satisfies SiteResponse);

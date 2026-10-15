@@ -30,7 +30,7 @@ export function App(): ReactNode {
       </main>
     );
   }
-  const route = parseRoute(location.pathname);
+  const route = parseRoute(location.pathname, location.search);
   if (route.kind === "home") {
     const locale =
       route.locale !== null && site.locales.includes(route.locale)
@@ -39,7 +39,13 @@ export function App(): ReactNode {
     return <Redirect to={pageHref(locale, homePageId(site, locale))} />;
   }
   if (route.kind === "unknown" || !site.locales.includes(route.locale)) {
-    return <NotFound site={site} locale={site.defaultLocale} path={location.pathname} />;
+    return (
+      <NotFound
+        site={site}
+        locale={site.defaultLocale}
+        path={location.pathname + location.search}
+      />
+    );
   }
   const locale = route.locale;
   const key = where.split("#")[0];

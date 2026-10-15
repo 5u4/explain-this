@@ -1,4 +1,5 @@
 import type { LineRange, Ref } from "@explain/contract/citation";
+import { sourceRouteHref } from "./router.ts";
 import type { Strings } from "./strings.ts";
 
 const rangePattern = /^([1-9][0-9]*)(?:-([1-9][0-9]*))?$/;
@@ -37,9 +38,8 @@ export const rangeLabel = (ref: Ref, strings: Strings): string =>
     : ref.ranges.map((range) => strings.lines(range.from, range.to)).join(", ");
 
 export const sourceHref = (locale: string, ref: Ref): string => {
-  const path = ref.path.split("/").map(encodeURIComponent).join("/");
   const first = ref.ranges[0];
-  return `/${encodeURIComponent(locale)}/source/${encodeURIComponent(ref.repo)}/${path}${first === undefined ? "" : `#L${first.from}`}`;
+  return `${sourceRouteHref(locale, ref.repo, ref.path)}${first === undefined ? "" : `#L${first.from}`}`;
 };
 
 export const citedLines = (ref: Ref, lines: ReadonlyArray<string>): string =>

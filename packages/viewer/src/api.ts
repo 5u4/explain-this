@@ -2,12 +2,25 @@ import type { Block, Inline, Diagnostic as Located, Page } from "@explain/contra
 import type { Freshness, SourceFile } from "@explain/contract/sources";
 
 export type ApiPath =
-  | "/@explain/api/site"
-  | `/@explain/api/page/${string}/${string}`
-  | `/@explain/api/source/${string}/${string}`
-  | `/@explain/api/search/${string}`;
+  | "/@explain/api/site.json"
+  | `/@explain/api/page/${string}/${string}.json`
+  | `/@explain/api/source/${string}/${string}.json`
+  | `/@explain/api/search/${string}.json`;
 
 export type WidgetPath = `/@explain/widgets/${string}.js` | "/@explain/widgets.css";
+
+const segment = encodeURIComponent;
+
+export const siteApiPath: ApiPath = "/@explain/api/site.json";
+
+export const pageApiPath = (locale: string, id: string): ApiPath =>
+  `/@explain/api/page/${segment(locale)}/${segment(id)}.json`;
+
+export const sourceApiPath = (repo: string, path: string): ApiPath =>
+  `/@explain/api/source/${segment(repo)}/${path.split("/").map(segment).join("/")}.json`;
+
+export const searchApiPath = (locale: string): ApiPath =>
+  `/@explain/api/search/${segment(locale)}.json`;
 
 export type Diagnostic = Located & { readonly file: string };
 

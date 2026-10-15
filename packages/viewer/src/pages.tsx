@@ -7,7 +7,7 @@ import { type Site, useViewer } from "./context.ts";
 import { loadPage, loadSource } from "./data.ts";
 import { icons } from "./icons.tsx";
 import { Inlines } from "./inlines.tsx";
-import { pageHref } from "./router.ts";
+import { pageHref, sourceRouteHref } from "./router.ts";
 import { stringsFor } from "./strings.ts";
 
 interface Placement {
@@ -234,7 +234,7 @@ function Sources({
                   <td>
                     <a
                       className="cite"
-                      href={`/${encodeURIComponent(locale)}/source/${encodeURIComponent(entry.repo)}/${entry.path.split("/").map(encodeURIComponent).join("/")}`}
+                      href={sourceRouteHref(locale, entry.repo, entry.path)}
                       data-ref={key}
                       data-kind="file"
                     >

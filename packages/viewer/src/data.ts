@@ -1,4 +1,14 @@
-import type { ApiPath, PageResponse, SearchIndex, SiteResponse, SourceResponse } from "./api.ts";
+import {
+  type ApiPath,
+  type PageResponse,
+  pageApiPath,
+  type SearchIndex,
+  type SiteResponse,
+  type SourceResponse,
+  searchApiPath,
+  siteApiPath,
+  sourceApiPath,
+} from "./api.ts";
 import { highlightLines, languageOf } from "./highlight.ts";
 import { fileKey } from "./ref.ts";
 
@@ -16,18 +26,15 @@ const getJson = <T>(path: ApiPath): Promise<T> => {
   return loading;
 };
 
-const segment = encodeURIComponent;
-
-export const loadSite = (): Promise<SiteResponse> => getJson("/@explain/api/site");
+export const loadSite = (): Promise<SiteResponse> => getJson(siteApiPath);
 
 export const loadPage = (locale: string, id: string): Promise<PageResponse> =>
-  getJson(`/@explain/api/page/${segment(locale)}/${segment(id)}`);
+  getJson(pageApiPath(locale, id));
 
 export const loadSource = (repo: string, path: string): Promise<SourceResponse> =>
-  getJson(`/@explain/api/source/${segment(repo)}/${path.split("/").map(segment).join("/")}`);
+  getJson(sourceApiPath(repo, path));
 
-export const loadSearch = (locale: string): Promise<SearchIndex> =>
-  getJson(`/@explain/api/search/${segment(locale)}`);
+export const loadSearch = (locale: string): Promise<SearchIndex> => getJson(searchApiPath(locale));
 
 export type SourceLines =
   | {

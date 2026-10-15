@@ -79,7 +79,7 @@ describe("explain dev", () => {
   it("serves a cited file and refuses paths that escape the repo", async () => {
     const base = await startDev(makeDocRoot());
 
-    const cited = await fetch(`${base}/@explain/api/source/src/fold.ts`);
+    const cited = await fetch(`${base}/@explain/api/source/src/fold.ts.json`);
     expect(cited.status).toBe(200);
     expect(cited.headers.get("content-type")).toBe("application/json; charset=utf-8");
     expect(cited.headers.get("cache-control")).toBe("no-store");
@@ -92,8 +92,10 @@ describe("explain dev", () => {
       citedBy: [{ locale: "zh-CN", id: "index", title: "折叠" }],
     });
 
+    expect((await fetch(`${base}/@explain/api/source/src/fold.ts`)).status).toBe(404);
+
     for (const escape of ["..%2Fsecret.txt", "leak.txt"]) {
-      const refused = await fetch(`${base}/@explain/api/source/src/${escape}`);
+      const refused = await fetch(`${base}/@explain/api/source/src/${escape}.json`);
       expect(refused.status).toBe(403);
       expect(await refused.text()).not.toContain("do-not-serve");
     }
