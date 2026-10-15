@@ -14,8 +14,8 @@ Inputs: a PR (URL or `owner/repo#N`) or a commit range `A..B`, the absolute path
 ## 1. Collect
 
 1. Resolve the commits. For a PR, read `gh pr view <N> -R <owner/repo> --json number,title,body,url,state,baseRefOid,headRefOid,mergeCommit,commits,reviews,comments,additions,deletions,changedFiles`. Head is `headRefOid`. Base is `git merge-base <baseRefOid> <headRefOid>`, the commit GitHub diffs against. For a range, head is `B` and base is `git merge-base A B`. When `git cat-file -e <oid>^{commit}` fails, run `git fetch origin pull/<N>/head` or `git fetch origin <oid>`.
-2. Write `<doc root>/pr.md`. Its first line says the file holds claims to check against code and is never evidence. Then, verbatim: title, URL, state, base and head ids, size; every commit oldest first with subject and body (`git log --reverse --format='%h %s%n%n%b' <base>..<head>`); the description; every review and conversation comment with its author; every inline review comment from `gh api repos/<owner>/<repo>/pulls/<N>/comments` with its path and line. A range has only the commits.
-3. Write `explain.json`. Pin key `<repo>-base` to base and key `<repo>` to head, both with the clone's path. Pin one more key, `<repo>-<short id>`, for an intermediate commit only when step 2 plans a page that compares against it.
+2. Write `<doc root>/pr.md`. Its first line says the file holds claims to check against code and is never evidence. Then, verbatim: title, URL, state, base and head ids, size; every commit oldest first with subject and body (`git log --reverse --format='%h %s%n%n%b' <base>..<head>`); the description; every review and conversation comment with its author; every inline review comment from `gh api repos/<owner>/<repo>/pulls/<N>/comments` with its path and line. Put each body in a fenced block, and write `none` for a source that has nothing. A range has only the commits.
+3. Write `explain.json`. `title` is `<repo> PR #<N>: <PR title>` in each locale, and `locales` and `defaultLocale` come from the inputs. Pin key `<repo>-base` to base and key `<repo>` to head, both with the clone's path.
 4. Survey. Read `git diff --stat <base> <head>` and the full diff, then the code around each hunk. Find the callers of each changed or deleted declaration, at head and at base. For each claim in `pr.md`, find the code that can confirm or refute it, and record a search that found nothing as the command and the commit it ran at.
 
 Done when every changed file has a row with path, lines at head (or `deleted (N at base)`), and kind (code, test, doc, generated), and every claim in `pr.md` has a lead.
@@ -52,9 +52,10 @@ PR: <url>. Base `<id>`: <how it was chosen>. Head `<id>`.
 ```
 
 - Nav has three groups in this order: overview, changes, review. Titles are in each locale.
-- `index` is the overview. Its plan entry numbers every claim in `pr.md` (the title, each commit, each point of the description, each review point) and names the page that explains it. The page gives each claim a verdict against the code: holds, partly holds (and which part), does not hold, or not checkable from code. It ends with the reading order.
-- Change pages follow intent, not files or commits. Each answers how one behavior moved from base to head. A diff that fits one Read gets one change page.
-- Plan a review page `risks` when the PR deletes or weakens tests, changes stored data or a schema, changes a public contract, or claims tradeoffs, risks, or verification. It covers costs the PR does not state, what now guards the behavior of each deleted test, and what the stated verification covers and misses. Without it, `index` covers these in its verdicts.
+- `index` is the overview. Its plan entry numbers every claim in `pr.md` and names the page that explains it. A claim is one bullet or sentence that asserts a fact about code, from the title, a commit, the description, or a review. Leave out restatements of the diff and opinions. The page gives each claim a verdict: holds, partly holds (and which part), does not hold, or not checkable from code. Judge a commit's claims at that commit and say when a later commit undid them; judge every other claim at head. The page ends with the reading order.
+- When a claim can only be checked at an intermediate commit, add key `<repo>-<short id>` pinned to it in `explain.json`.
+- Change pages follow intent: one page per behavior that moved from base to head, never one per file or commit.
+- Plan a review page `risks` when the PR deletes or weakens tests, changes stored data or a schema, changes a public contract (an export of a published package, a CLI flag, an HTTP route, a stored format), or claims tradeoffs, risks, or verification. It covers costs the PR does not state, what now guards the behavior of each deleted test, and what the stated verification covers and misses. Without it, `index` covers these in its verdicts.
 - Keep each Read under 4000 lines. Read ranges around the hunks rather than whole files on both sides.
 - A doc changed by the PR (README, `AGENTS.md`, design doc) is a claim like `pr.md`. When the change is a policy, the page that owns it says what the text now requires.
 
@@ -79,11 +80,11 @@ Done when every changed file is cited or skipped.
 ## 7. Review
 
 1. Extract each pinned commit for reviewers without a shell: `mkdir -p <scratch>/<key> && git -C <path> archive <commit> | tar -x -C <scratch>/<key>`.
-2. Dispatch a fresh read-only subagent per page with the page, `pr.md`, `writing-pr-pages.md`, and the map from each key to its extracted tree. It reads every cited range and lists each sentence the cited lines do not support, each claim about code with no citation, each citation on the wrong side, and each verdict the code contradicts.
-3. Send each list to a fresh writer for that page, then rerun step 5.
+2. Dispatch a fresh read-only subagent per page and one for `glossary.md`, with the page, `pr.md`, `writing-pages.md`, `writing-pr-pages.md`, and the map from each key to its extracted tree. It reads every cited range and lists each sentence the cited lines do not support, each claim about code with no citation, each citation on the wrong side, and each verdict the code contradicts.
+3. Send each list to a fresh writer for that page, then rerun step 5. `explain check` tracks code, not prose, so record which pages each round changed.
 4. Review again every page whose text changed. Fixes introduce new errors.
 
-Done when a round lists nothing for every page.
+Done when every page's latest review, run after its last edit, lists nothing.
 
 ## 8. Build
 

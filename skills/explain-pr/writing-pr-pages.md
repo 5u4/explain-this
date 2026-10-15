@@ -16,6 +16,6 @@ You write one page of a PR doc root. Follow [`../explain-repo/writing-pages.md`]
 
 ## Evidence no file holds
 
-- A claim that something is absent ("no other caller", "nothing reads it in that order") is a search. Run `git -C <path> grep -n <pattern> <commit> -- <paths>` at the commit the claim is about, and show the command and its result as a fenced `sh` block.
+- A claim that something is absent ("no other caller", "nothing reads it in that order") is a search. Run `git -C <path> grep -n <pattern> <commit> -- <paths>` at the commit the claim is about, and show the command and its result as a fenced `sh` block. When no single command proves the absence, mark it as inference and say how you checked.
 - A fact about commits, such as which commit deleted a file, is shown the same way with `git show --stat <id>`.
 - Runtime facts (query plans, test counts, timing, what a migration does to an existing database) are not in the code. Mark them as inference, or show the command you ran, its output, and the commit it ran at.

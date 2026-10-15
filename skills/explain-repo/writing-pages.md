@@ -6,7 +6,7 @@ You write one page of an explain doc root. Your brief gives the doc root, the lo
 
 1. Read your Read scope. Start at entry points and public types. When a call leaves the scope, grep for it and read only the lines you need.
 2. Write `<locale>/<id>.md`. Write widgets only as `widgets/<id>-<name>.js`. Leave every other file to the coordinator, including `glossary.md`.
-3. Run `explain hash <locale>/<id>.md` in the doc root. It checks that every cited file exists and every range fits. Fix every diagnostic it reports except unknown terms, which the coordinator resolves. Rerun until only unknown terms remain or it succeeds. If you wrote a widget, also run `explain check` and fix every diagnostic that names your widget files.
+3. Run `explain hash <locale>/<id>.md` in the doc root. It checks that every cited file exists and every range fits. Fix every diagnostic it reports except unknown terms, which the coordinator resolves, and links to planned pages that are not written yet. Rerun until only those remain or it succeeds. If you wrote a widget, also run `explain check` and fix every diagnostic that names your widget files.
 4. Return your term candidates (id, label, and a definition with citations), the widgets you wrote, and anything the Question needed that lay outside your Read.
 
 ## Content
