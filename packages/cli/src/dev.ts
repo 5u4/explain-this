@@ -23,7 +23,12 @@ export const serveDocRoot = Effect.fnUntraced(function* (initial: DocRoot, port:
   const changes = yield* Queue.unbounded<string>();
   let state: DevState = { status: "ok", docRoot: initial };
   let locales = initial.config.locales;
-  let watched: ReadonlySet<string> = new Set([root, ...Object.values(initial.config.repos)]);
+  let watched: ReadonlySet<string> = new Set([
+    root,
+    ...Object.values(initial.config.repos).flatMap((repo) =>
+      repo._tag === "WorkTree" ? [repo.path] : [],
+    ),
+  ]);
 
   const reload = Effect.fnUntraced(function* (server: ViteDevServer) {
     const next = yield* lock.withPermit(
@@ -48,7 +53,12 @@ export const serveDocRoot = Effect.fnUntraced(function* (initial: DocRoot, port:
     );
     if (next.status === "ok") {
       locales = next.docRoot.config.locales;
-      const repos = new Set([root, ...Object.values(next.docRoot.config.repos)]);
+      const repos = new Set([
+        root,
+        ...Object.values(next.docRoot.config.repos).flatMap((repo) =>
+          repo._tag === "WorkTree" ? [repo.path] : [],
+        ),
+      ]);
       server.watcher.unwatch([...watched].filter((directory) => !repos.has(directory)));
       server.watcher.add([...repos].filter((directory) => !watched.has(directory)));
       watched = repos;

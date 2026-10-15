@@ -1,5 +1,6 @@
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
+import * as SchemaTransformation from "effect/SchemaTransformation";
 import { repoKeyProblem } from "./citation.ts";
 
 export const pageIdPattern = /^[a-z0-9][a-z0-9-]*$/;
@@ -29,8 +30,39 @@ const RepoPath = Schema.String.check(
   ),
 );
 
-const Repos = Schema.Record(Schema.String, RepoPath).check(
-  Schema.makeFilter((repos: Readonly<Record<string, string>>) =>
+const CommitId = Schema.String.check(
+  Schema.isPattern(/^[0-9a-f]{40}$/, { message: "commit must be a 40-hex commit id" }),
+);
+
+const WorkTreeRepo = Schema.TaggedStruct("WorkTree", { path: Schema.String });
+
+const CommitRepo = Schema.TaggedStruct("Commit", { path: Schema.String, commit: Schema.String });
+
+const RepoValue = Schema.Union([
+  RepoPath.pipe(
+    Schema.decodeTo(
+      WorkTreeRepo,
+      SchemaTransformation.transform({
+        decode: (path) => ({ _tag: "WorkTree" as const, path }),
+        encode: (repo) => repo.path,
+      }),
+    ),
+  ),
+  Schema.Struct({ path: RepoPath, commit: CommitId }).pipe(
+    Schema.decodeTo(
+      CommitRepo,
+      SchemaTransformation.transform({
+        decode: ({ path, commit }) => ({ _tag: "Commit" as const, path, commit }),
+        encode: ({ path, commit }) => ({ path, commit }),
+      }),
+    ),
+  ),
+]);
+
+export type Repo = typeof RepoValue.Type;
+
+const Repos = Schema.Record(Schema.String, RepoValue).check(
+  Schema.makeFilter((repos: Readonly<Record<string, Repo>>) =>
     Object.keys(repos).flatMap((key) => {
       const issue = repoKeyProblem(key);
       return issue === undefined ? [] : [{ path: [key], issue }];

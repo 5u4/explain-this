@@ -1,5 +1,5 @@
 import { formatRange, type Ref } from "@explain/contract/citation";
-import { ExplainConfig, glossaryPageId, navPageIds } from "@explain/contract/config";
+import { ExplainConfig, glossaryPageId, navPageIds, type Repo } from "@explain/contract/config";
 import type { Page, Position } from "@explain/contract/page";
 import { glossaryTermIds } from "@explain/contract/page";
 import { type ParseResult, parsePage } from "@explain/contract/parse-page";
@@ -15,7 +15,7 @@ import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
-import type * as PlatformError from "effect/PlatformError";
+import * as PlatformError from "effect/PlatformError";
 import * as ChildProcess from "effect/process/ChildProcess";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import * as Schema from "effect/Schema";
@@ -105,6 +105,18 @@ const countLines = (bytes: Uint8Array): number => {
 
 const sourceKey = (repo: string, path: string): string => `${repo}\u0000${path}`;
 
+const concatBytes = (chunks: ReadonlyArray<Uint8Array>): Uint8Array => {
+  const bytes = new Uint8Array(chunks.reduce((length, chunk) => length + chunk.length, 0));
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return bytes;
+};
+
+const fileModes: Readonly<Record<string, true>> = { "100644": true, "100755": true };
+
 export const findDocRoot = Effect.fnUntraced(function* (from: string) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
@@ -154,20 +166,58 @@ export const loadDocRoot = Effect.fnUntraced(function* (
   const config = yield* loadConfig(root);
   const rootErrors: Array<Diagnostic> = [];
 
-  const repoRoots = new Map<string, string>();
-  for (const [repo, repoPath] of Object.entries(config.repos)) {
-    const real = yield* fs.realPath(repoPath).pipe(Effect.orElseSucceed(() => undefined));
+  const runGit = (cwd: string, args: ReadonlyArray<string>) =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const handle = yield* spawner.spawn(
+          ChildProcess.make("git", ["--literal-pathspecs", ...args], { cwd, stderr: "ignore" }),
+        );
+        const [chunks, exitCode] = yield* Effect.all(
+          [Stream.runCollect(handle.stdout), handle.exitCode],
+          { concurrency: 2 },
+        );
+        if (exitCode !== 0) {
+          return yield* PlatformError.systemError({
+            _tag: "Unknown",
+            module: "git",
+            method: args[0] ?? "",
+            pathOrDescriptor: cwd,
+            description: `git ${args.join(" ")} exited with ${exitCode}`,
+          });
+        }
+        return concatBytes(chunks);
+      }),
+    );
+
+  const repos = new Map<string, Repo>();
+  for (const [key, repo] of Object.entries(config.repos)) {
+    const real = yield* fs.realPath(repo.path).pipe(Effect.orElseSucceed(() => undefined));
     const info = real === undefined ? undefined : yield* fs.stat(real).pipe(Effect.option);
-    if (real !== undefined && info?._tag === "Some" && info.value.type === "Directory") {
-      repoRoots.set(repo, real);
+    if (real === undefined || info?._tag !== "Some" || info.value.type !== "Directory") {
+      rootErrors.push({
+        file: configFileName,
+        line: 1,
+        column: 1,
+        message: `repos.${key}: ${repo.path} is not a directory`,
+      });
       continue;
     }
-    rootErrors.push({
-      file: configFileName,
-      line: 1,
-      column: 1,
-      message: `repos.${repo}: ${repoPath} is not a directory`,
-    });
+    if (repo._tag === "Commit") {
+      const found = yield* runGit(real, ["cat-file", "-e", `${repo.commit}^{commit}`]).pipe(
+        Effect.as(true),
+        Effect.orElseSucceed(() => false),
+      );
+      if (!found) {
+        rootErrors.push({
+          file: configFileName,
+          line: 1,
+          column: 1,
+          message: `repos.${key}: ${repo.path} has no commit ${repo.commit}`,
+        });
+        continue;
+      }
+    }
+    repos.set(key, { ...repo, path: real });
   }
 
   const resolvedCache = new Map<string, Resolved>();
@@ -184,16 +234,40 @@ export const loadDocRoot = Effect.fnUntraced(function* (
     sourcePath: string,
   ): Effect.fn.Return<Resolved, PlatformError.PlatformError> {
     if (!Object.hasOwn(config.repos, repo)) return { status: "unknown-repo" } satisfies Resolved;
-    const repoRoot = repoRoots.get(repo);
-    if (repoRoot === undefined) return { status: "missing" } satisfies Resolved;
-    const real = yield* fs.realPath(path.join(repoRoot, sourcePath)).pipe(Effect.option);
+    const source = repos.get(repo);
+    if (source === undefined) return { status: "missing" } satisfies Resolved;
+    if (source._tag === "Commit") return yield* resolveAtCommit(source, sourcePath);
+    const real = yield* fs.realPath(path.join(source.path, sourcePath)).pipe(Effect.option);
     if (real._tag === "None") return { status: "missing" } satisfies Resolved;
-    if (!real.value.startsWith(`${repoRoot}${path.sep}`)) {
+    if (!real.value.startsWith(`${source.path}${path.sep}`)) {
       return { status: "escapes" } satisfies Resolved;
     }
     const info = yield* fs.stat(real.value);
     if (info.type !== "File") return { status: "not-a-file" } satisfies Resolved;
     const bytes = yield* fs.readFile(real.value);
+    return { status: "file", bytes, lines: countLines(bytes) } satisfies Resolved;
+  });
+  const resolveAtCommit = Effect.fnUntraced(function* (
+    source: Extract<Repo, { _tag: "Commit" }>,
+    sourcePath: string,
+  ): Effect.fn.Return<Resolved, PlatformError.PlatformError> {
+    const listing = yield* runGit(source.path, [
+      "ls-tree",
+      "-z",
+      "--full-tree",
+      source.commit,
+      "--",
+      sourcePath,
+    ]);
+    const entry = new TextDecoder()
+      .decode(listing)
+      .split("\u0000")
+      .map((line) => /^(\d+) \w+ ([0-9a-f]+)\t(.*)$/s.exec(line))
+      .find((match) => match?.[3] === sourcePath);
+    if (entry === undefined || entry === null) return { status: "missing" } satisfies Resolved;
+    const [, mode = "", id = ""] = entry;
+    if (!Object.hasOwn(fileModes, mode)) return { status: "not-a-file" } satisfies Resolved;
+    const bytes = yield* runGit(source.path, ["cat-file", "blob", id]);
     return { status: "file", bytes, lines: countLines(bytes) } satisfies Resolved;
   });
 
@@ -212,28 +286,18 @@ export const loadDocRoot = Effect.fnUntraced(function* (
   });
 
   const commitCache = new Map<string, string | undefined>();
-  const headCommit = Effect.fnUntraced(function* (repo: string) {
+  const sourceCommit = Effect.fnUntraced(function* (repo: string) {
+    const source = repos.get(repo);
+    if (source?._tag === "Commit") return source.commit;
     if (commitCache.has(repo)) return commitCache.get(repo);
-    const repoRoot = repoRoots.get(repo);
     const commit =
-      repoRoot === undefined
+      source === undefined
         ? undefined
-        : yield* Effect.scoped(
-            Effect.gen(function* () {
-              const handle = yield* spawner.spawn(
-                ChildProcess.make("git", ["rev-parse", "--verify", "HEAD"], {
-                  cwd: repoRoot,
-                  stderr: "ignore",
-                }),
-              );
-              const [output, exitCode] = yield* Effect.all(
-                [Stream.mkString(Stream.decodeText(handle.stdout)), handle.exitCode],
-                { concurrency: 2 },
-              );
-              const head = output.trim();
-              return exitCode === 0 && /^[0-9a-f]{40}$/.test(head) ? head : undefined;
-            }),
-          ).pipe(Effect.orElseSucceed(() => undefined));
+        : yield* runGit(source.path, ["rev-parse", "--verify", "HEAD"]).pipe(
+            Effect.map((output) => new TextDecoder().decode(output).trim()),
+            Effect.map((head) => (/^[0-9a-f]{40}$/.test(head) ? head : undefined)),
+            Effect.orElseSucceed(() => undefined),
+          );
     commitCache.set(repo, commit);
     return commit;
   });
@@ -337,7 +401,7 @@ export const loadDocRoot = Effect.fnUntraced(function* (
       const resolved = yield* resolve(source.repo, source.path);
       if (resolved.status !== "file") continue;
       const hash = yield* blobId(sourceKey(source.repo, source.path), resolved.bytes);
-      const commit = yield* headCommit(source.repo);
+      const commit = yield* sourceCommit(source.repo);
       sources.push(commit === undefined ? { ...source, hash } : { ...source, hash, commit });
     }
 

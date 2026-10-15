@@ -22,11 +22,19 @@ describe("ExplainConfig", () => {
         title: { en: "w" },
         locales: ["en"],
         defaultLocale: "en",
-        repos: rest.repos,
+        repos: { fold: { _tag: "WorkTree", path: "/repos/fold" } },
         nav: [],
       }),
     );
     expect(Exit.isSuccess(decode(valid))).toBe(true);
+  });
+
+  it("decodes a repo pinned to a commit", () => {
+    const commit = "f427dce30c8934c399772084d51fbfa9ec96598a";
+    const decoded = decode({ ...valid, repos: { fold: { path: "/repos/fold", commit } } });
+    expect(Exit.isSuccess(decoded) && decoded.value.repos).toEqual({
+      fold: { _tag: "Commit", path: "/repos/fold", commit },
+    });
   });
 
   it.each([
@@ -38,6 +46,14 @@ describe("ExplainConfig", () => {
     ["a reserved repo key", { repos: { http: "/x" } }],
     ["a malformed repo key", { repos: { Fold: "/x" } }],
     ["a relative repo path", { repos: { fold: "repos/fold" } }],
+    ["a short pinned commit", { repos: { fold: { path: "/repos/fold", commit: "f427dce" } } }],
+    ["a pinned repo without a commit", { repos: { fold: { path: "/repos/fold" } } }],
+    [
+      "a relative pinned path",
+      {
+        repos: { fold: { path: "repos/fold", commit: "f427dce30c8934c399772084d51fbfa9ec96598a" } },
+      },
+    ],
     ["a reserved page id", { nav: [{ title: { "zh-CN": "a" }, pages: ["glossary"] }] }],
     ["a malformed page id", { nav: [{ title: { "zh-CN": "a" }, pages: ["Fold"] }] }],
     [

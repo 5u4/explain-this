@@ -228,3 +228,100 @@ describe("explain hash and check", () => {
     expect(docRoot.explain("check").code).toBe(0);
   });
 });
+
+describe("explain hash and check with pinned repos", () => {
+  const makePinnedDocRoot = () => {
+    const root = mkdtempSync(join(tmpdir(), "explain-cli-"));
+    roots.push(root);
+    const repo = join(root, "repo");
+    const docs = join(root, "docs");
+    mkdirSync(repo);
+    mkdirSync(join(docs, "zh-CN"), { recursive: true });
+    git(repo, "init", "-q");
+    writeFileSync(join(repo, "fold.ts"), foldSource);
+    git(repo, "add", ".");
+    git(repo, "commit", "-qm", "base");
+    const base = git(repo, "rev-parse", "HEAD");
+    writeFileSync(join(repo, "fold.ts"), `${foldSource}export const added = 4;\n`);
+    writeFileSync(join(repo, "added.ts"), "export const added = 4;\n");
+    spawnSync("ln", ["-s", "fold.ts", join(repo, "link.ts")]);
+    git(repo, "add", ".");
+    git(repo, "commit", "-qm", "head");
+    const head = git(repo, "rev-parse", "HEAD");
+    const writeConfig = (baseCommit: string) =>
+      writeFileSync(
+        join(docs, "explain.json"),
+        JSON.stringify({
+          title: { "zh-CN": "测试" },
+          locales: ["zh-CN"],
+          defaultLocale: "zh-CN",
+          repos: { base: { path: repo, commit: baseCommit }, head: { path: repo, commit: head } },
+          nav: [{ title: { "zh-CN": "入门" }, pages: ["index"] }],
+        }),
+      );
+    writeConfig(base);
+    writeFileSync(
+      join(docs, "zh-CN", "index.md"),
+      "# 差异\n\n[旧](base:fold.ts:1-3) 变成 [新](head:fold.ts:1-4)。\n",
+    );
+    writeFileSync(join(docs, "zh-CN", "glossary.md"), "# 术语表\n\n## run {#run}\n\n一次运行。\n");
+    return {
+      repo,
+      base,
+      head,
+      writeConfig,
+      explain: (...args: ReadonlyArray<string>) => run("bun", [main, ...args], docs),
+      sources: () => readFileSync(join(docs, "zh-CN", "index.sources.json"), "utf8"),
+      writePage: (page: string) => writeFileSync(join(docs, "zh-CN", "index.md"), page),
+    };
+  };
+
+  it("records each key's blob at its commit and ignores the work tree", () => {
+    const docRoot = makePinnedDocRoot();
+    expect(docRoot.explain("hash", "zh-CN/index.md", "zh-CN/glossary.md").code).toBe(0);
+    expect(JSON.parse(docRoot.sources())).toEqual({
+      files: [
+        {
+          repo: "base",
+          path: "fold.ts",
+          hash: git(docRoot.repo, "rev-parse", `${docRoot.base}:fold.ts`),
+          commit: docRoot.base,
+        },
+        {
+          repo: "head",
+          path: "fold.ts",
+          hash: git(docRoot.repo, "rev-parse", `${docRoot.head}:fold.ts`),
+          commit: docRoot.head,
+        },
+      ],
+    });
+    expect(docRoot.explain("check").code).toBe(0);
+
+    writeFileSync(join(docRoot.repo, "fold.ts"), "x\n");
+    expect(docRoot.explain("check").code).toBe(0);
+    rmSync(join(docRoot.repo, "fold.ts"));
+    expect(docRoot.explain("check").code).toBe(0);
+  });
+
+  it.each([
+    ["a path absent at the commit", "base:added.ts", "base:added.ts does not exist"],
+    ["a symlink", "head:link.ts", "head:link.ts is not a file"],
+  ])("refuses to hash a citation of %s", (_, citation, message) => {
+    const docRoot = makePinnedDocRoot();
+    docRoot.writePage(`# 差异\n\n见 [x](${citation})。\n`);
+    const result = docRoot.explain("hash", "zh-CN/index.md");
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain(`zh-CN/index.md:3:3 ${message}`);
+  });
+
+  it("rejects explain.json pinning a key to a commit the repo lacks", () => {
+    const docRoot = makePinnedDocRoot();
+    const bogus = "0".repeat(40);
+    docRoot.writeConfig(bogus);
+    const result = docRoot.explain("check");
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain(
+      `explain.json:1:1 repos.base: ${docRoot.repo} has no commit ${bogus}`,
+    );
+  });
+});
