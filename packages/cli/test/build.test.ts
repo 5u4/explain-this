@@ -37,11 +37,11 @@ const fixture = () => {
   writeFileSync(
     join(root, "explain.json"),
     JSON.stringify({
-      title: { "zh-CN": "t" },
+      title: "t",
       locales: ["zh-CN"],
       defaultLocale: "zh-CN",
       repos: { fold: repo },
-      nav: [{ title: { "zh-CN": "入门" }, pages: ["index"] }],
+      nav: [{ title: "入门", pages: ["index"] }],
     }),
   );
   writeFileSync(
@@ -52,7 +52,6 @@ const fixture = () => {
     join(root, "zh-CN", "index.sources.json"),
     JSON.stringify({ files: [{ repo: "fold", path: "src/old.ts", hash: "0".repeat(40) }] }),
   );
-  writeFileSync(join(root, "zh-CN", "glossary.md"), "# 术语\n\n## 折叠 {#fold}\n\n定义。\n");
   writeFileSync(
     join(root, "widgets", "probe.js"),
     'export function mount(root) {\n  root.textContent = "ok";\n}\n',
@@ -71,14 +70,13 @@ describe("buildSite", () => {
     const out = join(base, "out");
     expect(Exit.isSuccess(await run(buildSite(docRoot, out)))).toBe(true);
     expect(await run(buildSite(docRoot, out))).toEqual(
-      Exit.succeed({ pages: 2, sources: 3, widgets: 1 }),
+      Exit.succeed({ pages: 1, sources: 3, widgets: 1 }),
     );
 
     const explain = join(out, "@explain");
     const written = filesUnder(explain);
     expect(written).toEqual(
       [
-        "api/page/zh-CN/glossary.json",
         "api/page/zh-CN/index.json",
         "api/search/zh-CN.json",
         "api/site.json",
@@ -111,7 +109,6 @@ describe("buildSite", () => {
         "zh-CN/index.html",
         "zh-CN/source/index.html",
         "zh-CN/index/index.html",
-        "zh-CN/glossary/index.html",
       ].sort(),
     );
     for (const route of routes) {

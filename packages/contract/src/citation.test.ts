@@ -26,7 +26,7 @@ describe("parseRef", () => {
   it.each([
     ["fold.ts", "no repo"],
     ["Fold:fold.ts", "uppercase repo"],
-    ["term:fold.ts", "reserved repo"],
+    ["http:fold.ts", "reserved repo"],
     ["fold:", "empty path"],
     ["fold:/fold.ts", "absolute path"],
     ["fold:src//fold.ts", "empty segment"],

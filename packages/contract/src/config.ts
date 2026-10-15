@@ -1,13 +1,10 @@
-import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import * as SchemaTransformation from "effect/SchemaTransformation";
 import { repoKeyProblem } from "./citation.ts";
 
 export const pageIdPattern = /^[a-z0-9][a-z0-9-]*$/;
 
-export const glossaryPageId = "glossary";
-
-const reservedPageIds: Readonly<Record<string, true>> = { glossary: true, source: true };
+const reservedPageIds: Readonly<Record<string, true>> = { source: true };
 
 const localePattern = /^[A-Za-z]{2,3}(-[A-Za-z0-9]{1,8})*$/;
 
@@ -22,47 +19,14 @@ const PageId = Schema.String.check(
   ),
 );
 
-const LocalizedString = Schema.Record(Schema.String, Schema.String);
-
 const RepoPath = Schema.String.check(
   Schema.makeFilter(
     (path: string) => path.startsWith("/") || `repo path "${path}" must be absolute`,
   ),
 );
 
-const CommitId = Schema.String.check(
-  Schema.isPattern(/^[0-9a-f]{40}$/, { message: "commit must be a 40-hex commit id" }),
-);
-
-const WorkTreeRepo = Schema.TaggedStruct("WorkTree", { path: Schema.String });
-
-const CommitRepo = Schema.TaggedStruct("Commit", { path: Schema.String, commit: Schema.String });
-
-const RepoValue = Schema.Union([
-  RepoPath.pipe(
-    Schema.decodeTo(
-      WorkTreeRepo,
-      SchemaTransformation.transform({
-        decode: (path) => ({ _tag: "WorkTree" as const, path }),
-        encode: (repo) => repo.path,
-      }),
-    ),
-  ),
-  Schema.Struct({ path: RepoPath, commit: CommitId }).pipe(
-    Schema.decodeTo(
-      CommitRepo,
-      SchemaTransformation.transform({
-        decode: ({ path, commit }) => ({ _tag: "Commit" as const, path, commit }),
-        encode: ({ path, commit }) => ({ path, commit }),
-      }),
-    ),
-  ),
-]);
-
-export type Repo = typeof RepoValue.Type;
-
-const Repos = Schema.Record(Schema.String, RepoValue).check(
-  Schema.makeFilter((repos: Readonly<Record<string, Repo>>) =>
+const Repos = Schema.Record(Schema.String, RepoPath).check(
+  Schema.makeFilter((repos: Readonly<Record<string, string>>) =>
     Object.keys(repos).flatMap((key) => {
       const issue = repoKeyProblem(key);
       return issue === undefined ? [] : [{ path: [key], issue }];
@@ -71,20 +35,41 @@ const Repos = Schema.Record(Schema.String, RepoValue).check(
 );
 
 const NavGroup = Schema.Struct({
-  title: LocalizedString,
+  title: Schema.String,
   pages: Schema.Array(PageId),
 });
 
-export const ExplainConfig = Schema.Struct({
-  title: LocalizedString,
-  locales: Schema.Array(Locale).check(
-    Schema.isMinLength(1, { message: "locales must not be empty" }),
-    Schema.isUnique({ message: "locales must be unique" }),
-  ),
-  defaultLocale: Locale.pipe(Schema.withDecodingDefaultKey(Effect.succeed("en"))),
+const Locales = Schema.Array(Locale).pipe(
+  Schema.refine((locales): locales is readonly [string, ...Array<string>] => locales.length > 0, {
+    message: "locales must not be empty",
+  }),
+  Schema.check(Schema.isUnique({ message: "locales must be unique" })),
+);
+
+const ExplainConfigFields = {
+  title: Schema.optionalKey(Schema.String),
+  locales: Locales,
   repos: Repos,
   nav: Schema.Array(NavGroup),
-}).check(
+};
+
+const ExplainConfigFile = Schema.Struct({
+  ...ExplainConfigFields,
+  defaultLocale: Schema.optionalKey(Locale),
+});
+
+export const ExplainConfig = ExplainConfigFile.pipe(
+  Schema.decodeTo(
+    Schema.toType(Schema.Struct({ ...ExplainConfigFields, defaultLocale: Locale })),
+    SchemaTransformation.transform({
+      decode: ({ defaultLocale, ...config }) => ({
+        ...config,
+        defaultLocale: defaultLocale ?? config.locales[0],
+      }),
+      encode: (config) => config,
+    }),
+  ),
+).check(
   Schema.makeFilter((config) => {
     const issues: Array<Schema.FilterIssue> = [];
     if (!config.locales.includes(config.defaultLocale)) {
@@ -93,19 +78,8 @@ export const ExplainConfig = Schema.Struct({
         issue: `defaultLocale "${config.defaultLocale}" is not listed in locales`,
       });
     }
-    const missingLocales = (text: Readonly<Record<string, string>>) =>
-      config.locales.filter((locale) => !Object.hasOwn(text, locale));
-    for (const locale of missingLocales(config.title)) {
-      issues.push({ path: ["title"], issue: `title has no "${locale}" entry` });
-    }
     const seen = new Set<string>();
     config.nav.forEach((group, groupIndex) => {
-      for (const locale of missingLocales(group.title)) {
-        issues.push({
-          path: ["nav", groupIndex, "title"],
-          issue: `nav title has no "${locale}" entry`,
-        });
-      }
       group.pages.forEach((page, pageIndex) => {
         if (seen.has(page)) {
           issues.push({

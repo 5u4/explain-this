@@ -14,7 +14,6 @@ export interface Ref {
 const repoKeyPattern = /^[a-z][a-z0-9-]*$/;
 
 const reservedRepoKeys: Readonly<Record<string, true>> = {
-  term: true,
   http: true,
   https: true,
   mailto: true,

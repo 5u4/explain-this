@@ -8,7 +8,6 @@ export interface Viewer {
   readonly site: Site;
   readonly locale: string;
   readonly strings: Strings;
-  readonly lite: boolean;
   readonly sources: ReadonlyArray<SourceEntry>;
   readonly status: (message: string) => void;
 }

@@ -22,7 +22,7 @@ import {
 import { gfm } from "micromark-extension-gfm";
 import { mdxJsx } from "micromark-extension-mdx-jsx";
 import { parseRef, type Ref } from "./citation.ts";
-import { glossaryPageId, pageIdPattern } from "./config.ts";
+import { pageIdPattern } from "./config.ts";
 import {
   type AlertKind,
   type Block,
@@ -128,7 +128,6 @@ export const parsePage = (source: string, pageId: string): ParseResult => {
   const toc: Array<TocEntry> = [];
   const usedIds = new Set<string>();
   const refs: Array<{ ref: Ref; at: Position }> = [];
-  const terms: Array<{ id: string; at: Position }> = [];
   const pageLinks: Array<{ page: string; anchor: string | null; at: Position }> = [];
   const widgets: Array<{ name: string; at: Position }> = [];
 
@@ -219,14 +218,8 @@ export const parsePage = (source: string, pageId: string): ParseResult => {
     if (scheme === undefined) {
       return report(
         at,
-        `link target "${url}" must be a citation, term:<id>, ./<page>.md, #<anchor>, or an http, https, or mailto URL`,
+        `link target "${url}" must be a citation, ./<page>.md, #<anchor>, or an http, https, or mailto URL`,
       );
-    }
-    if (scheme === "term") {
-      const id = url.slice("term:".length);
-      if (!idPattern.test(id)) return report(at, `term id "${id}" must match ${idPattern.source}`);
-      terms.push({ id, at });
-      return { type: "term", id, children };
     }
     if (Object.hasOwn(externalSchemes, scheme)) return { type: "link", href: url, children };
     const ref = citation(url, at);
@@ -291,9 +284,6 @@ export const parsePage = (source: string, pageId: string): ParseResult => {
       if (usedIds.has(explicitId)) return report(at, `heading id "${explicitId}" is used twice`);
       id = explicitId;
     } else {
-      if (pageId === glossaryPageId && depth === 2) {
-        return report(at, "glossary terms need an explicit id: ## Label {#id}");
-      }
       const base = slug(text);
       if (base === "") return report(at, "heading text yields an empty id; add {#id}");
       id = base;
@@ -670,6 +660,6 @@ export const parsePage = (source: string, pageId: string): ParseResult => {
   }
   const title = first?.type === "heading" && first.depth === 1 ? inlines(first.children) : [];
   const body = first?.type === "heading" && first.depth === 1 ? rest : root.children;
-  const page: Page = { title, blocks: blocks(body), toc, refs, terms, pageLinks, widgets };
+  const page: Page = { title, blocks: blocks(body), toc, refs, pageLinks, widgets };
   return { page, errors };
 };

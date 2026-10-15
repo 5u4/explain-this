@@ -10,7 +10,7 @@ describe("parsePage", () => {
       [
         "# Fold",
         "",
-        "See [foldView](fold:fold.ts:12-30) and [run](term:run) in [gate](./compaction.md#gate).",
+        "See [foldView](fold:fold.ts:12-30) and [run](https://run.dev) in [gate](./compaction.md#gate).",
         "",
         "## Rules {#rules}",
         "",
@@ -49,7 +49,7 @@ describe("parsePage", () => {
             children: [{ type: "text", value: "foldView" }],
           },
           { type: "text", value: " and " },
-          { type: "term", id: "run", children: [{ type: "text", value: "run" }] },
+          { type: "link", href: "https://run.dev", children: [{ type: "text", value: "run" }] },
           { type: "text", value: " in " },
           {
             type: "pageLink",
@@ -145,10 +145,10 @@ describe("parsePage", () => {
     ]);
   });
 
-  it("requires explicit ids on glossary terms", () => {
-    const source = "# 术语表\n\n## run {#run}\n\ndef\n\n## steering\n\ndef\n";
-    expect(errorsAt(source, "glossary")).toEqual([{ line: 7, column: 1 }]);
-    expect(errorsAt(source, "fold")).toEqual([]);
+  it("reads a term: link as a citation to a repo named term", () => {
+    const { page, errors } = parsePage("# T\n\n[run](term:run)\n", "fold");
+    expect(errors).toEqual([]);
+    expect(page?.refs.map(({ ref }) => ref)).toEqual([{ repo: "term", path: "run", ranges: [] }]);
   });
 
   it("rejects links with unsupported targets", () => {

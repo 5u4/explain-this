@@ -1,9 +1,9 @@
 import { Component, type ReactNode, Suspense, use, useEffect } from "react";
-import { homePageId, Shell } from "./chrome.tsx";
+import { homeHref, Shell } from "./chrome.tsx";
 import type { Site } from "./context.ts";
 import { loadSite } from "./data.ts";
 import { PageRoute, SourceRoute } from "./pages.tsx";
-import { interceptLinks, navigate, pageHref, parseRoute, useLocation } from "./router.ts";
+import { interceptLinks, navigate, parseRoute, useLocation } from "./router.ts";
 import { stringsFor } from "./strings.ts";
 
 export function App(): ReactNode {
@@ -36,7 +36,12 @@ export function App(): ReactNode {
       route.locale !== null && site.locales.includes(route.locale)
         ? route.locale
         : site.defaultLocale;
-    return <Redirect to={pageHref(locale, homePageId(site, locale))} />;
+    const home = homeHref(site, locale);
+    return home === location.pathname ? (
+      <EmptyHome site={site} locale={locale} />
+    ) : (
+      <Redirect to={home} />
+    );
   }
   if (route.kind === "unknown" || !site.locales.includes(route.locale)) {
     return (
@@ -75,6 +80,22 @@ export function App(): ReactNode {
   );
 }
 
+function EmptyHome({ site, locale }: { readonly site: Site; readonly locale: string }): ReactNode {
+  const strings = stringsFor(locale);
+  return (
+    <Shell site={site} locale={locale} current={null} title={null}>
+      <article className="page">
+        <header className="page-head">
+          <h1>{site.title}</h1>
+        </header>
+        <div className="missing-state">
+          <p>{strings.noPages}</p>
+        </div>
+      </article>
+    </Shell>
+  );
+}
+
 function Redirect({ to }: { readonly to: string }): ReactNode {
   useEffect(() => navigate(to, { replace: true }), [to]);
   return null;
@@ -99,7 +120,7 @@ function NotFound({
         <div className="missing-state">
           <p>{strings.notFoundBody(path)}</p>
           <p>
-            <a className="btn" href={pageHref(locale, homePageId(site, locale))}>
+            <a className="btn" href={homeHref(site, locale)}>
               {strings.backHome}
             </a>
           </p>

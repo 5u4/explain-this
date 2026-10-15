@@ -1,4 +1,4 @@
-import type { Block, Inline, Diagnostic as Located, Page } from "@explain/contract/page";
+import type { Diagnostic as Located, Page } from "@explain/contract/page";
 import type { Freshness, SourceFile } from "@explain/contract/sources";
 
 export type ApiPath =
@@ -37,25 +37,16 @@ export interface NavGroup {
   readonly pages: ReadonlyArray<NavPage>;
 }
 
-export interface GlossaryTerm {
-  readonly id: string;
-  readonly label: ReadonlyArray<Inline>;
-  readonly blocks: ReadonlyArray<Block>;
-}
-
 export interface LocaleSite {
-  readonly title: string;
   readonly nav: ReadonlyArray<NavGroup>;
-  readonly glossary: NavPage;
-  readonly terms: ReadonlyArray<GlossaryTerm>;
 }
 
 export type SiteResponse =
   | {
       readonly status: "ok";
+      readonly title: string;
       readonly locales: ReadonlyArray<string>;
       readonly defaultLocale: string;
-      readonly repos: Readonly<Record<string, { readonly commit: string | null }>>;
       readonly widgets: ReadonlyArray<string>;
       readonly errors: ReadonlyArray<Diagnostic>;
       readonly byLocale: Readonly<Record<string, LocaleSite>>;

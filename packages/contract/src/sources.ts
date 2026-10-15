@@ -8,7 +8,6 @@ export const SourceFile = Schema.Struct({
   repo: Schema.String,
   path: Schema.String,
   hash: BlobId,
-  commit: Schema.optionalKey(BlobId),
 });
 
 export type SourceFile = typeof SourceFile.Type;
@@ -41,10 +40,6 @@ export const compareSourceKeys = (
 export const formatSourcesFile = (files: ReadonlyArray<SourceFile>): string => {
   const ordered = [...files]
     .sort(compareSourceKeys)
-    .map((file) =>
-      file.commit === undefined
-        ? { repo: file.repo, path: file.path, hash: file.hash }
-        : { repo: file.repo, path: file.path, hash: file.hash, commit: file.commit },
-    );
+    .map((file) => ({ repo: file.repo, path: file.path, hash: file.hash }));
   return `${JSON.stringify({ files: ordered }, null, 2)}\n`;
 };

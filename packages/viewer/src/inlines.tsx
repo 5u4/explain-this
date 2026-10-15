@@ -9,7 +9,7 @@ export function Inlines({ inlines }: { readonly inlines: ReadonlyArray<Inline> }
 }
 
 function InlineView({ inline }: { readonly inline: Inline }): ReactNode {
-  const { locale, lite } = useViewer();
+  const { locale } = useViewer();
   switch (inline.type) {
     case "text":
       return inline.value;
@@ -42,23 +42,13 @@ function InlineView({ inline }: { readonly inline: Inline }): ReactNode {
         </a>
       );
     case "citation":
-      return lite ? (
-        <span className="cite-lite">
-          <Inlines inlines={inline.children} />
-        </span>
-      ) : (
+      return (
         <a
           className="cite"
           href={sourceHref(locale, inline.ref)}
           data-ref={formatRef(inline.ref)}
           data-kind={inline.ref.ranges.length === 0 ? "file" : "cite"}
         >
-          <Inlines inlines={inline.children} />
-        </a>
-      );
-    case "term":
-      return (
-        <a className="term" href={pageHref(locale, "glossary", inline.id)} data-term={inline.id}>
           <Inlines inlines={inline.children} />
         </a>
       );

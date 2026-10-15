@@ -452,16 +452,6 @@ a.cite.is-shown {
   text-decoration-color: var(--mark);
   background: var(--mark-wash);
 }
-a.term {
-  color: inherit;
-  text-decoration-style: dotted;
-  text-decoration-color: var(--ink-6);
-  text-decoration-thickness: 1.5px;
-  cursor: help;
-}
-a.term:hover {
-  text-decoration-color: var(--ink-8);
-}
 a.ext::after {
   content: "↗";
   font-size: 0.75em;
@@ -1259,28 +1249,6 @@ td code {
   margin-bottom: 0;
 }
 
-/* ---------- Chips ---------- */
-.chip {
-  height: 28px;
-  padding: 0 10px;
-  border-radius: 999px;
-  border: 1px solid var(--border-strong);
-  background: var(--ink-2);
-  color: var(--text-secondary);
-  font-size: var(--size-caption);
-  transition:
-    background-color var(--dur-fast) var(--ease),
-    color var(--dur-fast) var(--ease),
-    scale var(--dur-fast) var(--ease);
-}
-.chip:hover {
-  background: var(--ink-3);
-  color: var(--text-strong);
-}
-.chip:active {
-  scale: 0.96;
-}
-
 /* ---------- sources + pager ---------- */
 .sources {
   margin-top: 112px;
@@ -1408,9 +1376,6 @@ td code {
   text-overflow: ellipsis;
   font-size: var(--size-caption);
   color: var(--text-secondary);
-}
-.pane-commit {
-  color: var(--text-muted);
 }
 .pane-path {
   display: flex;
@@ -1758,67 +1723,7 @@ td code {
   stroke-width: 2;
 }
 
-/* ---------- popover + search ---------- */
-.pop {
-  position: absolute;
-  z-index: 60;
-  padding: 14px 16px 12px;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-strong);
-  background: var(--ink-2);
-  box-shadow: var(--shadow-pop);
-  font-size: var(--size-ui-lg);
-  line-height: 1.7;
-  opacity: 0;
-  transform: translateY(4px);
-  transition:
-    opacity var(--dur-fast) var(--ease),
-    transform var(--dur-fast) var(--ease);
-}
-.pop[data-side="above"] {
-  transform: translateY(-4px);
-}
-.pop.in {
-  opacity: 1;
-  transform: none;
-}
-.pop-kicker {
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  color: var(--text-faint);
-}
-.pop-title {
-  margin: 2px 0 6px;
-  font: 600 1rem / 1.4 var(--font-display);
-  color: var(--text-strong);
-}
-.pop-body p {
-  margin: 0 0 8px;
-}
-.pop-body code {
-  font-size: 0.84em;
-}
-.cite-lite {
-  text-decoration: underline;
-  text-decoration-color: var(--mark-line);
-  text-underline-offset: 0.3em;
-}
-.pop-more {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--size-caption);
-  color: var(--text-secondary);
-  text-decoration: none;
-}
-.pop-more:hover {
-  color: var(--text-strong);
-}
-.pop-more svg {
-  width: 14px;
-  height: 14px;
-}
-
+/* ---------- search ---------- */
 .search {
   width: min(620px, calc(100vw - 24px));
   max-height: 72vh;
@@ -2012,7 +1917,6 @@ body[data-missing] .pane {
   }
   .view,
   .leader,
-  .pop,
   .copy-icons svg {
     transition-duration: 120ms !important;
     transition-property: opacity !important;
@@ -2276,10 +2180,6 @@ body[data-missing] .pane {
   .copy {
     min-height: 40px;
   }
-  .chip {
-    height: 36px;
-    padding: 0 14px;
-  }
   .icon-btn {
     width: 44px;
     height: 44px;
@@ -2524,12 +2424,4 @@ body[data-missing] .pane {
 }
 .sources .dev-errors {
   margin-top: 16px;
-}
-
-.page[data-page="glossary"] .page-body > h2 {
-  margin: 48px 0 10px;
-  font: 600 var(--step-1) / 1.4 var(--font-body);
-}
-.page[data-page="glossary"] .page-body > h2::before {
-  content: none;
 }

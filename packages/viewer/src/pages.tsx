@@ -1,7 +1,7 @@
 import { type ReactNode, use, useEffect, useRef } from "react";
 import type { Diagnostic, NavPage, PageResponse, SourceEntry } from "./api.ts";
 import { Blocks } from "./blocks.tsx";
-import { homePageId, Shell } from "./chrome.tsx";
+import { homeHref, Shell } from "./chrome.tsx";
 import { CopyButton, LinedRows, MissingFile, useSourceLines } from "./code.tsx";
 import { type Site, useViewer } from "./context.ts";
 import { loadPage, loadSource } from "./data.ts";
@@ -25,16 +25,7 @@ const placement = (site: Site, locale: string, id: string): Placement => {
   const index = order.findIndex((entry) => entry.page.id === id);
   const found = order[index];
   if (found !== undefined) return { page: found.page, group: found.group, index, order };
-  const glossary = localeSite?.glossary;
-  return {
-    page:
-      glossary !== undefined && glossary.id === id
-        ? glossary
-        : { id, title: id, status: "missing" },
-    group: null,
-    index: -1,
-    order,
-  };
+  return { page: { id, title: id, status: "missing" }, group: null, index: -1, order };
 };
 
 export function PageRoute({
@@ -75,9 +66,7 @@ function PageContent({
   const eyebrow = (
     <p className="eyebrow">
       {place.group === null ? (
-        <span>
-          {place.page.id === "glossary" ? strings.reference : site.byLocale[locale]?.title}
-        </span>
+        <span>{site.title}</span>
       ) : (
         <>
           <span>{place.group}</span>
@@ -104,7 +93,7 @@ function PageContent({
           </p>
           <p>{strings.missingPageBody(response.file)}</p>
           <p>
-            <a className="btn" href={pageHref(locale, homePageId(site, locale))}>
+            <a className="btn" href={homeHref(site, locale)}>
               {icons.arrowLeft} {strings.backHome}
             </a>
           </p>
@@ -217,7 +206,6 @@ function Sources({
             <tr>
               <th>{strings.sourceColumns.file}</th>
               <th>{strings.sourceColumns.hash}</th>
-              <th>{strings.sourceColumns.commit}</th>
               <th>{strings.sourceColumns.state}</th>
             </tr>
           </thead>
@@ -243,11 +231,6 @@ function Sources({
                   </td>
                   <td>
                     <code title={recorded?.hash ?? ""}>{recorded?.hash.slice(0, 12) ?? "—"}</code>
-                  </td>
-                  <td>
-                    <code title={recorded?.commit ?? ""}>
-                      {recorded?.commit?.slice(0, 7) ?? "—"}
-                    </code>
                   </td>
                   <td>
                     <span
@@ -340,7 +323,6 @@ export function SourceRoute({
 }): ReactNode {
   const source = use(loadSource(repo, path));
   const strings = stringsFor(locale);
-  const commit = site.repos[repo]?.commit ?? null;
   return (
     <Shell site={site} locale={locale} current={null} title={path}>
       <article className="page source-page">
@@ -348,14 +330,7 @@ export function SourceRoute({
           <p className="eyebrow">
             <span>{strings.sourceKicker}</span>
             <span aria-hidden="true">／</span>
-            <span>
-              {repo}
-              {commit !== null && (
-                <code className="source-commit" title={strings.pinnedCommit(commit)}>
-                  @{commit.slice(0, 7)}
-                </code>
-              )}
-            </span>
+            <span>{repo}</span>
           </p>
           <h1 className="source-title">
             <code>{path}</code>

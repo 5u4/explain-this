@@ -1,10 +1,8 @@
 import { parseRef } from "@explain/contract/citation";
-import { glossaryPageId } from "@explain/contract/config";
-import { type Block, type Inline, plainText, type TreeItem } from "@explain/contract/page";
+import { type Block, plainText, type TreeItem } from "@explain/contract/page";
 import { compareSourceKeys, type SourceFile } from "@explain/contract/sources";
 import type {
   Citer,
-  GlossaryTerm,
   LocaleSite,
   NavPage,
   PageResponse,
@@ -74,19 +72,6 @@ const navPage = (page: DocPage): NavPage => ({
         : page.freshness.status,
 });
 
-const glossaryTerms = (glossary: DocPage | undefined): ReadonlyArray<GlossaryTerm> => {
-  if (glossary?.status !== "parsed") return [];
-  const terms: Array<{ id: string; label: ReadonlyArray<Inline>; blocks: Array<Block> }> = [];
-  for (const block of glossary.page.blocks) {
-    if (block.type === "heading" && block.depth === 2) {
-      terms.push({ id: block.id, label: block.children, blocks: [] });
-    } else {
-      terms.at(-1)?.blocks.push(block);
-    }
-  }
-  return terms;
-};
-
 const invalidState = json(503, { error: "explain.json is invalid; see /@explain/api/site.json" });
 
 const siteResponse = (docRoot: DocRoot): SiteResponse => {
@@ -99,25 +84,17 @@ const siteResponse = (docRoot: DocRoot): SiteResponse => {
   const byLocale: Record<string, LocaleSite> = {};
   for (const locale of config.locales) {
     byLocale[locale] = {
-      title: config.title[locale] ?? "",
       nav: config.nav.map((group) => ({
-        title: group.title[locale] ?? "",
+        title: group.title,
         pages: group.pages.map((id) => navEntry(locale, id)),
       })),
-      glossary: navEntry(locale, glossaryPageId),
-      terms: glossaryTerms(pages.get(`${locale}/${glossaryPageId}`)),
     };
   }
   return {
     status: "ok",
+    title: config.title ?? "Document",
     locales: config.locales,
     defaultLocale: config.defaultLocale,
-    repos: Object.fromEntries(
-      Object.entries(config.repos).map(([key, repo]) => [
-        key,
-        { commit: repo._tag === "Commit" ? repo.commit : null },
-      ]),
-    ),
     widgets: docRoot.widgets,
     errors: docRoot.errors,
     byLocale,

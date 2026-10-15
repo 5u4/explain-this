@@ -35,15 +35,14 @@ const makeDocRoot = () => {
   writeFileSync(
     join(docs, "explain.json"),
     JSON.stringify({
-      title: { "zh-CN": "测试" },
+      title: "测试",
       locales: ["zh-CN"],
       defaultLocale: "zh-CN",
       repos: { src: repo },
-      nav: [{ title: { "zh-CN": "入门" }, pages: ["index"] }],
+      nav: [{ title: "入门", pages: ["index"] }],
     }),
   );
   writeFileSync(join(docs, "zh-CN", "index.md"), "# 折叠\n\n`fold` 在 [这里](src:fold.ts:1-2)。\n");
-  writeFileSync(join(docs, "zh-CN", "glossary.md"), "# 术语表\n\n## run {#run}\n\n一次运行。\n");
   return docs;
 };
 

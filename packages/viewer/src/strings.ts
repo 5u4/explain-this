@@ -8,14 +8,11 @@ export interface Strings {
   readonly openNav: string;
   readonly navLabel: string;
   readonly tocLabel: string;
-  readonly glossary: string;
-  readonly reference: string;
   readonly language: string;
   readonly search: string;
   readonly searchSite: string;
   readonly searchPlaceholder: string;
   readonly searchIndexing: string;
-  readonly searchTry: string;
   readonly searchEmpty: (query: string) => string;
   readonly pageOf: (index: number, total: number) => string;
   readonly fresh: string;
@@ -32,7 +29,6 @@ export interface Strings {
   readonly sourceColumns: {
     readonly file: string;
     readonly hash: string;
-    readonly commit: string;
     readonly state: string;
   };
   readonly sourceStates: Readonly<Record<SourceState, string>>;
@@ -67,7 +63,6 @@ export interface Strings {
   readonly diffRemovedLine: string;
   readonly diffAddedLine: string;
   readonly diffFold: (count: number) => string;
-  readonly pinnedCommit: (commit: string) => string;
   readonly diagramFailed: string;
   readonly diagramSource: string;
   readonly widgetSources: string;
@@ -90,12 +85,10 @@ export interface Strings {
   readonly nextCite: string;
   readonly openSheet: string;
   readonly closeSheet: string;
-  readonly term: string;
-  readonly termMissing: string;
-  readonly termMore: string;
   readonly missingPage: (locale: string) => string;
   readonly missingPageBody: (file: string) => string;
   readonly backHome: string;
+  readonly noPages: string;
   readonly pageErrors: (count: number) => string;
   readonly siteErrors: (count: number) => string;
   readonly unparsedPage: string;
@@ -115,14 +108,11 @@ const en: Strings = {
   openNav: "Open navigation",
   navLabel: "Site navigation",
   tocLabel: "On this page",
-  glossary: "Glossary",
-  reference: "Reference",
   language: "Language",
   search: "Search",
   searchSite: "Search this site",
-  searchPlaceholder: "Search terms, functions, files…",
+  searchPlaceholder: "Search pages, functions, files…",
   searchIndexing: "Building the index…",
-  searchTry: "Try",
   searchEmpty: (query) => `Nothing matches “${query}”.`,
   pageOf: (index, total) => `Page ${index} of ${total}`,
   fresh: "Fresh",
@@ -134,12 +124,12 @@ const en: Strings = {
     `Written against ${count} source ${count === 1 ? "file" : "files"}; every hash matches.`,
   staleNote: "changed in the repo; this page was written against an older version.",
   staleMixedNote: "; this page was written against an older version.",
-  unhashedNote: "This page has no sources file yet; run explain hash.",
+  unhashedNote: "This page has no sources file yet; run explain freshness sync.",
   listSeparator: ", ",
   sources: "Sources",
   sourcesIntro: (repos, count) =>
-    `This page cites ${count} ${count === 1 ? "file" : "files"} in ${repos}. Hashes are the git hash-object recorded by explain hash, compared with the files on disk now.`,
-  sourceColumns: { file: "File", hash: "Hash", commit: "Commit", state: "State" },
+    `This page cites ${count} ${count === 1 ? "file" : "files"} in ${repos}. Hashes are the git hash-object recorded by explain freshness sync, compared with the files on disk now.`,
+  sourceColumns: { file: "File", hash: "Hash", state: "State" },
   sourceStates: {
     fresh: "Matches",
     changed: "Changed",
@@ -185,7 +175,6 @@ const en: Strings = {
   diffRemovedLine: "removed:",
   diffAddedLine: "added:",
   diffFold: (count) => `Show ${count} unchanged ${count === 1 ? "line" : "lines"}`,
-  pinnedCommit: (commit) => `Read from commit ${commit}`,
   diagramFailed: "This diagram could not be rendered",
   diagramSource: "Show the source",
   widgetSources: "Sources",
@@ -200,7 +189,7 @@ const en: Strings = {
   paneSource: (path) => `${path} source`,
   paneChanged: "Changed",
   paneGone: "Gone",
-  recordedHash: "git hash-object recorded by explain hash",
+  recordedHash: "git hash-object recorded by explain freshness sync",
   modes: { follow: "Following", pinned: "Pinned", preview: "Preview" },
   resumeFollow: "Resume following",
   citeCount: (index, total) => `Citation ${index} / ${total}`,
@@ -209,12 +198,10 @@ const en: Strings = {
   nextCite: "Next citation (])",
   openSheet: "Open the source panel",
   closeSheet: "Close the source panel",
-  term: "Term",
-  termMissing: "The glossary has no entry for this term yet.",
-  termMore: "Open in the glossary",
   missingPage: (locale) => `This page is not written in ${locale} yet`,
   missingPageBody: (file) => `The nav lists it, but ${file} does not exist.`,
   backHome: "Back to the first page",
+  noPages: "No pages yet",
   pageErrors: (count) => `${count} ${count === 1 ? "error" : "errors"} on this page`,
   siteErrors: (count) => `${count} ${count === 1 ? "error" : "errors"} in the doc root`,
   unparsedPage: "This page could not be parsed. Fix the errors below; the viewer reloads on save.",
@@ -234,14 +221,11 @@ const zhCN: Strings = {
   openNav: "打开目录",
   navLabel: "站点导航",
   tocLabel: "本页目录",
-  glossary: "术语表",
-  reference: "参考",
   language: "语言",
   search: "搜索",
   searchSite: "搜索本维基",
-  searchPlaceholder: "搜索术语、函数、文件…",
+  searchPlaceholder: "搜索页面、函数、文件…",
   searchIndexing: "正在建立索引…",
-  searchTry: "试试",
   searchEmpty: (query) => `没有找到“${query}”。`,
   pageOf: (index, total) => `第 ${index} 页，共 ${total} 页`,
   fresh: "最新",
@@ -251,12 +235,12 @@ const zhCN: Strings = {
   freshNote: (count) => `依据 ${count} 个源文件，哈希逐一核对一致。`,
   staleNote: "在仓库中已改动，本页依据的是旧版本。",
   staleMixedNote: "；本页依据的是旧版本。",
-  unhashedNote: "本页还没有来源文件，请运行 explain hash。",
+  unhashedNote: "本页还没有来源文件，请运行 explain freshness sync。",
   listSeparator: "、",
   sources: "来源",
   sourcesIntro: (repos, count) =>
-    `本页引用了仓库 ${repos} 中的 ${count} 个文件。哈希为 explain hash 记录的 git hash-object，与磁盘上的当前文件逐一比对。`,
-  sourceColumns: { file: "文件", hash: "哈希", commit: "提交", state: "状态" },
+    `本页引用了仓库 ${repos} 中的 ${count} 个文件。哈希为 explain freshness sync 记录的 git hash-object，与磁盘上的当前文件逐一比对。`,
+  sourceColumns: { file: "文件", hash: "哈希", state: "状态" },
   sourceStates: {
     fresh: "一致",
     changed: "已改动",
@@ -295,7 +279,6 @@ const zhCN: Strings = {
   diffRemovedLine: "删除：",
   diffAddedLine: "新增：",
   diffFold: (count) => `展开 ${count} 行未改动的代码`,
-  pinnedCommit: (commit) => `读取自提交 ${commit}`,
   diagramFailed: "这张图无法渲染",
   diagramSource: "查看源码",
   widgetSources: "来源",
@@ -309,7 +292,7 @@ const zhCN: Strings = {
   paneSource: (path) => `${path} 源码`,
   paneChanged: "已改动",
   paneGone: "已删除",
-  recordedHash: "explain hash 记录的 git hash-object",
+  recordedHash: "explain freshness sync 记录的 git hash-object",
   modes: { follow: "跟随中", pinned: "已固定", preview: "预览" },
   resumeFollow: "恢复跟随",
   citeCount: (index, total) => `引用 ${index} / ${total}`,
@@ -318,12 +301,10 @@ const zhCN: Strings = {
   nextCite: "下一处引用（]）",
   openSheet: "展开源码面板",
   closeSheet: "收起源码面板",
-  term: "术语",
-  termMissing: "术语表里还没有这个词。",
-  termMore: "在术语表中查看",
   missingPage: (locale) => `这一页还没有 ${locale} 版本`,
   missingPageBody: (file) => `导航列出了这一页，但 ${file} 不存在。`,
   backHome: "回到首页",
+  noPages: "还没有页面",
   pageErrors: (count) => `本页有 ${count} 处错误`,
   siteErrors: (count) => `文档根有 ${count} 处错误`,
   unparsedPage: "本页无法解析。修正下列错误后保存，页面会自动刷新。",
@@ -336,6 +317,7 @@ const zhCN: Strings = {
   loadFailed: (message) => `载入失败：${message}`,
 };
 
-const byLocale: Readonly<Record<string, Strings>> = { en, "zh-CN": zhCN };
+const byLanguage: Readonly<Record<string, Strings>> = { en, zh: zhCN };
 
-export const stringsFor = (locale: string): Strings => byLocale[locale] ?? en;
+export const stringsFor = (locale: string): Strings =>
+  byLanguage[locale.split("-")[0]?.toLowerCase() ?? ""] ?? en;

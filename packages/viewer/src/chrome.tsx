@@ -1,28 +1,19 @@
 import type { TocEntry } from "@explain/contract/page";
-import {
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SearchIndex, SourceEntry } from "./api.ts";
-import { Blocks } from "./blocks.tsx";
 import { type Site, useViewer, type Viewer, ViewerContext } from "./context.ts";
 import { loadSearch } from "./data.ts";
 import { icons } from "./icons.tsx";
-import { inlineText } from "./inlines.tsx";
 import { PaneController } from "./pane.ts";
 import { pageHref } from "./router.ts";
 import { SourcePane } from "./source-pane.tsx";
 import { stringsFor } from "./strings.ts";
 
-export const homePageId = (site: Site, locale: string): string => {
+export const homeHref = (site: Site, locale: string): string => {
   const ids =
     site.byLocale[locale]?.nav.flatMap((group) => group.pages.map((page) => page.id)) ?? [];
-  return ids.includes("index") ? "index" : (ids[0] ?? "glossary");
+  const id = ids.includes("index") ? "index" : ids[0];
+  return id === undefined ? `/${encodeURIComponent(locale)}` : pageHref(locale, id);
 };
 
 export function Shell({
@@ -51,21 +42,20 @@ export function Shell({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
-  const siteTitle = site.byLocale[locale]?.title ?? "";
 
   const status = useCallback((message: string) => {
     setAnnouncement("");
     requestAnimationFrame(() => setAnnouncement(message));
   }, []);
   const viewer = useMemo<Viewer>(
-    () => ({ site, locale, strings, lite: false, sources, status }),
+    () => ({ site, locale, strings, sources, status }),
     [site, locale, strings, sources, status],
   );
 
   useEffect(() => {
     document.documentElement.lang = locale;
-    document.title = title === null ? siteTitle : `${title} · ${siteTitle}`;
-  }, [locale, title, siteTitle]);
+    document.title = title === null ? site.title : `${title} · ${site.title}`;
+  }, [locale, title, site.title]);
 
   useEffect(() => {
     const target =
@@ -124,11 +114,11 @@ export function Shell({
           >
             {icons.menu}
           </button>
-          <a className="brand" href={pageHref(locale, homePageId(site, locale))}>
+          <a className="brand" href={homeHref(site, locale)}>
             <span className="brand-mark" aria-hidden="true">
               {strings.brandMark}
             </span>
-            <span>{siteTitle}</span>
+            <span>{site.title}</span>
           </a>
           <button
             type="button"
@@ -161,7 +151,6 @@ export function Shell({
         onOpen={() => setSearchOpen(true)}
         onClose={() => setSearchOpen(false)}
       />
-      <TermCard />
       <div className="sr" role="status">
         {announcement}
       </div>
@@ -208,44 +197,42 @@ function Rail({
       }}
     >
       <div className="rail-inner">
-        <a className="brand" href={pageHref(locale, homePageId(site, locale))}>
+        <a className="brand" href={homeHref(site, locale)}>
           <span className="brand-mark" aria-hidden="true">
             {strings.brandMark}
           </span>
-          <span>{localeSite.title}</span>
+          <span>{site.title}</span>
         </a>
         <button type="button" className="search-trigger" onClick={onOpenSearch}>
           {icons.search}
           <span>{strings.searchSite}</span>
           <kbd>⌘K</kbd>
         </button>
-        {[...localeSite.nav, { title: strings.reference, pages: [localeSite.glossary] }].map(
-          (group) => (
-            <section className="nav-section" key={group.title}>
-              <h2 className="nav-group">{group.title}</h2>
-              <ul>
-                {group.pages.map((page) => (
-                  <li key={page.id} className={page.status === "missing" ? "unbuilt" : undefined}>
-                    <a
-                      href={pageHref(locale, page.id)}
-                      aria-current={page.id === current ? "page" : undefined}
-                    >
-                      {page.title}
-                      {page.status !== "fresh" && page.status !== "missing" && (
-                        <span
-                          className="nav-flag"
-                          data-status={page.status}
-                          title={page.status === "stale" ? strings.stale : strings.pageErrors(1)}
-                        />
-                      )}
-                    </a>
-                    {tocList(page.id)}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ),
-        )}
+        {localeSite.nav.map((group) => (
+          <section className="nav-section" key={group.title}>
+            <h2 className="nav-group">{group.title}</h2>
+            <ul>
+              {group.pages.map((page) => (
+                <li key={page.id} className={page.status === "missing" ? "unbuilt" : undefined}>
+                  <a
+                    href={pageHref(locale, page.id)}
+                    aria-current={page.id === current ? "page" : undefined}
+                  >
+                    {page.title}
+                    {page.status !== "fresh" && page.status !== "missing" && (
+                      <span
+                        className="nav-flag"
+                        data-status={page.status}
+                        title={page.status === "stale" ? strings.stale : strings.pageErrors(1)}
+                      />
+                    )}
+                  </a>
+                  {tocList(page.id)}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
         <div className="rail-foot">
           <span>{locale}</span>
           {site.locales.length > 1 && (
@@ -254,7 +241,7 @@ function Rail({
                 <a
                   key={other}
                   lang={other}
-                  href={pageHref(other, current ?? homePageId(site, other))}
+                  href={current === null ? homeHref(site, other) : pageHref(other, current)}
                   aria-current={other === locale ? "true" : undefined}
                 >
                   {other}
@@ -330,7 +317,7 @@ function SearchDialog({
   readonly onOpen: () => void;
   readonly onClose: () => void;
 }): ReactNode {
-  const { site, locale, strings } = useViewer();
+  const { locale, strings } = useViewer();
   const dialog = useRef<HTMLDialogElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
@@ -365,9 +352,6 @@ function SearchDialog({
 
   const trimmed = query.trim();
   const hits = index === null || trimmed === "" ? [] : searchHits(index, trimmed);
-  const suggestions = (site.byLocale[locale]?.terms ?? [])
-    .slice(0, 4)
-    .map((term) => inlineText(term.label).split(/[（(]/)[0]?.trim() ?? term.id);
 
   return (
     <dialog
@@ -416,24 +400,7 @@ function SearchDialog({
         <kbd>esc</kbd>
       </form>
       <div className="search-results" role="region" aria-live="polite">
-        {trimmed === "" ? (
-          <p className="search-hint">
-            {strings.searchTry}
-            {suggestions.map((word) => (
-              <button
-                key={word}
-                type="button"
-                className="chip"
-                onClick={() => {
-                  setQuery(word);
-                  input.current?.focus();
-                }}
-              >
-                {word}
-              </button>
-            ))}
-          </p>
-        ) : index === null ? (
+        {trimmed === "" ? null : index === null ? (
           <p className="search-hint">{strings.searchIndexing}</p>
         ) : hits.length === 0 ? (
           <p className="search-empty">{strings.searchEmpty(trimmed)}</p>
@@ -455,138 +422,5 @@ function SearchDialog({
         )}
       </div>
     </dialog>
-  );
-}
-
-interface CardTarget {
-  readonly id: string;
-  readonly el: HTMLElement;
-}
-
-const canHover = () => matchMedia("(hover: hover)").matches;
-
-function TermCard(): ReactNode {
-  const viewer = useViewer();
-  const { site, locale, strings } = viewer;
-  const [target, setTarget] = useState<CardTarget | null>(null);
-  const pop = useRef<HTMLDivElement>(null);
-  const shownAt = useRef(0);
-  const hideTimer = useRef<number | undefined>(undefined);
-  const liteViewer = useMemo(() => ({ ...viewer, lite: true }), [viewer]);
-
-  useEffect(() => {
-    const show = (el: HTMLElement) => {
-      clearTimeout(hideTimer.current);
-      const id = el.dataset.term ?? "";
-      setTarget((current) => {
-        if (current?.el !== el) shownAt.current = performance.now();
-        return current?.el === el ? current : { id, el };
-      });
-    };
-    const hide = (now: boolean) => {
-      clearTimeout(hideTimer.current);
-      hideTimer.current = window.setTimeout(() => setTarget(null), now ? 0 : 180);
-    };
-    const termOf = (node: EventTarget | null) =>
-      node instanceof Element ? node.closest<HTMLElement>("a.term") : null;
-    const inCard = (node: EventTarget | null) =>
-      node instanceof Element && node.closest(".pop") !== null;
-    const onOver = (event: MouseEvent) => {
-      const term = termOf(event.target);
-      if (term !== null && canHover()) show(term);
-      else if (inCard(event.target)) clearTimeout(hideTimer.current);
-    };
-    const onOut = (event: MouseEvent) => {
-      if (
-        (termOf(event.target) !== null || inCard(event.target)) &&
-        termOf(event.relatedTarget) === null &&
-        !inCard(event.relatedTarget)
-      ) {
-        hide(false);
-      }
-    };
-    const onFocusIn = (event: FocusEvent) => {
-      const term = termOf(event.target);
-      if (term !== null) show(term);
-    };
-    const onFocusOut = (event: FocusEvent) => {
-      if (termOf(event.target) !== null) hide(false);
-    };
-    const onClick = (event: MouseEvent) => {
-      const term = termOf(event.target);
-      if (term !== null && !canHover()) {
-        const open =
-          pop.current?.dataset.term === term.dataset.term &&
-          performance.now() - shownAt.current > 350;
-        if (!open) {
-          event.preventDefault();
-          show(term);
-        }
-      } else if (term === null && !inCard(event.target)) hide(true);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") hide(true);
-    };
-    const onScroll = () => {
-      if (!canHover()) hide(true);
-    };
-    document.addEventListener("mouseover", onOver);
-    document.addEventListener("mouseout", onOut);
-    document.addEventListener("focusin", onFocusIn);
-    document.addEventListener("focusout", onFocusOut);
-    document.addEventListener("click", onClick, true);
-    addEventListener("keydown", onKeyDown);
-    addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      clearTimeout(hideTimer.current);
-      document.removeEventListener("mouseover", onOver);
-      document.removeEventListener("mouseout", onOut);
-      document.removeEventListener("focusin", onFocusIn);
-      document.removeEventListener("focusout", onFocusOut);
-      document.removeEventListener("click", onClick, true);
-      removeEventListener("keydown", onKeyDown);
-      removeEventListener("scroll", onScroll);
-    };
-  }, []);
-
-  useLayoutEffect(() => {
-    const card = pop.current;
-    if (target === null || card === null) return;
-    target.el.setAttribute("aria-describedby", "term-pop");
-    const box = target.el.getBoundingClientRect();
-    const width = Math.min(340, innerWidth - 24);
-    card.style.width = `${width}px`;
-    const left = Math.min(Math.max(12, box.left - 16), innerWidth - width - 12);
-    const below = box.bottom + 10 + card.offsetHeight < innerHeight;
-    card.style.left = `${left + scrollX}px`;
-    card.style.top = `${(below ? box.bottom + 10 : box.top - 10 - card.offsetHeight) + scrollY}px`;
-    card.dataset.side = below ? "below" : "above";
-    const frame = requestAnimationFrame(() => card.classList.add("in"));
-    return () => {
-      cancelAnimationFrame(frame);
-      card.classList.remove("in");
-      target.el.removeAttribute("aria-describedby");
-    };
-  }, [target]);
-
-  if (target === null) return null;
-  const term = site.byLocale[locale]?.terms.find((entry) => entry.id === target.id);
-  return (
-    <div className="pop" id="term-pop" role="tooltip" ref={pop} data-term={target.id}>
-      <div className="pop-kicker">{strings.term}</div>
-      <div className="pop-title">{term === undefined ? target.id : inlineText(term.label)}</div>
-      <div className="pop-body">
-        {term === undefined ? (
-          <p>{strings.termMissing}</p>
-        ) : (
-          <ViewerContext value={liteViewer}>
-            <Blocks blocks={term.blocks} />
-          </ViewerContext>
-        )}
-      </div>
-      <a className="pop-more" href={pageHref(locale, "glossary", target.id)}>
-        {strings.termMore} {icons.arrowRight}
-      </a>
-    </div>
   );
 }

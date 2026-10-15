@@ -14,9 +14,13 @@ import * as Runtime from "effect/Runtime";
 import { buildSite } from "./build.ts";
 import { serveDocRoot } from "./dev.ts";
 import {
+  configFileName,
   type Diagnostic,
+  type DocPage,
   type DocRoot,
+  decodeConfig,
   findDocRoot,
+  type InvalidConfig,
   loadDocRoot,
   writeSources,
 } from "./doc-root.ts";
@@ -29,7 +33,8 @@ class ExitWith extends Data.TaggedError("ExitWith")<{ readonly code: 1 | 2 }> {
 }
 
 const describeReason = (reason: StaleReason, pageFile: string): string => {
-  if (reason.kind === "sources-missing") return `no sources file; run explain hash ${pageFile}`;
+  if (reason.kind === "sources-missing")
+    return `no sources file; run explain freshness sync ${pageFile}`;
   const source = formatRef({ repo: reason.repo, path: reason.path, ranges: [] });
   switch (reason.kind) {
     case "not-recorded":
@@ -42,6 +47,16 @@ const describeReason = (reason: StaleReason, pageFile: string): string => {
       return `${source} changed`;
   }
 };
+
+const reportInvalidConfig = (error: InvalidConfig) =>
+  Effect.forEach(
+    error.diagnostics,
+    (diagnostic) =>
+      Console.error(
+        `${diagnostic.file}:${diagnostic.line}:${diagnostic.column} ${diagnostic.message}`,
+      ),
+    { discard: true },
+  ).pipe(Effect.andThen(Effect.fail(new ExitWith({ code: 2 }))));
 
 const openDocRoot = Effect.gen(function* () {
   const path = yield* Path.Path;
@@ -65,82 +80,123 @@ const openDocRoot = Effect.gen(function* () {
       Console.error(`no explain.json in ${error.from} or any parent directory`).pipe(
         Effect.andThen(Effect.fail(new ExitWith({ code: 2 }))),
       ),
-    InvalidConfig: (error) =>
-      Effect.forEach(
-        error.diagnostics,
-        (diagnostic) =>
-          Console.error(
-            `${diagnostic.file}:${diagnostic.line}:${diagnostic.column} ${diagnostic.message}`,
-          ),
-        { discard: true },
-      ).pipe(Effect.andThen(Effect.fail(new ExitWith({ code: 2 })))),
+    InvalidConfig: reportInvalidConfig,
   }),
 );
 
-const pageByFile = (docRoot: DocRoot, file: string) =>
-  docRoot.pages.find((page) => page.file === file);
+const pagesFromArguments = Effect.fnUntraced(function* (
+  cwd: string,
+  docRoot: DocRoot,
+  pages: ReadonlyArray<string>,
+) {
+  const path = yield* Path.Path;
+  const found: Array<DocPage> = [];
+  let unknown = false;
+  for (const argument of pages) {
+    const file = path.relative(docRoot.root, path.resolve(cwd, argument)).split(path.sep).join("/");
+    const page = docRoot.pages.find((candidate) => candidate.file === file);
+    if (page === undefined) {
+      yield* Console.error(`${argument} is not a page of the doc root at ${docRoot.root}`);
+      unknown = true;
+    } else found.push(page);
+  }
+  return { found, unknown };
+});
 
-const hash = Command.make(
-  "hash",
-  { pages: Argument.String("page.md").pipe(Argument.atLeast(1)) },
-  Effect.fnUntraced(function* ({ pages }) {
+const pageDiagnostics = (page: DocPage) =>
+  page.status === "parsed" ? [...page.errors, ...page.refProblems] : page.errors;
+
+const init = Command.make(
+  "init",
+  { locales: Flag.String("locales") },
+  Effect.fnUntraced(function* ({ locales }) {
+    const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const { cwd, docRoot, display, printDiagnostics } = yield* openDocRoot;
-    let refused = false;
-    for (const argument of pages) {
-      const file = path
-        .relative(docRoot.root, path.resolve(cwd, argument))
-        .split(path.sep)
-        .join("/");
-      const page = pageByFile(docRoot, file);
-      if (page === undefined) {
-        yield* Console.error(`${argument} is not a page of the doc root at ${docRoot.root}`);
-        refused = true;
-        continue;
-      }
-      if (page.status !== "parsed" || page.errors.length > 0 || page.refProblems.length > 0) {
-        yield* printDiagnostics(
-          page.status === "parsed" ? [...page.errors, ...page.refProblems] : page.errors,
-        );
-        yield* Console.error(`refused to hash ${display(page.file)}: fix the errors above`);
-        refused = true;
-        continue;
-      }
-      yield* writeSources(docRoot.root, page);
-      yield* Console.log(`hashed ${display(page.file)} (${page.sources.length} files)`);
+    const file = path.resolve(configFileName);
+    if (yield* fs.exists(file)) {
+      yield* Console.error(`${file} already exists`);
+      return yield* new ExitWith({ code: 2 });
     }
-    if (refused) return yield* new ExitWith({ code: 2 });
+    const text = `${JSON.stringify({ locales: locales.split(","), repos: {}, nav: [] }, null, 2)}\n`;
+    yield* decodeConfig(text).pipe(Effect.catchTag("InvalidConfig", reportInvalidConfig));
+    yield* fs.writeFileString(file, text);
+    yield* Console.log(`explain init: wrote ${file}`);
   }),
-).pipe(Command.withDescription("Record the hashes of the files each page cites"));
+).pipe(Command.withDescription("Make the current directory a doc root"));
 
-const check = Command.make(
+const validate = Command.make(
+  "validate",
+  { pages: Argument.String("page.md").pipe(Argument.variadic()) },
+  Effect.fnUntraced(function* ({ pages }) {
+    const { cwd, docRoot, printDiagnostics } = yield* openDocRoot;
+    const { found, unknown } =
+      pages.length === 0
+        ? { found: docRoot.pages, unknown: false }
+        : yield* pagesFromArguments(cwd, docRoot, pages);
+    const diagnostics = [...docRoot.errors, ...found.flatMap(pageDiagnostics)];
+    yield* printDiagnostics(diagnostics);
+    if (diagnostics.length > 0 || unknown) return yield* new ExitWith({ code: 2 });
+    yield* Console.log(`${found.length} pages valid`);
+  }),
+).pipe(Command.withDescription("Report what keeps explain.json, widgets and pages from rendering"));
+
+const freshnessCheck = Command.make(
   "check",
   {},
   Effect.fnUntraced(function* () {
-    const { docRoot, display, printDiagnostics } = yield* openDocRoot;
-    yield* printDiagnostics(docRoot.errors);
+    const { docRoot, display } = yield* openDocRoot;
+    let fresh = 0;
     let stale = 0;
-    let invalid = docRoot.errors.length > 0 ? 1 : 0;
+    let unchecked = 0;
     for (const page of docRoot.pages) {
-      yield* printDiagnostics(page.errors);
-      if (page.errors.length > 0) invalid++;
-      if (page.status !== "parsed" || page.freshness.status !== "stale") continue;
+      if (page.status !== "parsed" || page.errors.length > 0) {
+        unchecked++;
+        yield* Console.log(`not checked ${display(page.file)}: run explain validate`);
+        continue;
+      }
+      if (page.freshness.status === "fresh") {
+        fresh++;
+        continue;
+      }
       stale++;
       yield* Console.log(`stale ${display(page.file)}`);
       for (const reason of page.freshness.reasons) {
         yield* Console.log(`  ${describeReason(reason, display(page.file))}`);
       }
     }
-    const fresh = docRoot.pages.filter(
-      (page) => page.status === "parsed" && page.freshness.status === "fresh",
-    ).length;
     yield* Console.log(
-      `${docRoot.pages.length} pages: ${fresh} fresh, ${stale} stale, ${invalid === 0 ? "no" : "with"} validation errors`,
+      `${docRoot.pages.length} pages: ${fresh} fresh, ${stale} stale, ${unchecked} not checked`,
     );
-    if (invalid > 0) return yield* new ExitWith({ code: 2 });
-    if (stale > 0) return yield* new ExitWith({ code: 1 });
+    if (stale > 0 || unchecked > 0) return yield* new ExitWith({ code: 1 });
   }),
-).pipe(Command.withDescription("Validate every page and report stale pages"));
+).pipe(Command.withDescription("List stale pages and the cited files that changed"));
+
+const freshnessSync = Command.make(
+  "sync",
+  { pages: Argument.String("page.md").pipe(Argument.atLeast(1)) },
+  Effect.fnUntraced(function* ({ pages }) {
+    const { cwd, docRoot, display, printDiagnostics } = yield* openDocRoot;
+    const { found, unknown } = yield* pagesFromArguments(cwd, docRoot, pages);
+    let refused = unknown;
+    for (const page of found) {
+      const diagnostics = pageDiagnostics(page);
+      if (page.status !== "parsed" || diagnostics.length > 0) {
+        yield* printDiagnostics(diagnostics);
+        yield* Console.error(`refused to sync ${display(page.file)}: fix the errors above`);
+        refused = true;
+        continue;
+      }
+      yield* writeSources(docRoot.root, page);
+      yield* Console.log(`synced ${display(page.file)} (${page.sources.length} files)`);
+    }
+    if (refused) return yield* new ExitWith({ code: 2 });
+  }),
+).pipe(Command.withDescription("Record the hashes of the files each page cites"));
+
+const freshness = Command.make("freshness").pipe(
+  Command.withDescription("Compare pages with the files they cite"),
+  Command.withSubcommands([freshnessCheck, freshnessSync]),
+);
 
 const dev = Command.make(
   "dev",
@@ -165,7 +221,7 @@ const build = Command.make(
   Effect.fnUntraced(function* ({ out }) {
     const path = yield* Path.Path;
     const { cwd, docRoot, printDiagnostics } = yield* openDocRoot;
-    const diagnostics = [...docRoot.errors, ...docRoot.pages.flatMap((page) => page.errors)];
+    const diagnostics = [...docRoot.errors, ...docRoot.pages.flatMap(pageDiagnostics)];
     if (diagnostics.length > 0) {
       yield* printDiagnostics(diagnostics);
       yield* Console.error("refused to build: fix the errors above");
@@ -186,24 +242,8 @@ const build = Command.make(
   }),
 ).pipe(Command.withDescription("Write the doc root as a static site"));
 
-const format = Command.make(
-  "format",
-  {},
-  Effect.fnUntraced(function* () {
-    const fs = yield* FileSystem.FileSystem;
-    const path = yield* Path.Path;
-    const file = yield* path.fromFileUrl(new URL("../../../docs/format.md", import.meta.url));
-    yield* Console.log((yield* fs.readFileString(file)).trimEnd());
-  }),
-).pipe(Command.withDescription("Print the doc root format contract"));
-
-const get = Command.make("get").pipe(
-  Command.withSubcommands([format]),
-  Command.withDescription("Print reference material for writing a doc root"),
-);
-
 Command.make("explain").pipe(
-  Command.withSubcommands([hash, check, dev, build, get]),
+  Command.withSubcommands([init, validate, freshness, dev, build]),
   Command.run({ version: "0.1.0" }),
   Effect.provide(BunServices.layer),
   BunRuntime.runMain,

@@ -1,8 +1,5 @@
 # explain-this
 
-`docs/format.md` is the contract for the doc root format. Code follows it; change it first when the
-format changes.
-
 ## Effect
 
 Run `bun run vendor:effect` (idempotent), then read `repos/effect/LLMS.md` before writing Effect

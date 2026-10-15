@@ -18,7 +18,6 @@ export type Inline =
   | { readonly type: "break" }
   | { readonly type: "link"; readonly href: string; readonly children: ReadonlyArray<Inline> }
   | { readonly type: "citation"; readonly ref: Ref; readonly children: ReadonlyArray<Inline> }
-  | { readonly type: "term"; readonly id: string; readonly children: ReadonlyArray<Inline> }
   | {
       readonly type: "pageLink";
       readonly page: string;
@@ -118,7 +117,6 @@ export interface Page {
   readonly blocks: ReadonlyArray<Block>;
   readonly toc: ReadonlyArray<TocEntry>;
   readonly refs: ReadonlyArray<{ readonly ref: Ref; readonly at: Position }>;
-  readonly terms: ReadonlyArray<{ readonly id: string; readonly at: Position }>;
   readonly pageLinks: ReadonlyArray<{
     readonly page: string;
     readonly anchor: string | null;
@@ -126,9 +124,6 @@ export interface Page {
   }>;
   readonly widgets: ReadonlyArray<{ readonly name: string; readonly at: Position }>;
 }
-
-export const glossaryTermIds = (glossary: Page): ReadonlyArray<string> =>
-  glossary.toc.filter((entry) => entry.depth === 2).map((entry) => entry.id);
 
 export const plainText = (inlines: ReadonlyArray<Inline>): string =>
   inlines
