@@ -1,10 +1,10 @@
 import type { Block } from "@explain/contract/page";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
-import type { WidgetPath } from "./api.ts";
-import { useViewer } from "./context.ts";
-import { loadSourceLines } from "./data.ts";
+import type { WidgetPath } from "../api.ts";
+import { useViewer } from "../context.ts";
+import { loadSourceLines } from "../data.ts";
+import { citedLines, formatRef, parseRef, sourceHref } from "../ref.ts";
 import { Inlines } from "./inlines.tsx";
-import { citedLines, formatRef, parseRef, sourceHref } from "./ref.ts";
 
 type WidgetBlock = Extract<Block, { readonly type: "widget" }>;
 

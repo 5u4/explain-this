@@ -1,8 +1,8 @@
 import type { Inline } from "@explain/contract/page";
 import type { ReactNode } from "react";
-import { useViewer } from "./context.ts";
-import { formatRef, sourceHref } from "./ref.ts";
-import { pageHref } from "./router.ts";
+import { useViewer } from "../context.ts";
+import { formatRef, sourceHref } from "../ref.ts";
+import { pageHref } from "../router.ts";
 
 export function Inlines({ inlines }: { readonly inlines: ReadonlyArray<Inline> }): ReactNode {
   return inlines.map((inline, index) => <InlineView key={index} inline={inline} />);

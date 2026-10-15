@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useState } from "react";
-import { useViewer } from "./context.ts";
+import { useViewer } from "../context.ts";
 
 type Diagram =
   | { readonly status: "loading" }

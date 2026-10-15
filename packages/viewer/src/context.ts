@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
 import type { SiteResponse, SourceEntry } from "./api.ts";
-import type { Strings } from "./strings.ts";
+import type { Strings } from "./i18n/strings.ts";
 
 export type Site = Extract<SiteResponse, { readonly status: "ok" }>;
 

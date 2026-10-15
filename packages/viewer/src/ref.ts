@@ -1,6 +1,6 @@
 import type { LineRange, Ref } from "@explain/contract/citation";
+import type { Strings } from "./i18n/strings.ts";
 import { sourceRouteHref } from "./router.ts";
-import type { Strings } from "./strings.ts";
 
 const rangePattern = /^([1-9][0-9]*)(?:-([1-9][0-9]*))?$/;
 

@@ -1,11 +1,11 @@
 import type { Ref } from "@explain/contract/citation";
 import type { DiffChange } from "@explain/contract/page";
 import { type ReactNode, useMemo, useState } from "react";
+import { useViewer } from "../context.ts";
+import type { SourceLines } from "../data.ts";
+import { formatRef, rangeLabel, sourceHref } from "../ref.ts";
 import { MissingFile, type SourceLinesState, useSourceLines } from "./code.tsx";
-import { useViewer } from "./context.ts";
-import type { SourceLines } from "./data.ts";
 import { type DiffRow, foldContext, lineDiff } from "./line-diff.ts";
-import { formatRef, rangeLabel, sourceHref } from "./ref.ts";
 
 type ChangeOf<Kind extends DiffChange["kind"]> = Extract<DiffChange, { readonly kind: Kind }>;
 

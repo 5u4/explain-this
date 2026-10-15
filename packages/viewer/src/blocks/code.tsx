@@ -1,10 +1,10 @@
 import type { Ref } from "@explain/contract/citation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { useViewer } from "./context.ts";
-import { loadSourceLines, type SourceLines } from "./data.ts";
-import { highlightLines, languageOf } from "./highlight.ts";
-import { icons } from "./icons.tsx";
-import { citedLines, fileKey, formatRef, rangeLabel, sourceHref } from "./ref.ts";
+import { useViewer } from "../context.ts";
+import { loadSourceLines, type SourceLines } from "../data.ts";
+import { highlightLines, languageOf } from "../highlight.ts";
+import { icons } from "../icons.tsx";
+import { citedLines, fileKey, formatRef, rangeLabel, sourceHref } from "../ref.ts";
 
 export type SourceLinesState =
   | SourceLines

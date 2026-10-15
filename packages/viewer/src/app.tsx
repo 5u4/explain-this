@@ -1,10 +1,11 @@
 import { Component, type ReactNode, Suspense, use, useEffect } from "react";
-import { homeHref, Shell } from "./chrome.tsx";
 import type { Site } from "./context.ts";
 import { loadSite } from "./data.ts";
-import { PageRoute, SourceRoute } from "./pages.tsx";
+import { stringsFor } from "./i18n/strings.ts";
 import { interceptLinks, navigate, parseRoute, useLocation } from "./router.ts";
-import { stringsFor } from "./strings.ts";
+import { PageRoute } from "./routes/page-route.tsx";
+import { SourceRoute } from "./routes/source-route.tsx";
+import { homeHref, Shell } from "./shell/shell.tsx";
 
 export function App(): ReactNode {
   const site = use(loadSite());
