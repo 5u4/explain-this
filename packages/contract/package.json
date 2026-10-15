@@ -8,7 +8,7 @@
     "./config": "./src/config.ts",
     "./sources": "./src/sources.ts",
     "./page": "./src/page.ts",
-    "./parse-page": "./src/parse-page.ts"
+    "./parse-page": "./src/parse-page/parse-page.ts"
   },
   "dependencies": {
     "effect": "catalog:",
