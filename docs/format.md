@@ -281,7 +281,7 @@ The viewer builds these; the LLM writes none of them.
 
 - Navigation, search, page table of contents, freshness badge, sources panel, previous/next.
 - Glossary page, from `glossary.md` (`## Label {#id}` followed by the definition).
-- Source viewer at `source/<repo>/<path>`, with the pages that cite the file. The source pane and the
+- Source viewer at `source?<repo>/<path>`, with the pages that cite the file. The source pane and the
   source viewer name the repo key, and the short commit for a pinned repo.
 
 ## Static build
@@ -296,16 +296,20 @@ previous build.
 ├── index.html, 404.html, assets/      the viewer bundle
 ├── <locale>/index.html                one copy of index.html per route
 ├── <locale>/<page>/index.html
-├── <locale>/source/<repo>/<path>/index.html
+├── <locale>/source/index.html         the source viewer for every file
 └── @explain/                          every response `explain dev` would give, frozen
-    ├── api/site
-    ├── api/page/<locale>/<page>
-    ├── api/search/<locale>
-    ├── api/source/<repo>/<path>
+    ├── api/site.json
+    ├── api/page/<locale>/<page>.json
+    ├── api/search/<locale>.json
+    ├── api/source/<repo>/<path>.json
     ├── widgets/<name>.js
     └── widgets.css
 ```
 
+- `explain dev` answers the same `@explain/` paths.
+- Hosts that serve clean URLs need no configuration either. Every file under `@explain/` ends in
+  `.json`, `.js`, or `.css`, and the source viewer carries the file path in its query. Such a host
+  redirects `/<locale>/index` to `/<locale>`, which opens the `index` page whenever `nav` lists it.
 - The site is served from the host root, not a subdirectory.
 - Every file a page cites or records in its sources file is copied into `@explain/api/source/`. Do
   not publish a build of a private repo.
