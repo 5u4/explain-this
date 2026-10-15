@@ -3,7 +3,7 @@ import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import { compile } from "tailwindcss";
-import type { Diagnostic } from "./doc-root.ts";
+import type { Diagnostic } from "./types.ts";
 
 export interface WidgetModule {
   readonly name: string;

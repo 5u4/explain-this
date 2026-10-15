@@ -6,8 +6,9 @@ import * as Schema from "effect/Schema";
 import * as Semaphore from "effect/Semaphore";
 import * as Stream from "effect/Stream";
 import { createServer, type Plugin, type ViteDevServer } from "vite";
-import { type DevState, handleExplainRequest } from "./dev-api.ts";
-import { type DocRoot, type DocRootServices, loadDocRoot } from "./doc-root.ts";
+import { loadDocRoot } from "../doc-root/load.ts";
+import type { DocRoot, DocRootServices } from "../doc-root/types.ts";
+import { type DevState, handleExplainRequest } from "./api.ts";
 import { viewerImportGuard, viewerRoot } from "./viewer.ts";
 
 export class DevServerFailed extends Schema.TaggedError<DevServerFailed>()("DevServerFailed", {

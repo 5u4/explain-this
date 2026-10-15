@@ -11,8 +11,8 @@ import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import { build } from "vite";
-import { type DevState, handleExplainRequest } from "./dev-api.ts";
-import type { DocRoot } from "./doc-root.ts";
+import type { DocRoot } from "../doc-root/types.ts";
+import { type DevState, handleExplainRequest } from "./api.ts";
 import { viewerImportGuard, viewerRoot } from "./viewer.ts";
 
 export class BuildFailed extends Schema.TaggedError<BuildFailed>()("BuildFailed", {
@@ -21,7 +21,7 @@ export class BuildFailed extends Schema.TaggedError<BuildFailed>()("BuildFailed"
 
 const textDecoder = new TextDecoder();
 
-export const staticSite = (docRoot: DocRoot) => {
+const staticSite = (docRoot: DocRoot) => {
   const sources = new Map<string, { readonly repo: string; readonly path: string }>();
   for (const page of docRoot.pages) {
     if (page.status !== "parsed") continue;

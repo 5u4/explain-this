@@ -6,9 +6,6 @@
   "bin": {
     "explain": "./src/main.ts"
   },
-  "exports": {
-    "./doc-root": "./src/doc-root.ts"
-  },
   "dependencies": {
     "@effect/platform-bun": "catalog:",
     "@explain/contract": "workspace:*",

@@ -13,9 +13,9 @@ import { BunServices } from "@effect/platform-bun";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import { describe, expect, it } from "vitest";
-import { buildSite } from "../src/build.ts";
-import { handleExplainRequest } from "../src/dev-api.ts";
-import { loadDocRoot } from "../src/doc-root.ts";
+import { loadDocRoot } from "../src/doc-root/load.ts";
+import { handleExplainRequest } from "../src/site/api.ts";
+import { buildSite } from "../src/site/build.ts";
 
 const run = <A, E>(effect: Effect.Effect<A, E, BunServices.BunServices>) =>
   Effect.runPromiseExit(effect.pipe(Effect.provide(BunServices.layer)));
