@@ -537,6 +537,34 @@ export const parsePage = (source: string, pageId: string): ParseResult => {
     return { type: "annotatedSource", ref, notes };
   };
 
+  const diff = (element: MdxJsxFlowElement): Block | undefined => {
+    const at = positionOf(element);
+    const values = attributes(element, { before: "optional", after: "optional" }, false);
+    if (element.children.length > 0) {
+      return report(at, '<Diff> takes no children; write <Diff before="…" after="…" />');
+    }
+    if (values === undefined) return undefined;
+    const side = (name: "before" | "after"): Ref | null | undefined => {
+      const text = values[name];
+      if (text === undefined) return null;
+      const ref = citation(text, at);
+      if (ref === undefined || ref.ranges.length <= 1) return ref;
+      return report(at, `<Diff ${name}="${text}"> takes at most one line range`);
+    };
+    const before = side("before");
+    const after = side("after");
+    if (before === undefined || after === undefined) return undefined;
+    if (before === null) {
+      return after === null
+        ? report(at, "<Diff> needs before, after, or both")
+        : { type: "diff", change: { kind: "added", after } };
+    }
+    return {
+      type: "diff",
+      change: after === null ? { kind: "deleted", before } : { kind: "modified", before, after },
+    };
+  };
+
   const widget = (element: MdxJsxFlowElement): Block | undefined => {
     const at = positionOf(element);
     const values = attributes(
@@ -593,6 +621,8 @@ export const parsePage = (source: string, pageId: string): ParseResult => {
         return beforeAfter(element);
       case "AnnotatedSource":
         return annotatedSource(element);
+      case "Diff":
+        return diff(element);
       case "Widget":
         return widget(element);
     }

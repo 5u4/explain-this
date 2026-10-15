@@ -53,6 +53,11 @@ export interface SourceNote {
   readonly children: ReadonlyArray<Inline>;
 }
 
+export type DiffChange =
+  | { readonly kind: "modified"; readonly before: Ref; readonly after: Ref }
+  | { readonly kind: "added"; readonly after: Ref }
+  | { readonly kind: "deleted"; readonly before: Ref };
+
 export type Block =
   | {
       readonly type: "heading";
@@ -92,6 +97,7 @@ export type Block =
       readonly ref: Ref;
       readonly notes: ReadonlyArray<SourceNote>;
     }
+  | { readonly type: "diff"; readonly change: DiffChange }
   | {
       readonly type: "widget";
       readonly name: string;

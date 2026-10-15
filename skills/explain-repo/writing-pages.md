@@ -19,7 +19,8 @@ You write one page of an explain doc root. Your brief gives the doc root, the lo
   - a table for comparisons and state transitions;
   - `<Tree>` for call trees and file trees;
   - a mermaid diagram for flows that merge and for messages between actors;
-  - `<BeforeAfter>` for a transformation;
+  - `<Diff>` for code that changed, such as a file across two pinned commits;
+  - `<BeforeAfter>` for a transformation that is not two pieces of code;
   - `<Tabs>` for variants of one thing.
 - Split or replace a diagram with more than about 10 nodes or with edge labels longer than a few words.
 - State invariants as `> [!IMPORTANT]`. Mark a conclusion you inferred and could not confirm in code as inference in the same sentence.

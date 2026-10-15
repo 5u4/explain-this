@@ -61,6 +61,13 @@ export interface Strings {
   readonly itemCount: (count: number) => string;
   readonly itemsRemoved: (count: number, removed: number) => string;
   readonly removedItem: string;
+  readonly diffAdded: string;
+  readonly diffDeleted: string;
+  readonly diffStat: (removed: number, added: number) => string;
+  readonly diffRemovedLine: string;
+  readonly diffAddedLine: string;
+  readonly diffFold: (count: number) => string;
+  readonly pinnedCommit: (commit: string) => string;
   readonly diagramFailed: string;
   readonly diagramSource: string;
   readonly widgetSources: string;
@@ -172,6 +179,13 @@ const en: Strings = {
   itemsRemoved: (count, removed) =>
     `${count} ${count === 1 ? "item" : "items"} · ${removed} removed`,
   removedItem: "(removed)",
+  diffAdded: "Added file",
+  diffDeleted: "Deleted file",
+  diffStat: (removed, added) => `${removed} removed, ${added} added`,
+  diffRemovedLine: "removed:",
+  diffAddedLine: "added:",
+  diffFold: (count) => `Show ${count} unchanged ${count === 1 ? "line" : "lines"}`,
+  pinnedCommit: (commit) => `Read from commit ${commit}`,
   diagramFailed: "This diagram could not be rendered",
   diagramSource: "Show the source",
   widgetSources: "Sources",
@@ -275,6 +289,13 @@ const zhCN: Strings = {
   itemCount: (count) => `${count} 条`,
   itemsRemoved: (count, removed) => `${count} 条 · 少了 ${removed} 条`,
   removedItem: "（已移除）",
+  diffAdded: "新增文件",
+  diffDeleted: "删除文件",
+  diffStat: (removed, added) => `删除 ${removed} 行，新增 ${added} 行`,
+  diffRemovedLine: "删除：",
+  diffAddedLine: "新增：",
+  diffFold: (count) => `展开 ${count} 行未改动的代码`,
+  pinnedCommit: (commit) => `读取自提交 ${commit}`,
   diagramFailed: "这张图无法渲染",
   diagramSource: "查看源码",
   widgetSources: "来源",

@@ -112,7 +112,12 @@ const siteResponse = (docRoot: DocRoot): SiteResponse => {
     status: "ok",
     locales: config.locales,
     defaultLocale: config.defaultLocale,
-    repos: Object.keys(config.repos),
+    repos: Object.fromEntries(
+      Object.entries(config.repos).map(([key, repo]) => [
+        key,
+        { commit: repo._tag === "Commit" ? repo.commit : null },
+      ]),
+    ),
     widgets: docRoot.widgets,
     errors: docRoot.errors,
     byLocale,
@@ -241,6 +246,7 @@ const blockText = (block: Block): ReadonlyArray<string> => {
     case "code":
     case "excerpt":
     case "mermaid":
+    case "diff":
     case "thematicBreak":
       return [];
   }

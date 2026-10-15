@@ -25,7 +25,7 @@ interface Peek {
 }
 
 export function SourcePane({ controller }: { readonly controller: PaneController }): ReactNode {
-  const { strings, sources } = useViewer();
+  const { site, strings, sources } = useViewer();
   const state = useSyncExternalStore(controller.subscribe, controller.getState);
   const pane = useRef<HTMLElement>(null);
   const leader = useRef<SVGSVGElement>(null);
@@ -76,6 +76,8 @@ export function SourcePane({ controller }: { readonly controller: PaneController
   const path = shown?.ref.path ?? "";
   const dir = path.includes("/") ? path.slice(0, path.lastIndexOf("/") + 1) : "";
   const range = shown === null ? "" : rangeLabel(shown.ref, strings);
+  const repo = shown?.ref.repo ?? "";
+  const commit = site.repos[repo]?.commit ?? null;
   const toggleSheet = () => controller.setSheet(!state.sheetOpen);
   const narrow = () => !matchMedia(splitQuery).matches;
   const view = state.preview ? "preview" : state.mode.kind;
@@ -99,9 +101,20 @@ export function SourcePane({ controller }: { readonly controller: PaneController
             <span />
           </button>
           <div className="pane-title" aria-live="off" onClick={() => narrow() && toggleSheet()}>
-            <span className="pane-dir">{dir}</span>
-            <span className="pane-base">
-              {shown === null ? strings.pane : path.slice(dir.length)}
+            {shown !== null && (
+              <span
+                className="pane-repo"
+                title={commit === null ? undefined : strings.pinnedCommit(commit)}
+              >
+                {repo}
+                {commit !== null && <span className="pane-commit">@{commit.slice(0, 7)}</span>}
+              </span>
+            )}
+            <span className="pane-path">
+              <span className="pane-dir">{dir}</span>
+              <span className="pane-base">
+                {shown === null ? strings.pane : path.slice(dir.length)}
+              </span>
             </span>
           </div>
           <div className="pane-meta">

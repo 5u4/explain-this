@@ -1039,6 +1039,93 @@ td code {
   opacity: 0.5;
 }
 
+/* ---------- Diff ---------- */
+.diff-head {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+.diff-files {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  min-width: 0;
+}
+.diff-repo {
+  color: var(--text-strong);
+}
+.diff-arrow {
+  color: var(--text-faint);
+}
+.diff-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-inline-start: auto;
+  padding-inline-end: 8px;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+.diff-kind {
+  font-family: var(--font-body);
+}
+.diff-counts {
+  display: flex;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.diff-count-removed {
+  color: var(--removed);
+}
+.diff-count-added {
+  color: var(--added);
+}
+.diff .lined .ln {
+  grid-template-columns: 40px 40px 22px 1fr;
+}
+.diff .lined .n {
+  padding-inline-end: 10px;
+  text-decoration: none;
+}
+.diff .lined a.n:hover,
+.diff .lined a.n.is-shown {
+  color: var(--mark-text);
+}
+.diff .sign {
+  text-align: center;
+  user-select: none;
+}
+.diff .ln.diff-removed {
+  background: var(--removed-wash);
+}
+.diff .ln.diff-added {
+  background: var(--added-wash);
+}
+.diff-removed .sign {
+  color: var(--removed);
+}
+.diff-added .sign {
+  color: var(--added);
+}
+.diff .lined .diff-fold {
+  grid-template-columns: 80px 1fr;
+  width: 100%;
+  margin: 2px 0;
+  padding-block: 2px;
+  border: 0;
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.diff .lined .diff-fold:hover {
+  color: var(--text-strong);
+}
+.diff-fold .t {
+  font-family: var(--font-body);
+}
+
 /* ---------- AnnotatedSource ---------- */
 .annotated {
   margin: 1.6em 0;
@@ -1309,17 +1396,37 @@ td code {
   display: none;
 }
 .pane-title {
+  display: flex;
   flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  white-space: nowrap;
+  font: 400 var(--step--1) var(--font-mono);
+}
+.pane-repo {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--size-caption);
+  color: var(--text-secondary);
+}
+.pane-commit {
+  color: var(--text-muted);
+}
+.pane-path {
+  display: flex;
+  min-width: 0;
+}
+.pane-path > span {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  font: 400 var(--step--1) var(--font-mono);
 }
 .pane-dir {
   color: var(--text-muted);
 }
 .pane-base {
+  flex: none;
+  max-width: 100%;
   color: var(--text-strong);
   font-weight: 500;
 }

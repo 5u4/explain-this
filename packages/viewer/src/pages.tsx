@@ -340,6 +340,7 @@ export function SourceRoute({
 }): ReactNode {
   const source = use(loadSource(repo, path));
   const strings = stringsFor(locale);
+  const commit = site.repos[repo]?.commit ?? null;
   return (
     <Shell site={site} locale={locale} current={null} title={path}>
       <article className="page source-page">
@@ -347,7 +348,14 @@ export function SourceRoute({
           <p className="eyebrow">
             <span>{strings.sourceKicker}</span>
             <span aria-hidden="true">／</span>
-            <span>{repo}</span>
+            <span>
+              {repo}
+              {commit !== null && (
+                <code className="source-commit" title={strings.pinnedCommit(commit)}>
+                  @{commit.slice(0, 7)}
+                </code>
+              )}
+            </span>
           </p>
           <h1 className="source-title">
             <code>{path}</code>

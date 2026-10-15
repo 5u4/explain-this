@@ -77,6 +77,8 @@
   --mark-wash: oklch(0.66 0.19 33 / 0.13);
   --mark-wash-strong: oklch(0.66 0.19 33 / 0.22);
   --mark-line: oklch(0.66 0.19 33 / 0.55);
+  --removed-wash: oklch(0.66 0.19 33 / 0.12);
+  --added-wash: oklch(0.8 0.12 140 / 0.1);
   --fresh-wash: oklch(0.79 0.11 165 / 0.12);
   --stale-wash: oklch(0.83 0.13 80 / 0.13);
   --note-wash: oklch(0.78 0.08 250 / 0.08);

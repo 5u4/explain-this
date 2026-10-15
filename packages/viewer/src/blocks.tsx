@@ -11,6 +11,7 @@ import {
 } from "react";
 import { CodeBlock, Excerpt } from "./code.tsx";
 import { useViewer } from "./context.ts";
+import { Diff } from "./diff.tsx";
 import { alertIcons, icons } from "./icons.tsx";
 import { Inlines, inlineText } from "./inlines.tsx";
 import { Mermaid } from "./mermaid.tsx";
@@ -149,6 +150,8 @@ function BlockView({ block, lede }: { readonly block: Block; readonly lede: bool
       return <BeforeAfterView block={block} />;
     case "annotatedSource":
       return <AnnotatedSourceView block={block} />;
+    case "diff":
+      return <Diff change={block.change} />;
     case "widget":
       return <WidgetFrame block={block} />;
     default:

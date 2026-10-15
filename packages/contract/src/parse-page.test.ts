@@ -192,6 +192,87 @@ describe("parsePage", () => {
     ]);
   });
 
+  it("reads Diff sides as a modified, added, or deleted file and records both citations", () => {
+    const { page, errors } = parsePage(
+      [
+        "# T",
+        "",
+        '<Diff before="base:src/a.ts:1-5" after="head:src/a.ts:2-7" />',
+        "",
+        '<Diff after="head:src/b.ts" />',
+        "",
+        '<Diff before="base:src/c.ts:3" />',
+      ].join("\n"),
+      "fold",
+    );
+    expect(errors).toEqual([]);
+    expect(page?.blocks).toEqual([
+      {
+        type: "diff",
+        change: {
+          kind: "modified",
+          before: { repo: "base", path: "src/a.ts", ranges: [{ from: 1, to: 5 }] },
+          after: { repo: "head", path: "src/a.ts", ranges: [{ from: 2, to: 7 }] },
+        },
+      },
+      {
+        type: "diff",
+        change: { kind: "added", after: { repo: "head", path: "src/b.ts", ranges: [] } },
+      },
+      {
+        type: "diff",
+        change: {
+          kind: "deleted",
+          before: { repo: "base", path: "src/c.ts", ranges: [{ from: 3, to: 3 }] },
+        },
+      },
+    ]);
+    expect(page?.refs.map(({ ref, at }) => [`${ref.repo}:${ref.path}`, at.line])).toEqual([
+      ["base:src/a.ts", 3],
+      ["head:src/a.ts", 3],
+      ["head:src/b.ts", 5],
+      ["base:src/c.ts", 7],
+    ]);
+  });
+
+  it("rejects a Diff with children, an unknown attribute, no sides, a bad citation, or two ranges", () => {
+    const { errors } = parsePage(
+      [
+        "# T",
+        "",
+        '<Diff before="base:a.ts">',
+        "",
+        "text",
+        "",
+        "</Diff>",
+        "",
+        '<Diff before="base:a.ts" file="head:a.ts" />',
+        "",
+        "<Diff />",
+        "",
+        '<Diff after="./a.md" />',
+        "",
+        '<Diff before="base:a.ts:1-2,5-6" after="head:a.ts" />',
+      ].join("\n"),
+      "fold",
+    );
+    expect(errors).toEqual([
+      {
+        line: 3,
+        column: 1,
+        message: '<Diff> takes no children; write <Diff before="…" after="…" />',
+      },
+      { line: 9, column: 26, message: '<Diff> has no attribute "file"' },
+      { line: 11, column: 1, message: "<Diff> needs before, after, or both" },
+      { line: 13, column: 1, message: 'citation "./a.md" must be <repo>:<path>[:<ranges>]' },
+      {
+        line: 15,
+        column: 1,
+        message: '<Diff before="base:a.ts:1-2,5-6"> takes at most one line range',
+      },
+    ]);
+  });
+
   it("rejects images and reference definitions instead of dropping them", () => {
     expect(errorsAt("# T\n\n![alt](x.png)\n\n[a]: https://x\n")).toEqual([
       { line: 3, column: 1 },

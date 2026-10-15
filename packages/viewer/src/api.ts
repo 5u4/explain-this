@@ -42,7 +42,7 @@ export type SiteResponse =
       readonly status: "ok";
       readonly locales: ReadonlyArray<string>;
       readonly defaultLocale: string;
-      readonly repos: ReadonlyArray<string>;
+      readonly repos: Readonly<Record<string, { readonly commit: string | null }>>;
       readonly widgets: ReadonlyArray<string>;
       readonly errors: ReadonlyArray<Diagnostic>;
       readonly byLocale: Readonly<Record<string, LocaleSite>>;
