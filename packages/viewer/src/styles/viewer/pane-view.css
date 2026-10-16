@@ -26,7 +26,7 @@
 .code {
   position: relative;
   padding: 20px 0 45vh;
-  font: 400 0.796875rem / var(--leading-code) var(--font-mono);
+  font: 400 var(--size-code) / var(--leading-code) var(--font-mono);
   font-variant-ligatures: none;
   text-autospace: no-autospace;
 }

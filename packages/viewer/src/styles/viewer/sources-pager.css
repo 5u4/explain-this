@@ -88,7 +88,7 @@
   height: 14px;
 }
 .pager-title {
-  font: 600 1.1875rem / 1.4 var(--font-display);
+  font: 600 var(--step-1) / 1.4 var(--font-display);
   color: var(--text-strong);
 }
 .pager-group {

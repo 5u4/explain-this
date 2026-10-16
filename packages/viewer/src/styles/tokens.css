@@ -52,9 +52,11 @@
   --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, "PingFang SC", monospace;
 
   --step--1: 0.8125rem;
-  --step-0: 1.0625rem;
-  --step-1: 1.1875rem;
-  --step-2: 1.625rem;
+  --step-0: 1.0625em;
+  --step-1: 1.1875em;
+  --step-2: 1.625em;
+  --size-prose: clamp(1rem, 0.7731rem + 0.2679vw, 1.1765rem);
+  --size-code: calc(var(--size-prose) * 0.796875);
 
   --space-1: 4px;
   --space-2: 8px;
@@ -129,6 +131,7 @@
     0 2px 6px oklch(0 0 0 / 0.35);
 
   --rail-w: 232px;
-  --prose-w: 704px;
+  --prose-w: calc(var(--size-prose) * 34 + 126px);
   --pane-min: 440px;
+  --pane-max: calc(100 * 0.6 * var(--size-code) + 100px);
 }
