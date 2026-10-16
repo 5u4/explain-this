@@ -34,10 +34,10 @@ uncommitted edits count too.
 ([sources.ts](explain:packages/contract/src/sources.ts:15-21)). Writing goes through
 `formatSourcesFile`, so the output is deterministic:
 
-<AnnotatedSource file="explain:packages/contract/src/sources.ts:34-45">
-<Note lines="34-38">Records are ordered by repo key, then by path, by plain string comparison.</Note>
-<Note lines="41-43">Each record is rebuilt with only `repo`, `path`, `hash`, in that order, so no extra field leaks into the file.</Note>
-<Note lines="44">Two-space indentation and a trailing newline.</Note>
+<AnnotatedSource file="explain:packages/contract/src/sources.ts:35-46">
+<Note lines="35-39">Records are ordered by repo key, then by path, by plain string comparison.</Note>
+<Note lines="42-44">Each record is rebuilt with only `repo`, `path`, `hash`, in that order, so no extra field leaks into the file.</Note>
+<Note lines="45">Two-space indentation and a trailing newline.</Note>
 </AnnotatedSource>
 
 The same inputs always produce the same bytes, which keeps `.sources.json` diffs in version control
@@ -62,28 +62,31 @@ down to the files that actually changed (inference). An excerpt of the file this
 ```
 
 When the CLI loads a page, it reads this file back through `SourcesFileFromJson`. A missing file means
-"never synced"; a file that does not decode is a validation error telling you to sync again
-([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:68-83)).
+"never synced". A file that does not decode gives the page a `SourcesRecord` diagnostic, which
+`validate` reports, and makes the page stale with the reason `sources-malformed`
+([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:89-112)). It does not block
+`explain freshness sync`, which rewrites the file.
 
 ## `Freshness` and `StaleReason`
 
-```ts file=explain:packages/contract/src/sources.ts:23-32
+```ts file=explain:packages/contract/src/sources.ts:23-33
 ```
 
 A page is either `fresh`, or `stale` with its reasons; `compareSources` returns `stale` only when the
-reason list is non-empty ([freshness.ts](explain:packages/cli/src/doc-root/freshness.ts:69-71)).
-Every reason except `sources-missing` names the file it is about:
+reason list is non-empty ([freshness.ts](explain:packages/cli/src/doc-root/freshness.ts:67-69)).
+Every reason except `sources-missing` and `sources-malformed` names the file it is about:
 
 | `kind` | Meaning | `explain freshness check` prints |
 |---|---|---|
 | `sources-missing` | the page has no `.sources.json` | `no sources file; run explain freshness sync …` |
+| `sources-malformed` | the page's `.sources.json` does not decode | `… is malformed; run explain freshness sync …` |
 | `not-recorded` | the page cites a file the record does not list | `… is cited but not hashed` |
 | `not-cited` | the record lists a file the page no longer cites | `… is hashed but no longer cited` |
 | `missing` | a recorded file no longer resolves to a file | `… no longer exists` |
 | `changed` | the file's current hash differs from the recorded one | `… changed` |
 
 The messages come from `describeReason`
-([check.ts](explain:packages/cli/src/commands/freshness/check.ts:9-23)). Comparing the set of cited
+([check.ts](explain:packages/cli/src/commands/freshness/check.ts:10-26)). Comparing the set of cited
 files, not just their hashes, is what makes a page stale when it starts or stops citing a file.
 
 ## How the two sides share these types
@@ -102,29 +105,29 @@ flowchart TD
 
 On the CLI side a parsed page carries all three values: the current `sources`, the `recorded` list
 (`undefined` when there is no file), and the computed `freshness`
-([types.ts](explain:packages/cli/src/doc-root/types.ts:24-32)). `compareSources` produces the
+([types.ts](explain:packages/cli/src/doc-root/types.ts:26-32)). `compareSources` produces the
 `Freshness`, sorting reasons with `compareSourceKeys` so output order is stable
-([freshness.ts](explain:packages/cli/src/doc-root/freshness.ts:34-72)).
+([freshness.ts](explain:packages/cli/src/doc-root/freshness.ts:34-70)).
 
 The viewer never computes freshness. It receives `Freshness` and `SourceFile` inside the page
 response, as types imported from the contract
-([api.ts](explain:packages/viewer/src/api.ts:1-2,53-79)). Because the reasons are per page, while
+([api.ts](explain:packages/viewer/src/api.ts:1-2,65-93)). Because the reasons are per page, while
 the sources table and source pane are per file, the server folds them into one `SourceEntry` per
 file: a `state` that is either `fresh` or the kind of the reason that names the file, plus the
 recorded and current `SourceFile`
-([api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:54-82)). `sources-missing` names no file,
-so it marks every entry `not-recorded`.
+([api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:55-85)). `sources-missing` and
+`sources-malformed` name no file, so they mark every entry `not-recorded`.
 
-The viewer then reads `freshness.status` and the `sources-missing` reason for the badge
-([freshness.tsx](explain:packages/viewer/src/routes/freshness.tsx:11-16)), and the recorded hash,
-falling back to the current one, for the sources table
+The viewer then reads `freshness.status` and the `sources-missing` or `sources-malformed` reason for
+the badge ([freshness.tsx](explain:packages/viewer/src/routes/freshness.tsx:11-17)), and the
+recorded hash, falling back to the current one, for the sources table
 ([sources.tsx](explain:packages/viewer/src/routes/sources.tsx:34,52-61)).
 
 > [!IMPORTANT]
 > `SourceState` in the viewer API is written out separately as `fresh` plus the four per-file
-> `StaleReason` kinds ([api.ts](explain:packages/viewer/src/api.ts:53)). A new `StaleReason` kind
+> `StaleReason` kinds ([api.ts](explain:packages/viewer/src/api.ts:65)). A new per-file `StaleReason` kind
 > must be added there too, and given a label in every locale's `sourceStates`, which is typed as a
-> record over `SourceState` ([strings.ts](explain:packages/viewer/src/i18n/strings.ts:36)). The server
+> record over `SourceState` ([strings.ts](explain:packages/viewer/src/i18n/strings.ts:37)). The server
 > stores `reason.kind` in a `Map<string, SourceState>`
-> ([api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:68-73)), so forgetting the first step
+> ([api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:71-76)), so forgetting the first step
 > should fail type-checking (inference).

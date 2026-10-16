@@ -6,6 +6,7 @@ import type * as Effect from "effect/Effect";
 import type * as FileSystem from "effect/FileSystem";
 import type * as Path from "effect/Path";
 import type * as PlatformError from "effect/PlatformError";
+import type { PageDiagnostic } from "./page-diagnostic.ts";
 
 export interface Diagnostic {
   readonly file: string;
@@ -14,26 +15,25 @@ export interface Diagnostic {
   readonly message: string;
 }
 
-interface PageAddress {
+interface CheckedPage {
   readonly locale: string;
   readonly id: string;
   readonly file: string;
   readonly sourcesFile: string;
+  readonly diagnostics: ReadonlyArray<PageDiagnostic>;
 }
 
-export type ParsedDocPage = PageAddress & {
+export type ParsedDocPage = CheckedPage & {
   readonly status: "parsed";
   readonly page: Page;
-  readonly errors: ReadonlyArray<Diagnostic>;
-  readonly refProblems: ReadonlyArray<Diagnostic>;
   readonly sources: ReadonlyArray<SourceFile>;
   readonly recorded: ReadonlyArray<SourceFile> | undefined;
   readonly freshness: Freshness;
 };
 
 export type DocPage =
-  | (PageAddress & { readonly status: "missing"; readonly errors: ReadonlyArray<Diagnostic> })
-  | (PageAddress & { readonly status: "invalid"; readonly errors: ReadonlyArray<Diagnostic> })
+  | (CheckedPage & { readonly status: "missing" })
+  | (CheckedPage & { readonly status: "invalid" })
   | ParsedDocPage;
 
 export type Resolved =

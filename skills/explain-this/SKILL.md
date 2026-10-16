@@ -29,7 +29,7 @@ Pick the branch:
 ## Refresh
 
 1. Run `explain freshness check`. It lists each stale page with the source files that make it stale. When the user named pages, refresh those.
-2. Read each listed source file in full, find what changed against the page's claims, and rewrite the affected parts. When the change opens a part the page does not cover, survey it and write pages as in **Write** step 3 and 4.
+2. Read each listed source file in full, find what changed against the page's claims, and rewrite the affected parts. When check names no source file because the page's sources file is missing or malformed, read every file the page cites instead. When the change opens a part the page does not cover, survey it and write pages as in **Write** step 3 and 4.
 3. Validate as in **Write** step 5, on every page you refreshed, including those whose claims still hold.
 
 ## Report

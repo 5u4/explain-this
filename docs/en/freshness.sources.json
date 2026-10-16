@@ -3,37 +3,37 @@
     {
       "repo": "explain",
       "path": "packages/cli/src/commands/freshness/check.ts",
-      "hash": "268a923dfeea01ed3f140615dfaa8fb774d81e9d"
+      "hash": "2dec1112670b6bd0ddddf8490fcaf542302e0198"
     },
     {
       "repo": "explain",
       "path": "packages/cli/src/commands/freshness/sync.ts",
-      "hash": "c03eb540a702249db96991ab50762a19145e7584"
+      "hash": "70d692be868265dea047dd9798d0e0c3986ff81c"
     },
     {
       "repo": "explain",
       "path": "packages/cli/src/doc-root/check-page.ts",
-      "hash": "cf0aab598bd243ed3439d51725e221b57c4dfa3c"
+      "hash": "9f9e5d290dfe9d9d8af165588fd4500fb19a5fa4"
     },
     {
       "repo": "explain",
       "path": "packages/cli/src/doc-root/freshness.ts",
-      "hash": "7501577366bd2c6e7796995149148331969ce7ba"
+      "hash": "12fd757682f304cdbefd003775a064666b6dbcab"
     },
     {
       "repo": "explain",
       "path": "packages/cli/src/site/api-bodies.ts",
-      "hash": "0c53b625570bd1864c2ff932c2bdb2a85f383450"
+      "hash": "ac04003fbb30e733ddc15d5c94eab97b951523ab"
     },
     {
       "repo": "explain",
       "path": "packages/cli/test/explain.test.ts",
-      "hash": "a760ed11d52e4e5ef5f28eac2010d30df839d39a"
+      "hash": "75167acc9f488bb076842ff97e73520dc98f5fd3"
     },
     {
       "repo": "explain",
       "path": "packages/viewer/src/routes/freshness.tsx",
-      "hash": "8a2454ea566fe6083bfa95a5910111c756bd52a3"
+      "hash": "0b52dee6fb1f3f6019bd42aa7f4e05308b9dcffb"
     },
     {
       "repo": "explain",

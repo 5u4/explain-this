@@ -8,10 +8,14 @@ import { openDocRoot } from "./open-doc-root.ts";
 
 export const dev = Command.make(
   "dev",
-  { port: Flag.Int("port").pipe(Flag.withDefault(4321)) },
+  { port: Flag.Int("port").pipe(Flag.optional) },
   Effect.fnUntraced(function* ({ port }) {
-    const { docRoot } = yield* openDocRoot;
-    const url = yield* serveDocRoot(docRoot, port).pipe(
+    const { docRoot, printDiagnostics } = yield* openDocRoot;
+    const listen =
+      port._tag === "Some"
+        ? { port: port.value, strictPort: true }
+        : { port: 4321, strictPort: false };
+    const url = yield* serveDocRoot(docRoot, listen, printDiagnostics).pipe(
       Effect.catchTag("DevServerFailed", (error) =>
         Console.error(`explain dev: ${error.message}`).pipe(
           Effect.andThen(Effect.fail(new ExitWith({ code: 2 }))),

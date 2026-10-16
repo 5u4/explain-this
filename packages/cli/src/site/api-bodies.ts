@@ -8,6 +8,7 @@ import type {
   SourceEntry,
   SourceState,
 } from "@explain/viewer/api";
+import { diagnosticsThat } from "../doc-root/page-diagnostic.ts";
 import { sourceKey } from "../doc-root/resolve-source.ts";
 import type { DocPage, DocRoot, ParsedDocPage } from "../doc-root/types.ts";
 
@@ -20,7 +21,7 @@ const navPage = (page: DocPage): NavPage => ({
   status:
     page.status === "missing"
       ? "missing"
-      : page.status === "invalid" || page.errors.length > 0
+      : page.status === "invalid" || diagnosticsThat("skipsCheck", page.diagnostics).length > 0
         ? "invalid"
         : page.freshness.status,
 });
@@ -64,10 +65,12 @@ const sourceEntries = (page: ParsedDocPage): ReadonlyArray<SourceEntry> => {
     keys.set(sourceKey(file.repo, file.path), { repo: file.repo, path: file.path });
   }
   const reasons = page.freshness.status === "stale" ? page.freshness.reasons : [];
-  const sourcesMissing = reasons.some((reason) => reason.kind === "sources-missing");
+  const sourcesMissing = reasons.some(
+    (reason) => reason.kind === "sources-missing" || reason.kind === "sources-malformed",
+  );
   const states = new Map<string, SourceState>();
   for (const reason of reasons) {
-    if (reason.kind !== "sources-missing") {
+    if (reason.kind !== "sources-missing" && reason.kind !== "sources-malformed") {
       states.set(sourceKey(reason.repo, reason.path), reason.kind);
     }
   }
@@ -87,14 +90,13 @@ export const pageResponse = (page: DocPage): PageResponse => {
     case "missing":
       return { ...address, status: "missing" };
     case "invalid":
-      return { ...address, status: "invalid", errors: page.errors };
+      return { ...address, status: "invalid", diagnostics: page.diagnostics };
     case "parsed":
       return {
         ...address,
         status: "parsed",
         page: page.page,
-        errors: page.errors,
-        refProblems: page.refProblems,
+        diagnostics: page.diagnostics,
         freshness: page.freshness,
         sources: sourceEntries(page),
       };

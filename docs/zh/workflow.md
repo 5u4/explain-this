@@ -26,7 +26,7 @@ CLI 没有发布到包仓库，安装方式是克隆仓库、`bun install`、再
 
 ## 2. 创建 doc root：`explain init`
 
-```ts file=explain:packages/cli/src/commands/init.ts:11-27
+```ts file=explain:packages/cli/src/commands/init.ts:11-32
 ```
 
 `init` 在当前目录写一个 `explain.json`，内容只有给定的语言、空的 `repos` 和空的 `nav`。写之前先用与其他命令相同的解码器检查一遍，所以 `--locales=` 里写了不合法的语言标签会直接失败；已有 `explain.json` 时拒绝覆盖。标题、仓库和导航留给 agent 后续填写，字段规则见 [config](./config.md)。
@@ -53,11 +53,11 @@ CLI 没有发布到包仓库，安装方式是克隆仓库、`bun install`、再
 
 ## 4. 校验：`explain validate`
 
-[`validate`](explain:packages/cli/src/commands/validate.ts:8-21) 加载整个 doc root，输出所点名页面的诊断；不带参数时检查所有页面。无论点名与否，它都会带上 doc root 级别的错误，也就是来自 `explain.json` 仓库路径的错误（[load.ts](explain:packages/cli/src/doc-root/load.ts:44-50)）。页面诊断既包括解析和链接错误，也包括引用问题：被引用的文件不存在、不是普通文件，或者引用的行号超出文件行数（[refProblem](explain:packages/cli/src/doc-root/resolve-source.ts:74-92)、[pageDiagnostics](explain:packages/cli/src/commands/open-doc-root.ts:64-65)）。只要有一条诊断，退出码就是 2。引用规则见 [citation](./citation.md) 和 [resolve-source](./resolve-source.md)，页面语法见 [parse-page](./parse-page.md)。
+[`validate`](explain:packages/cli/src/commands/validate.ts:8-22) 加载整个 doc root，输出所点名页面的诊断；不带参数时检查所有页面。无论点名与否，它都会带上 doc root 级别的错误，也就是来自 `explain.json` 仓库路径的错误（[load.ts](explain:packages/cli/src/doc-root/load.ts:44-50)）。页面诊断不分种类全部输出：页面缺失、解析错误、坏的页面链接、损坏的来源文件，以及引用问题，比如被引用的文件不存在、不是普通文件，或者引用的行号超出文件行数（[refProblem](explain:packages/cli/src/doc-root/resolve-source.ts:74-92)、[validate.ts](explain:packages/cli/src/commands/validate.ts:17)）。只要有一条诊断，退出码就是 2。引用规则见 [citation](./citation.md) 和 [resolve-source](./resolve-source.md)，页面语法见 [parse-page](./parse-page.md)。
 
 ## 5. 记录引用：`explain freshness sync`
 
-[`sync`](explain:packages/cli/src/commands/freshness/sync.ts:9-29) 至少要一个页面参数，并拒绝仍有诊断的页面，所以被记录下来的快照一定属于一个通过校验的页面。对每个通过的页面，它写出 `<locale>/<id>.sources.json`（[writeSources](explain:packages/cli/src/doc-root/freshness.ts:74-78)），每个被引用文件一条记录：
+[`sync`](explain:packages/cli/src/commands/freshness/sync.ts:10-30) 至少要一个页面参数，并拒绝没解析成功、或仍有解析错误或引用问题的页面，所以被记录下来的快照一定属于一个引用全部能解析的页面。坏的页面链接和损坏的来源文件不挡同步。对每个通过的页面，它写出 `<locale>/<id>.sources.json`（[writeSources](explain:packages/cli/src/doc-root/freshness.ts:72-76)），每个被引用文件一条记录：
 
 ```ts file=explain:packages/contract/src/sources.ts:7-11
 ```
@@ -65,19 +65,19 @@ CLI 没有发布到包仓库，安装方式是克隆仓库、`bun install`、再
 哈希是对 `blob <长度>\0` 加文件字节做 SHA-1（[makeBlobId](explain:packages/cli/src/doc-root/freshness.ts:17-31)），这与 git 计算 blob id 的方式一致（推断：应等于 `git hash-object` 的结果，本页未实际对照 git 验证）。哈希针对整个文件而非引用的行范围，所以被引用文件的任何改动都会让页面过期，即使被引用的那几行没动。
 
 > [!IMPORTANT]
-> 只有 `sync` 会写 `.sources.json`，且只对没有诊断的页面执行。因此“新鲜”的含义是：页面在上次同步时通过了校验，并且此后它引用的文件都没有变化。
+> 只有 `sync` 会写 `.sources.json`，且只对引用全部能解析的页面执行。因此“新鲜”的含义是：页面在上次同步时引用都能解析，并且此后它引用的文件都没有变化。
 
 ## 6. 预览与发布：`explain dev` 和 `explain build`
 
 <Tabs>
 <Tab label="explain dev">
 
-[`dev`](explain:packages/cli/src/commands/dev.ts:9-24) 默认在 4321 端口提供站点，可用 `--port` 改，打印 URL 后一直运行。它监听 doc root 和 `explain.json` 中登记的每个仓库，任何变动都会重新加载并刷新浏览器（[site/dev.ts](explain:packages/cli/src/site/dev.ts:27,51-56,64,70)），适合在 agent 写作时一直开着。它不会因为页面有诊断而拒绝服务，而是把诊断放进页面响应一起返回（[pageResponse](explain:packages/cli/src/site/api-bodies.ts:84-102)）。
+[`dev`](explain:packages/cli/src/commands/dev.ts:9-28) 提供站点，打印 URL 后一直运行。不给 `--port` 时从 4321 开始，被占用就由 Vite 换下一个空闲端口，打印的是 Vite 实际绑定的 URL（[site/dev.ts](explain:packages/cli/src/site/dev.ts:140-143)）。给了 `--port` 就是严格的：端口被占用时打印 `explain dev: Port N is already in use` 并以 2 退出。它监听 doc root 和 `explain.json` 中登记的每个仓库，任何变动都会重新加载并刷新浏览器（[site/dev.ts](explain:packages/cli/src/site/dev.ts:32,55-60,68-78)），适合在 agent 写作时一直开着。它不会因为页面有诊断而拒绝服务，而是把诊断放进页面响应一起返回（[pageResponse](explain:packages/cli/src/site/api-bodies.ts:87-104)）。
 
 </Tab>
 <Tab label="explain build">
 
-[`build`](explain:packages/cli/src/commands/build.ts:10-35) 更严格：doc root 里**任何**页面有诊断就拒绝构建，不只看你改过的页面。默认输出到 doc root 下的 `dist/`，可用 `--out` 指定；如果目标目录非空且不是之前的 explain 构建产物，它拒绝覆盖（[build.ts](explain:packages/cli/src/site/build.ts:77-85)）。过期本身不算构建错误，过期页面照常发布，由 viewer 标出状态（[navPage](explain:packages/cli/src/site/api-bodies.ts:17-26)）。
+[`build`](explain:packages/cli/src/commands/build.ts:10-35) 更严格：doc root 里**任何**页面有诊断就拒绝构建，不只看你改过的页面。默认输出到 doc root 下的 `dist/`，可用 `--out` 指定；如果目标目录非空且不是之前的 explain 构建产物，它拒绝覆盖（[build.ts](explain:packages/cli/src/site/build.ts:77-85)）。过期本身不算构建错误，过期页面照常发布，由 viewer 标出状态（[navPage](explain:packages/cli/src/site/api-bodies.ts:18-27)）。
 
 </Tab>
 </Tabs>
@@ -88,11 +88,12 @@ CLI 没有发布到包仓库，安装方式是克隆仓库、`bun install`、再
 
 在 doc root 里运行 `explain freshness check`，再调用一次 `/skill:explain-this`（[README.md](explain:README.md:33-34)）。
 
-[`check`](explain:packages/cli/src/commands/freshness/check.ts:25-54) 遍历所有页面，打印每个过期页面及原因；有过期页面或无法检查的页面时退出码为 1。无法解析或带错误的页面会显示为 `not checked` 并提示先跑 `validate`。过期原因来自“现在引用的文件”与“上次记录的文件”的比较（[compareSources](explain:packages/cli/src/doc-root/freshness.ts:34-72)），输出文字由 [`describeReason`](explain:packages/cli/src/commands/freshness/check.ts:9-23) 生成：
+[`check`](explain:packages/cli/src/commands/freshness/check.ts:28-59) 遍历所有页面，打印每个过期页面及原因；有过期页面或无法检查的页面时退出码为 1。缺失、无法解析、或引用了未知仓库或仓库外路径的页面会显示为 `not checked` 并提示先跑 `validate`。过期原因来自“现在引用的文件”与“上次记录的文件”的比较（[compareSources](explain:packages/cli/src/doc-root/freshness.ts:34-70)），输出文字由 [`describeReason`](explain:packages/cli/src/commands/freshness/check.ts:10-26) 生成：
 
 | 原因 | 输出 | 含义 |
 |---|---|---|
 | `sources-missing` | `no sources file; run explain freshness sync …` | 页面从未同步过 |
+| `sources-malformed` | `… is malformed; run explain freshness sync …` | 来源文件解码失败，同步会重写它 |
 | `not-recorded` | `… is cited but not hashed` | 上次同步后新增了引用 |
 | `not-cited` | `… is hashed but no longer cited` | 上次同步后删掉了引用 |
 | `missing` | `… no longer exists` | 记录过的文件已从磁盘消失 |
@@ -109,11 +110,11 @@ CLI 没有发布到包仓库，安装方式是克隆仓库、`bun install`、再
 |---|---|---|---|
 | `init` | 已写出 `explain.json` | | `explain.json` 已存在或语言不合法 |
 | `validate` | 无诊断 | | 有诊断，或参数不是页面 |
-| `freshness sync` | 所有点名页面已同步 | | 有页面带诊断或参数不是页面 |
+| `freshness sync` | 所有点名页面已同步 | | 有页面带解析错误或引用问题，或参数不是页面 |
 | `freshness check` | 所有页面都新鲜 | 有页面过期或无法检查 | |
-| `dev` | | | 服务器启动失败 |
+| `dev` | | | 服务器启动失败，或显式给出的 `--port` 被占用 |
 | `build` | 站点已写出 | | 有诊断或构建失败 |
 
-另外，凡是需要打开 doc root 的命令，找不到 `explain.json` 或其内容不合法时都以 2 退出（[open-doc-root.ts](explain:packages/cli/src/commands/open-doc-root.ts:35-43)）。
+另外，凡是需要打开 doc root 的命令，找不到 `explain.json` 或其内容不合法时都以 2 退出（[open-doc-root.ts](explain:packages/cli/src/commands/open-doc-root.ts:30-40)）。
 
 </details>

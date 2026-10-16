@@ -24,6 +24,7 @@ export const en: Strings = {
   staleNote: "changed in the repo; this page was written against an older version.",
   staleMixedNote: "; this page was written against an older version.",
   unhashedNote: "This page has no sources file yet; run explain freshness sync.",
+  malformedSourcesNote: "This page's sources file is malformed; run explain freshness sync.",
   listSeparator: ", ",
   sources: "Sources",
   sourcesIntro: (repos, count) =>

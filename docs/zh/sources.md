@@ -28,10 +28,10 @@ contract 包里的 `sources.ts` 是两边共用的词汇表：一条文件记录
 `{ files: SourceFile[] }`，`SourcesFileFromJson` 直接从 JSON 文本解码
 （[sources.ts](explain:packages/contract/src/sources.ts:15-21)）。写出时统一走 `formatSourcesFile`，输出是确定的：
 
-<AnnotatedSource file="explain:packages/contract/src/sources.ts:34-45">
-<Note lines="34-38">先按 repo key、再按路径排序，用的是普通字符串比较。</Note>
-<Note lines="41-43">每条记录重新组装，只保留 `repo`、`path`、`hash` 三个字段并固定顺序，多余字段不会写进文件。</Note>
-<Note lines="44">两个空格缩进，末尾带换行。</Note>
+<AnnotatedSource file="explain:packages/contract/src/sources.ts:35-46">
+<Note lines="35-39">先按 repo key、再按路径排序，用的是普通字符串比较。</Note>
+<Note lines="42-44">每条记录重新组装，只保留 `repo`、`path`、`hash` 三个字段并固定顺序，多余字段不会写进文件。</Note>
+<Note lines="45">两个空格缩进，末尾带换行。</Note>
 </AnnotatedSource>
 
 同样的输入总是得到同样的字节，版本控制里 `.sources.json` 的 diff 就只会落在真正变化的文件上（推断）。
@@ -54,26 +54,28 @@ contract 包里的 `sources.ts` 是两边共用的词汇表：一条文件记录
 }
 ```
 
-CLI 加载页面时用 `SourcesFileFromJson` 把这个文件读回来。文件不存在表示"从没同步过"；文件存在但解码失败，则报一条校验错误，
-提示重新执行 sync（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:68-83)）。
+CLI 加载页面时用 `SourcesFileFromJson` 把这个文件读回来。文件不存在表示"从没同步过"；文件存在但解码失败，页面会得到一条
+`SourcesRecord` 诊断，`validate` 会报告它，页面也因 `sources-malformed` 原因过期
+（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:89-112)）。它不挡 `explain freshness sync`，同步会重写这个文件。
 
 ## `Freshness` 与 `StaleReason`
 
-```ts file=explain:packages/contract/src/sources.ts:23-32
+```ts file=explain:packages/contract/src/sources.ts:23-33
 ```
 
 页面要么 `fresh`，要么 `stale` 并附带原因。`compareSources` 只在原因列表非空时才返回 `stale`
-（[freshness.ts](explain:packages/cli/src/doc-root/freshness.ts:69-71)）。除 `sources-missing` 外，每种原因都指明了涉及的文件：
+（[freshness.ts](explain:packages/cli/src/doc-root/freshness.ts:67-69)）。除 `sources-missing` 和 `sources-malformed` 外，每种原因都指明了涉及的文件：
 
 | `kind` | 含义 | `explain freshness check` 的输出 |
 |---|---|---|
 | `sources-missing` | 页面没有 `.sources.json` | `no sources file; run explain freshness sync …` |
+| `sources-malformed` | 页面的 `.sources.json` 解码失败 | `… is malformed; run explain freshness sync …` |
 | `not-recorded` | 页面引用了记录里没有的文件 | `… is cited but not hashed` |
 | `not-cited` | 记录里有、页面已不再引用的文件 | `… is hashed but no longer cited` |
 | `missing` | 记录过的文件已不存在 | `… no longer exists` |
 | `changed` | 文件当前哈希与记录不同 | `… changed` |
 
-这些输出文本来自 `describeReason`（[check.ts](explain:packages/cli/src/commands/freshness/check.ts:9-23)）。
+这些输出文本来自 `describeReason`（[check.ts](explain:packages/cli/src/commands/freshness/check.ts:10-26)）。
 比较的不只是哈希，还有"引用了哪些文件"这个集合，所以页面新增或删掉一处引用也会让它过期。
 
 ## 两边如何共用这些类型
@@ -91,22 +93,22 @@ flowchart TD
 ```
 
 CLI 这边，解析成功的页面同时带着三个值：当前的 `sources`、记录的 `recorded`（没有文件时为 `undefined`）、算出来的
-`freshness`（[types.ts](explain:packages/cli/src/doc-root/types.ts:24-32)）。`compareSources` 生成 `Freshness`，
-并用 `compareSourceKeys` 给原因排序，保证输出顺序稳定（[freshness.ts](explain:packages/cli/src/doc-root/freshness.ts:34-72)）。
+`freshness`（[types.ts](explain:packages/cli/src/doc-root/types.ts:26-32)）。`compareSources` 生成 `Freshness`，
+并用 `compareSourceKeys` 给原因排序，保证输出顺序稳定（[freshness.ts](explain:packages/cli/src/doc-root/freshness.ts:34-70)）。
 
 viewer 从不自己计算新鲜度。它在页面响应里拿到 `Freshness` 和 `SourceFile`，类型都从 contract 导入
-（[api.ts](explain:packages/viewer/src/api.ts:1-2,53-79)）。原因是按页面给的，而来源表和源码面板是按文件展示的，
+（[api.ts](explain:packages/viewer/src/api.ts:1-2,65-93)）。原因是按页面给的，而来源表和源码面板是按文件展示的，
 所以服务端把它们折叠成每个文件一条 `SourceEntry`：`state` 要么是 `fresh`，要么是指向该文件的那条原因的 `kind`，
-另附记录的和当前的 `SourceFile`（[api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:54-82)）。
-`sources-missing` 不指向具体文件，于是所有条目都标成 `not-recorded`。
+另附记录的和当前的 `SourceFile`（[api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:55-85)）。
+`sources-missing` 和 `sources-malformed` 不指向具体文件，于是所有条目都标成 `not-recorded`。
 
-viewer 用 `freshness.status` 和 `sources-missing` 原因决定徽标
-（[freshness.tsx](explain:packages/viewer/src/routes/freshness.tsx:11-16)），来源表显示记录的哈希，没有记录时退回当前哈希
+viewer 用 `freshness.status` 以及 `sources-missing` 或 `sources-malformed` 原因决定徽标
+（[freshness.tsx](explain:packages/viewer/src/routes/freshness.tsx:11-17)），来源表显示记录的哈希，没有记录时退回当前哈希
 （[sources.tsx](explain:packages/viewer/src/routes/sources.tsx:34,52-61)）。
 
 > [!IMPORTANT]
 > viewer API 里的 `SourceState` 是单独写出来的：`fresh` 加上四种按文件的 `StaleReason`
-> （[api.ts](explain:packages/viewer/src/api.ts:53)）。新增 `StaleReason` 种类时，这里也要加上，并在每种语言的 `sourceStates`
-> 里给出文案；`sourceStates` 的类型是以 `SourceState` 为键的 record（[strings.ts](explain:packages/viewer/src/i18n/strings.ts:36)）。
-> 服务端把 `reason.kind` 存进 `Map<string, SourceState>`（[api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:68-73)），
+> （[api.ts](explain:packages/viewer/src/api.ts:65)）。新增按文件的 `StaleReason` 种类时，这里也要加上，并在每种语言的 `sourceStates`
+> 里给出文案；`sourceStates` 的类型是以 `SourceState` 为键的 record（[strings.ts](explain:packages/viewer/src/i18n/strings.ts:37)）。
+> 服务端把 `reason.kind` 存进 `Map<string, SourceState>`（[api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:71-76)），
 > 漏掉第一步应当会导致类型检查失败（推断）。

@@ -22,6 +22,18 @@ export const searchApiPath = (locale: string): ApiPath =>
 
 export type Diagnostic = Located & { readonly file: string };
 
+export type PageDiagnosticTag =
+  | "MissingPage"
+  | "Parse"
+  | "CitationRepo"
+  | "CitationFile"
+  | "PageLink"
+  | "SourcesRecord";
+
+export type PageDiagnostic = {
+  readonly [Tag in PageDiagnosticTag]: Diagnostic & { readonly _tag: Tag };
+}[PageDiagnosticTag];
+
 export type PageStatus = "fresh" | "stale" | "invalid" | "missing";
 
 export interface NavPage {
@@ -68,12 +80,14 @@ interface PageAddress {
 
 export type PageResponse =
   | (PageAddress & { readonly status: "missing" })
-  | (PageAddress & { readonly status: "invalid"; readonly errors: ReadonlyArray<Diagnostic> })
+  | (PageAddress & {
+      readonly status: "invalid";
+      readonly diagnostics: ReadonlyArray<PageDiagnostic>;
+    })
   | (PageAddress & {
       readonly status: "parsed";
       readonly page: Page;
-      readonly errors: ReadonlyArray<Diagnostic>;
-      readonly refProblems: ReadonlyArray<Diagnostic>;
+      readonly diagnostics: ReadonlyArray<PageDiagnostic>;
       readonly freshness: Freshness;
       readonly sources: ReadonlyArray<SourceEntry>;
     });

@@ -25,6 +25,7 @@ export interface Strings {
   readonly staleNote: string;
   readonly staleMixedNote: string;
   readonly unhashedNote: string;
+  readonly malformedSourcesNote: string;
   readonly listSeparator: string;
   readonly sources: string;
   readonly sourcesIntro: (repos: string, count: number) => string;

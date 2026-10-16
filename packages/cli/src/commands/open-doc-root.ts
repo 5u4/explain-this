@@ -6,23 +6,8 @@ import { loadDocRoot } from "../doc-root/load.ts";
 import type { Diagnostic, DocPage, DocRoot } from "../doc-root/types.ts";
 import { ExitWith } from "./exit-with.ts";
 
-export const reportInvalidConfig = (error: InvalidConfig) =>
-  Effect.forEach(
-    error.diagnostics,
-    (diagnostic) =>
-      Console.error(
-        `${diagnostic.file}:${diagnostic.line}:${diagnostic.column} ${diagnostic.message}`,
-      ),
-    { discard: true },
-  ).pipe(Effect.andThen(Effect.fail(new ExitWith({ code: 2 }))));
-
-export const openDocRoot = Effect.gen(function* () {
-  const path = yield* Path.Path;
-  const cwd = path.resolve();
-  const root = yield* findDocRoot(cwd);
-  const docRoot = yield* loadDocRoot(root);
-  const display = (file: string) => path.relative(cwd, path.join(root, file)) || ".";
-  const printDiagnostics = (diagnostics: ReadonlyArray<Diagnostic>) =>
+const printDiagnosticsWith =
+  (display: (file: string) => string) => (diagnostics: ReadonlyArray<Diagnostic>) =>
     Effect.forEach(
       diagnostics,
       (diagnostic) =>
@@ -31,15 +16,27 @@ export const openDocRoot = Effect.gen(function* () {
         ),
       { discard: true },
     );
-  return { cwd, docRoot, display, printDiagnostics };
+
+export const reportInvalidConfig = (display: (file: string) => string) => (error: InvalidConfig) =>
+  printDiagnosticsWith(display)(error.diagnostics).pipe(
+    Effect.andThen(Effect.fail(new ExitWith({ code: 2 }))),
+  );
+
+export const openDocRoot = Effect.gen(function* () {
+  const path = yield* Path.Path;
+  const cwd = path.resolve();
+  const root = yield* findDocRoot(cwd);
+  const display = (file: string) => path.relative(cwd, path.join(root, file)) || ".";
+  const docRoot = yield* loadDocRoot(root).pipe(
+    Effect.catchTag("InvalidConfig", reportInvalidConfig(display)),
+  );
+  return { cwd, docRoot, display, printDiagnostics: printDiagnosticsWith(display) };
 }).pipe(
-  Effect.catchTags({
-    DocRootNotFound: (error) =>
-      Console.error(`no explain.json in ${error.from} or any parent directory`).pipe(
-        Effect.andThen(Effect.fail(new ExitWith({ code: 2 }))),
-      ),
-    InvalidConfig: reportInvalidConfig,
-  }),
+  Effect.catchTag("DocRootNotFound", (error) =>
+    Console.error(`no explain.json in ${error.from} or any parent directory`).pipe(
+      Effect.andThen(Effect.fail(new ExitWith({ code: 2 }))),
+    ),
+  ),
 );
 
 export const pagesFromArguments = Effect.fnUntraced(function* (
@@ -60,6 +57,3 @@ export const pagesFromArguments = Effect.fnUntraced(function* (
   }
   return { found, unknown };
 });
-
-export const pageDiagnostics = (page: DocPage) =>
-  page.status === "parsed" ? [...page.errors, ...page.refProblems] : page.errors;

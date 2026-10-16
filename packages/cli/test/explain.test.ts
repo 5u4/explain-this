@@ -35,7 +35,7 @@ const makeTempDir = () => {
 
 const foldSource = "export const fold = 1;\nexport const view = 2;\nexport const settled = 3;\n";
 
-const makeDocRoot = (page: string) => {
+const makeDocRoot = (page: string, navPages: ReadonlyArray<string> = ["index"]) => {
   const root = makeTempDir();
   const repo = join(root, "repo");
   const docs = join(root, "docs");
@@ -50,7 +50,7 @@ const makeDocRoot = (page: string) => {
       locales: ["zh-CN"],
       defaultLocale: "zh-CN",
       repos: { src: repo },
-      nav: [{ title: "入门", pages: ["index"] }],
+      nav: [{ title: "入门", pages: navPages }],
     }),
   );
   writeFileSync(join(docs, "zh-CN", "index.md"), page);
@@ -58,6 +58,7 @@ const makeDocRoot = (page: string) => {
     repo,
     docs,
     explain: (...args: ReadonlyArray<string>) => run("bun", [main, ...args], docs),
+    sourcesFile: join(docs, "zh-CN", "index.sources.json"),
     sources: () => readFileSync(join(docs, "zh-CN", "index.sources.json"), "utf8"),
     sourcesExists: () => existsSync(join(docs, "zh-CN", "index.sources.json")),
     writePage: (page: string) => writeFileSync(join(docs, "zh-CN", "index.md"), page),
@@ -149,11 +150,79 @@ describe("explain freshness and validate", () => {
     expect(docRoot.sourcesExists()).toBe(false);
   });
 
-  it("lists a page that does not parse as not checked", () => {
+  it("rejects a page with a parse error in validate and sync", () => {
+    const docRoot = makeDocRoot(`${citingPage}\n# 第二个标题\n`);
+    const validate = docRoot.explain("validate", "zh-CN/index.md");
+    expect(validate.code).toBe(2);
+    expect(validate.stderr).toContain("zh-CN/index.md:5:1 ");
+    const sync = docRoot.explain("freshness", "sync", "zh-CN/index.md");
+    expect(sync.code).toBe(2);
+    expect(sync.stderr).toContain("zh-CN/index.md:5:1 ");
+    expect(sync.stderr).toContain("refused to sync zh-CN/index.md: fix the errors above\n");
+    expect(docRoot.sourcesExists()).toBe(false);
+    expect(docRoot.explain("freshness", "check").stdout).toContain(
+      "not checked zh-CN/index.md: run explain validate\n",
+    );
+  });
+
+  it("lists a page citing an unknown repo as not checked", () => {
     const docRoot = makeDocRoot("# 折叠\n\n见 [x](lib:fold.ts)。\n");
     const result = docRoot.explain("freshness", "check");
     expect(result.code).toBe(1);
     expect(result.stdout).toContain("not checked zh-CN/index.md: run explain validate\n");
+  });
+
+  it("syncs a page that links to a nav page not written yet, which validate still reports", () => {
+    const docRoot = makeDocRoot(`${citingPage}\n下一步见 [后续](./later.md)。\n`, [
+      "index",
+      "later",
+    ]);
+    const sync = docRoot.explain("freshness", "sync", "zh-CN/index.md");
+    expect(sync).toEqual({ code: 0, stdout: "synced zh-CN/index.md (1 files)\n", stderr: "" });
+    const validate = docRoot.explain("validate", "zh-CN/index.md");
+    expect(validate.code).toBe(2);
+    expect(validate.stderr).toBe('zh-CN/index.md:5:6 page link to "later" has no zh-CN/later.md\n');
+    const check = docRoot.explain("freshness", "check");
+    expect(check.stdout).toBe(
+      "not checked zh-CN/later.md: run explain validate\n2 pages: 1 fresh, 0 stale, 1 not checked\n",
+    );
+  });
+
+  it("reports a malformed sources file as stale, and sync rewrites it", () => {
+    const docRoot = makeDocRoot(citingPage);
+    writeFileSync(docRoot.sourcesFile, "{ not json");
+    const validate = docRoot.explain("validate");
+    expect(validate.code).toBe(2);
+    expect(validate.stderr).toBe(
+      "zh-CN/index.sources.json:1:1 zh-CN/index.sources.json is malformed; run explain freshness sync zh-CN/index.md\n",
+    );
+    const stale = docRoot.explain("freshness", "check");
+    expect(stale).toEqual({
+      code: 1,
+      stdout:
+        "stale zh-CN/index.md\n  zh-CN/index.sources.json is malformed; run explain freshness sync zh-CN/index.md\n1 pages: 0 fresh, 1 stale, 0 not checked\n",
+      stderr: "",
+    });
+    expect(docRoot.explain("freshness", "sync", "zh-CN/index.md").code).toBe(0);
+    expect(JSON.parse(docRoot.sources())).toEqual({
+      files: [{ repo: "src", path: "fold.ts", hash: blobId(docRoot.repo, "fold.ts") }],
+    });
+    expect(docRoot.explain("freshness", "check")).toEqual({
+      code: 0,
+      stdout: "1 pages: 1 fresh, 0 stale, 0 not checked\n",
+      stderr: "",
+    });
+  });
+
+  it("prints config diagnostics relative to the current directory", () => {
+    const docRoot = makeDocRoot(citingPage);
+    writeFileSync(join(docRoot.docs, "explain.json"), JSON.stringify({ locales: ["zh-CN"] }));
+    const result = run("bun", [main, "validate"], join(docRoot.docs, "zh-CN"));
+    expect(result).toEqual({
+      code: 2,
+      stdout: "",
+      stderr: "../explain.json:1:1 repos: Missing key\n../explain.json:1:1 nav: Missing key\n",
+    });
   });
 
   it("rejects an argument that is not a page", () => {

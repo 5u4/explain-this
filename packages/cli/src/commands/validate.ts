@@ -3,7 +3,7 @@ import * as Argument from "effect/cli/Argument";
 import * as Command from "effect/cli/Command";
 import * as Effect from "effect/Effect";
 import { ExitWith } from "./exit-with.ts";
-import { openDocRoot, pageDiagnostics, pagesFromArguments } from "./open-doc-root.ts";
+import { openDocRoot, pagesFromArguments } from "./open-doc-root.ts";
 
 export const validate = Command.make(
   "validate",
@@ -14,7 +14,7 @@ export const validate = Command.make(
       pages.length === 0
         ? { found: docRoot.pages, unknown: false }
         : yield* pagesFromArguments(cwd, docRoot, pages);
-    const diagnostics = [...docRoot.errors, ...found.flatMap(pageDiagnostics)];
+    const diagnostics = [...docRoot.errors, ...found.flatMap((page) => page.diagnostics)];
     yield* printDiagnostics(diagnostics);
     if (diagnostics.length > 0 || unknown) return yield* new ExitWith({ code: 2 });
     yield* Console.log(`${found.length} pages valid`);

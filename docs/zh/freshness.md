@@ -14,15 +14,15 @@
 
 `explain freshness sync` 把 `sources` 写进 `<locale>/<id>.sources.json`：
 
-```ts file=explain:packages/cli/src/doc-root/freshness.ts:74-78
+```ts file=explain:packages/cli/src/doc-root/freshness.ts:72-76
 ```
 
 `formatSourcesFile` 按仓库再按路径排序，两空格缩进，以换行结尾：
 
-```ts file=explain:packages/contract/src/sources.ts:40-45
+```ts file=explain:packages/contract/src/sources.ts:41-46
 ```
 
-所以对没变的页面再同步一次，写出的文件逐字节相同，测试专门断言了这一点（[explain.test.ts](explain:packages/cli/test/explain.test.ts:79-86)）；`git diff` 里看到的 `.sources.json` 改动都是真实变化。`SourceFile`、`StaleReason`、`Freshness` 这些类型由 contract 包定义，查看器也在用，见[来源记录](./sources.md)。
+所以对没变的页面再同步一次，写出的文件逐字节相同，测试专门断言了这一点（[explain.test.ts](explain:packages/cli/test/explain.test.ts:80-87)）；`git diff` 里看到的 `.sources.json` 改动都是真实变化。`SourceFile`、`StaleReason`、`Freshness` 这些类型由 contract 包定义，查看器也在用，见[来源记录](./sources.md)。
 
 ## 哈希：git 的 blob id
 
@@ -46,39 +46,40 @@
 
 `compareSources` 比较三份清单，返回 `fresh`，或者 `stale` 加一组原因：
 
-```ts file=explain:packages/cli/src/doc-root/freshness.ts:34-72
+```ts file=explain:packages/cli/src/doc-root/freshness.ts:34-70
 ```
 
 | 原因 | 条件 | `freshness check` 的输出 |
 |---|---|---|
 | `sources-missing` | 根本没有 `.sources.json`；此时不再计算其他原因 | no sources file; run explain freshness sync … |
+| `sources-malformed` | `.sources.json` 解码失败；由 `checkPage` 设置，不经过 `compareSources` | … is malformed; run explain freshness sync … |
 | `not-recorded` | 现在引用了，但记录里没有 | … is cited but not hashed |
 | `not-cited` | 记录里有，但已经不再引用 | … is hashed but no longer cited |
 | `missing` | 记录了也还在引用，但已解析不到文件 | … no longer exists |
 | `changed` | 记录了也还在引用，当前哈希不同 | … changed |
 
-输出文案来自 `describeReason`（[check.ts](explain:packages/cli/src/commands/freshness/check.ts:9-23)）。原因按仓库和路径排序，输出稳定。
+输出文案来自 `describeReason`（[check.ts](explain:packages/cli/src/commands/freshness/check.ts:10-26)）。原因按仓库和路径排序，输出稳定。
 
 几个容易忽略的推论：
 
 - 引用的**文件集合**变了，即使代码没动，页面也会过期：加了引用没同步是 `not-recorded`，删掉某文件的最后一处引用是 `not-cited`。只改同一文件内的行号范围则不影响新鲜度，因为文件集合和字节都没变。
-- 被引用文件被删除，是新鲜度事件而不是硬错误。“does not exist” 进的是 `refProblems`，`check` 不看它，所以页面以 `missing` 原因显示为过期（[explain.test.ts](explain:packages/cli/test/explain.test.ts:107-114)）。
-- 文件变短到引用范围之外时，`check` 报 `changed`，而 `sync` 会拒绝，直到页面改好（[explain.test.ts](explain:packages/cli/test/explain.test.ts:116-124)）。
+- 被引用文件被删除，是新鲜度事件而不是硬错误。“does not exist” 是一条 `CitationFile` 诊断，它不会让 `check` 跳过页面，所以页面以 `missing` 原因显示为过期（[explain.test.ts](explain:packages/cli/test/explain.test.ts:108-115)）。
+- 文件变短到引用范围之外时，`check` 报 `changed`，而 `sync` 会拒绝，直到页面改好（[explain.test.ts](explain:packages/cli/test/explain.test.ts:117-125)）。
 
 ## 两个命令
 
 | | `freshness check` | `freshness sync page.md...` |
 |---|---|---|
 | 范围 | 全部页面，不接受参数 | 只处理列出的页面 |
-| 跳过 / 拒绝 | 缺失、解析失败或有 `errors` 的页面记为 not checked | 有任何诊断（`errors` 或 `refProblems`）的页面拒绝同步 |
+| 跳过 / 拒绝 | 缺失、解析失败，或有跳过检查的诊断（解析错误、`CitationRepo`）的页面记为 not checked | 解析失败，或有拒绝同步的诊断（解析错误、任何引用问题）的页面拒绝同步；坏的页面链接不挡 |
 | 写入 | 无 | 每页一个 `.sources.json` |
 | 退出码 | 有过期或未检查的页面时为 1，否则 0 | 有页面被拒或参数未知时为 2，否则 0 |
 
-见 [check.ts](explain:packages/cli/src/commands/freshness/check.ts:33-52) 和 [sync.ts](explain:packages/cli/src/commands/freshness/sync.ts:16-27)。`sync` 之所以连 `refProblems` 也拒绝，是因为给一个还引用着已删除文件的页面记哈希，等于悄悄认可了一条坏引用；先改页面，再同步。
+见 [check.ts](explain:packages/cli/src/commands/freshness/check.ts:36-57) 和 [sync.ts](explain:packages/cli/src/commands/freshness/sync.ts:17-27)。`sync` 之所以连 `CitationFile` 也拒绝，是因为给一个还引用着已删除文件的页面记哈希，等于悄悄认可了一条坏引用；先改页面，再同步。
 
-> [!CAUTION]
-> `.sources.json` 解码失败时，页面会得到一条错误，提示“rerun explain freshness sync”（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:68-83)）。可这条错误本身就是页面诊断之一，于是 `sync` 拒绝该页（“refused to sync …: fix the errors above”），`check` 把它记为 not checked。实际运行可以复现这个死循环。在修复之前，只能手动删除坏掉的 `.sources.json` 再同步。
+> [!NOTE]
+> `.sources.json` 解码失败时，页面会得到一条 `SourcesRecord` 诊断，新鲜度变为过期，唯一原因是 `sources-malformed`（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:89-112)）。`check` 打印 `<来源文件> is malformed; run explain freshness sync <页面>`。`SourcesRecord` 不拒绝同步，因为同步本来就会覆盖这个文件，所以照提示运行一次就修好了（[explain.test.ts](explain:packages/cli/test/explain.test.ts:191-215)）。
 
 ## 在查看器里
 
-开发服务器和静态构建都会把每页的新鲜度交给查看器：导航项的状态是 `missing`、`invalid`（解析失败或有页面错误），或者页面自己的 `fresh` / `stale`（[api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:17-26)）。查看器在导航栏里标出过期页面（[rail.tsx](explain:packages/viewer/src/shell/rail.tsx:72-73)），并在页面上显示新鲜或过期的标记（[freshness.tsx](explain:packages/viewer/src/routes/freshness.tsx:10-19)）。界面部分见[查看器外壳](./viewer-shell.md)和[源码面板](./source-pane.md)。
+开发服务器和静态构建都会把每页的新鲜度交给查看器：导航项的状态是 `missing`、`invalid`（解析失败或有跳过检查的诊断），或者页面自己的 `fresh` / `stale`（[api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:18-27)）。查看器在导航栏里标出过期页面（[rail.tsx](explain:packages/viewer/src/shell/rail.tsx:72-73)），并在页面上显示新鲜或过期的标记（[freshness.tsx](explain:packages/viewer/src/routes/freshness.tsx:10-20)）。界面部分见[查看器外壳](./viewer-shell.md)和[源码面板](./source-pane.md)。

@@ -1,6 +1,6 @@
-import { type ChildProcess, spawn } from "node:child_process";
+import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { createServer } from "node:net";
+import { createServer, type Server } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -97,6 +97,67 @@ describe("explain dev", () => {
       const refused = await fetch(`${base}/@explain/api/source/src/${escape}.json`);
       expect(refused.status).toBe(403);
       expect(await refused.text()).not.toContain("do-not-serve");
+    }
+  });
+
+  const holdPort = async (wanted: number) => {
+    const holders: Array<Server> = [];
+    let port = wanted;
+    for (const host of ["127.0.0.1", "::1"]) {
+      const holder = createServer();
+      const listening = Promise.withResolvers<void>();
+      holder.once("error", listening.reject);
+      holder.listen(port, host, listening.resolve);
+      await listening.promise.catch((error: NodeJS.ErrnoException) => {
+        if (error.code !== "EADDRINUSE") throw error;
+      });
+      const address = holder.address();
+      if (typeof address === "object" && address !== null) port = address.port;
+      holders.push(holder);
+    }
+    return {
+      port,
+      release: () =>
+        Promise.all(
+          holders.map((holder) => new Promise<void>((resolve) => holder.close(() => resolve()))),
+        ),
+    };
+  };
+
+  it("takes the next free port when 4321 is busy and no --port is given", async () => {
+    const held = await holdPort(4321);
+    try {
+      const server = spawn("bun", [main, "dev"], { cwd: makeDocRoot() });
+      servers.push(server);
+      let output = "";
+      const ready = Promise.withResolvers<string>();
+      server.stdout.on("data", (chunk: Buffer) => {
+        output += chunk.toString();
+        const url = /explain dev: (http:\/\/\S+)/.exec(output)?.[1];
+        if (url !== undefined) ready.resolve(url);
+      });
+      server.once("exit", (code) => ready.reject(new Error(`explain dev exited ${code}`)));
+      const url = new URL(await ready.promise);
+      expect(url.port).not.toBe("4321");
+      expect(Number(url.port)).toBeGreaterThan(4321);
+      expect((await fetch(new URL("/@explain/api/site.json", url))).status).toBe(200);
+    } finally {
+      await held.release();
+    }
+  });
+
+  it("fails with exit 2 when an explicit --port is busy", async () => {
+    const held = await holdPort(0);
+    try {
+      const result = spawnSync("bun", [main, "dev", "--port", String(held.port)], {
+        cwd: makeDocRoot(),
+        encoding: "utf8",
+        timeout: 30_000,
+      });
+      expect(result.status).toBe(2);
+      expect(result.stderr).toBe(`explain dev: Port ${held.port} is already in use\n`);
+    } finally {
+      await held.release();
     }
   });
 });

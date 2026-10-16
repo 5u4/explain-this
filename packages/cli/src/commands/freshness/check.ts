@@ -3,12 +3,15 @@ import type { StaleReason } from "@explain/contract/sources";
 import * as Console from "effect/Console";
 import * as Command from "effect/cli/Command";
 import * as Effect from "effect/Effect";
+import { diagnosticsThat } from "../../doc-root/page-diagnostic.ts";
 import { ExitWith } from "../exit-with.ts";
 import { openDocRoot } from "../open-doc-root.ts";
 
-const describeReason = (reason: StaleReason, pageFile: string): string => {
+const describeReason = (reason: StaleReason, pageFile: string, sourcesFile: string): string => {
   if (reason.kind === "sources-missing")
     return `no sources file; run explain freshness sync ${pageFile}`;
+  if (reason.kind === "sources-malformed")
+    return `${sourcesFile} is malformed; run explain freshness sync ${pageFile}`;
   const source = formatRef({ repo: reason.repo, path: reason.path, ranges: [] });
   switch (reason.kind) {
     case "not-recorded":
@@ -31,7 +34,7 @@ export const check = Command.make(
     let stale = 0;
     let unchecked = 0;
     for (const page of docRoot.pages) {
-      if (page.status !== "parsed" || page.errors.length > 0) {
+      if (page.status !== "parsed" || diagnosticsThat("skipsCheck", page.diagnostics).length > 0) {
         unchecked++;
         yield* Console.log(`not checked ${display(page.file)}: run explain validate`);
         continue;
@@ -43,7 +46,9 @@ export const check = Command.make(
       stale++;
       yield* Console.log(`stale ${display(page.file)}`);
       for (const reason of page.freshness.reasons) {
-        yield* Console.log(`  ${describeReason(reason, display(page.file))}`);
+        yield* Console.log(
+          `  ${describeReason(reason, display(page.file), display(page.sourcesFile))}`,
+        );
       }
     }
     yield* Console.log(

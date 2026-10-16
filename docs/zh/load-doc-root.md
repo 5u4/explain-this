@@ -4,7 +4,7 @@
 
 ## 结果长什么样
 
-```ts file=explain:packages/cli/src/doc-root/types.ts:24-55
+```ts file=explain:packages/cli/src/doc-root/types.ts:18-55
 ```
 
 `DocRoot.errors` 放不属于任何单页的问题：`explain.json` 里某个仓库路径不是目录。`resolveSource` 是之后所有步骤读取被引用文件的唯一入口，见[解析源文件](./resolve-source.md)。
@@ -13,9 +13,9 @@
 
 | `status` | 何时出现 | 携带什么 |
 |---|---|---|
-| `missing` | `nav` 列了这个 id，但 `<locale>/<id>.md` 不存在 | 一条说明缺失的错误 |
-| `invalid` | Markdown 没能解析出 `Page` | 解析错误 |
-| `parsed` | 解析成功 | `page`、`errors`、`refProblems`、当前的 `sources`、记录下的 `recorded`、以及 `freshness` |
+| `missing` | `nav` 列了这个 id，但 `<locale>/<id>.md` 不存在 | 一条说明缺失的 `MissingPage` 诊断 |
+| `invalid` | Markdown 没能解析出 `Page` | 解析错误，种类为 `Parse` |
+| `parsed` | 解析成功 | `page`、`diagnostics`、当前的 `sources`、记录下的 `recorded`、以及 `freshness` |
 
 三种都带同样的地址字段：`locale`、`id`、`file`（`<locale>/<id>.md`）和 `sourcesFile`（`<locale>/<id>.sources.json`）。命令行里的页面参数就是和 `file` 比对的。
 
@@ -42,51 +42,62 @@ flowchart TD
 
 ## checkPage 检查什么
 
-`checkPage` 把一次解析结果变成一个 `DocPage`。它不会因为页面有问题而失败，只记录诊断。每条诊断都有文件、从 1 开始的行列号和消息（[Diagnostic](explain:packages/cli/src/doc-root/types.ts:10-15)）。
+`checkPage` 把一次解析结果变成一个 `DocPage`。它不会因为页面有问题而失败，只记录诊断。每条诊断都有文件、从 1 开始的行列号和消息（[Diagnostic](explain:packages/cli/src/doc-root/types.ts:11-16)）。页面诊断还带一个种类，即 `_tag`，由 [`Data.taggedEnum`](explain:packages/cli/src/doc-root/page-diagnostic.ts:4-6) 构造。种类决定这条诊断对 `freshness sync` 和 `freshness check` 的影响：
 
-```ts file=explain:packages/cli/src/doc-root/check-page.ts:33-42
+| 种类 | 何时产生 | 拒绝同步 | 跳过检查 |
+|---|---|---|---|
+| `MissingPage` | nav 里的页面文件不存在 | 是 | 是 |
+| `Parse` | `parsePage` 报的错误 | 是 | 是 |
+| `CitationRepo` | 未知的仓库键，或路径跑出了仓库 | 是 | 是 |
+| `CitationFile` | 被引用文件不存在、不是文件，或行号范围超出最后一行 | 是 | 否 |
+| `PageLink` | 链接到不在 `nav` 里、或当前语言下没写的页面 | 否 | 否 |
+| `SourcesRecord` | `<page>.sources.json` 解码失败 | 否 | 否 |
+
+`validate` 和 `build` 报告所有种类。这张表就是 [`diagnosticPolicy`](explain:packages/cli/src/doc-root/page-diagnostic.ts:13-20)；各命令怎么读它见[命令](./commands.md)。
+
+```ts file=explain:packages/cli/src/doc-root/check-page.ts:42-55
 ```
 
 文件缺失时直接返回 `missing`；解析出错时先把解析错误逐条记下，如果连 `Page` 都没有，就返回 `invalid`。其余检查只对 `parsed` 页面进行。
 
 ### 引用
 
-页面里的每一处引用，无论来自链接、`file=` 摘录、`AnnotatedSource` 还是 `Diff`，解析器都放进了 `page.refs`。`checkPage` 逐个交给解析器，再按结果分到两份列表里：
+页面里的每一处引用，无论来自链接、`file=` 摘录、`AnnotatedSource` 还是 `Diff`，解析器都放进了 `page.refs`。`checkPage` 逐个交给解析器，再按结果定下种类：
 
-```ts file=explain:packages/cli/src/doc-root/check-page.ts:44-53
+```ts file=explain:packages/cli/src/doc-root/check-page.ts:57-70
 ```
 
-| 解析结果 | 去向 | 为什么 |
+| 解析结果 | 种类 | 为什么 |
 |---|---|---|
-| `unknown-repo` | `errors` | 仓库键写错了，改代码救不回来 |
-| `escapes` | `errors` | 路径经符号链接跑出了仓库，这是页面不该引用的东西 |
-| `missing` | `refProblems` | 文件被删了，是代码变了 |
-| `not-a-file` | `refProblems` | 路径现在是目录等非文件 |
-| `file` 但行号范围超出文件末尾 | `refProblems` | 文件变短了 |
+| `unknown-repo` | `CitationRepo` | 仓库键写错了，改代码救不回来 |
+| `escapes` | `CitationRepo` | 路径经符号链接跑出了仓库，这是页面不该引用的东西 |
+| `missing` | `CitationFile` | 文件被删了，是代码变了 |
+| `not-a-file` | `CitationFile` | 路径现在是目录等非文件 |
+| `file` 但行号范围超出文件末尾 | `CitationFile` | 文件变短了 |
 
 > [!IMPORTANT]
-> `errors` 是页面自身写错了；`refProblems` 是代码从页面脚下挪走了。`validate`、`sync`、`build` 两份都看，有任何一条就拒绝；`freshness check` 只跳过有 `errors` 的页面。因此被引用文件被删掉的页面会在 `check` 里显示为**过期**，而不是“未检查”，刷新流程就能据此找到受影响的页面。各命令怎么取舍见[命令](./commands.md)。
+> `CitationRepo` 是页面自身写错了；`CitationFile` 是代码从页面脚下挪走了。两者都拒绝 `sync`，但只有 `CitationRepo` 让 `freshness check` 跳过页面。因此被引用文件被删掉的页面会在 `check` 里显示为**过期**，而不是“未检查”，刷新流程就能据此找到受影响的页面。
 
 同一个循环还填好了 `cited`：以仓库加路径为键的映射。同一个文件引用五个行号范围，也只算一个文件。
 
 ### 页面链接
 
-```ts file=explain:packages/cli/src/doc-root/check-page.ts:54-58
+```ts file=explain:packages/cli/src/doc-root/check-page.ts:71-79
 ```
 
-`./<id>.md` 形式的链接要求目标在 `nav` 里，**并且**在当前页面的语言下存在：`en/` 页面链接的目标若只有 `zh/` 版本，照样报错。链接里的 `#锚点` 在这里不检查。
+`./<id>.md` 形式的链接要求目标在 `nav` 里，**并且**在当前页面的语言下存在：`en/` 页面链接的目标若只有 `zh/` 版本，照样报错。链接里的 `#锚点` 在这里不检查。坏链接是 `PageLink` 诊断：`validate` 报它，但它不挡 `sync` 也不挡 `check`。
 
 ### 为新鲜度做准备
 
-```ts file=explain:packages/cli/src/doc-root/check-page.ts:60-85
+```ts file=explain:packages/cli/src/doc-root/check-page.ts:81-112
 ```
 
 检查完之后，`checkPage` 还为新鲜度算出三样东西：
 
 - `sources`：`cited` 中能解析成文件的那些，按仓库和路径排序，各带当前的 blob id。`explain freshness sync` 写进 `.sources.json` 的正是它。
-- `recorded`：从 `<locale>/<id>.sources.json` 读出的记录；文件不存在时为 `undefined`。文件存在但解码失败，会给页面加一条错误。
-- `freshness`：用 `compareSources` 比较以上两者的结果。
+- `recorded`：从 `<locale>/<id>.sources.json` 读出的记录；文件不存在时为 `undefined`。文件存在但解码失败，会给页面加一条 `SourcesRecord` 诊断。
+- `freshness`：用 `compareSources` 比较以上两者的结果。来源文件解码失败时，改为过期，唯一原因是 `sources-malformed`。
 
 比较规则见[新鲜度](./freshness.md)，文件格式见[来源记录](./sources.md)。
 
-最后 `errors` 按文件、行、列排序（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:86-89)），输出顺序跟着页面走，而不是跟着检查的先后。
+最后 `diagnostics` 按文件、行、列排序（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:113-116)），输出顺序跟着页面走，而不是跟着检查的先后。

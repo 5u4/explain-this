@@ -11,14 +11,14 @@ Every command that works on an existing doc root calls `loadDocRoot` once and th
 
 Each entry of `pages` is a `DocPage`, a union on `status`:
 
-```ts file=explain:packages/cli/src/doc-root/types.ts:17-37
+```ts file=explain:packages/cli/src/doc-root/types.ts:18-37
 ```
 
 | `status` | When | What it carries |
 |---|---|---|
-| `missing` | `nav` lists the id, but `<locale>/<id>.md` does not exist | one error saying so |
-| `invalid` | the Markdown failed to parse into a `Page` | the parse errors |
-| `parsed` | the page parsed | the `Page`, its `errors` and `refProblems`, the current `sources`, the `recorded` sources, and its `freshness` |
+| `missing` | `nav` lists the id, but `<locale>/<id>.md` does not exist | one `MissingPage` diagnostic saying so |
+| `invalid` | the Markdown failed to parse into a `Page` | the parse errors as `Parse` diagnostics |
+| `parsed` | the page parsed | the `Page`, its `diagnostics`, the current `sources`, the `recorded` sources, and its `freshness` |
 
 Every variant has the same address: `locale`, `id`, `file` (`<locale>/<id>.md`) and `sourcesFile` (`<locale>/<id>.sources.json`). Commands match command-line arguments against `file`.
 
@@ -46,46 +46,57 @@ Parsing itself is pure and lives in the contract package ([parsing a page](./par
 
 ## What checkPage checks
 
-`checkPage` turns one parse result into a `DocPage`. It never fails on a bad page; it records diagnostics, each with a file, a 1-based line and column, and a message ([Diagnostic](explain:packages/cli/src/doc-root/types.ts:10-15)).
+`checkPage` turns one parse result into a `DocPage`. It never fails on a bad page; it records diagnostics, each with a file, a 1-based line and column, and a message ([Diagnostic](explain:packages/cli/src/doc-root/types.ts:11-16)). Every page diagnostic also has a kind, its `_tag`, built with [`Data.taggedEnum`](explain:packages/cli/src/doc-root/page-diagnostic.ts:4-6). The kind decides what the diagnostic does to `freshness sync` and `freshness check`:
+
+| Kind | Raised for | Refuses sync | Skips check |
+|---|---|---|---|
+| `MissingPage` | the nav page file is absent | yes | yes |
+| `Parse` | a `parsePage` error | yes | yes |
+| `CitationRepo` | an unknown repo key, or a path that resolves outside the repo | yes | yes |
+| `CitationFile` | a cited file that is missing or not a file, or a range past the last line | yes | no |
+| `PageLink` | a link to a page id not in `nav` or not written in this locale | no | no |
+| `SourcesRecord` | a `<page>.sources.json` that does not decode | no | no |
+
+`validate` and `build` report every kind. The table is [`diagnosticPolicy`](explain:packages/cli/src/doc-root/page-diagnostic.ts:13-20); see [commands](./commands.md) for how each command reads it.
 
 ### Citations
 
-```ts file=explain:packages/cli/src/doc-root/check-page.ts:44-53
+```ts file=explain:packages/cli/src/doc-root/check-page.ts:57-70
 ```
 
-Every citation the parser found, in links, excerpts, `AnnotatedSource` and `Diff`, is in `page.refs`. Each one is resolved, and the result picks one of two lists:
+Every citation the parser found, in links, excerpts, `AnnotatedSource` and `Diff`, is in `page.refs`. Each one is resolved, and the result picks the kind:
 
-| Resolved status | Message | List |
+| Resolved status | Message | Kind |
 |---|---|---|
-| `unknown-repo` | unknown repo "x"; explain.json repos has no such key | `errors` |
-| `escapes` | x:path resolves outside the repo | `errors` |
-| `missing` | x:path does not exist | `refProblems` |
-| `not-a-file` | x:path is not a file | `refProblems` |
-| `file`, but a range ends past the last line | x:path:N-M is beyond the file's K lines | `refProblems` |
+| `unknown-repo` | unknown repo "x"; explain.json repos has no such key | `CitationRepo` |
+| `escapes` | x:path resolves outside the repo | `CitationRepo` |
+| `missing` | x:path does not exist | `CitationFile` |
+| `not-a-file` | x:path is not a file | `CitationFile` |
+| `file`, but a range ends past the last line | x:path:N-M is beyond the file's K lines | `CitationFile` |
 
 > [!IMPORTANT]
-> `errors` are mistakes in the page itself: no edit to the cited repo can fix them. `refProblems` are citations the code has moved out from under: the file was deleted, or shrank. `validate`, `sync` and `build` refuse on both lists, but `freshness check` skips only pages with `errors`, so a page whose cited file disappeared is reported as **stale** instead of unchecked. See [commands](./commands.md) for where each list is read.
+> `CitationRepo` is a mistake in the page itself: no edit to the cited repo can fix it. `CitationFile` is a citation the code has moved out from under: the file was deleted, or shrank. Both refuse `sync`, but only `CitationRepo` makes `freshness check` skip the page, so a page whose cited file disappeared is reported as **stale** instead of unchecked.
 
 The same loop fills `cited`, a map keyed by repo and path, so a file cited at five ranges counts once.
 
 ### Page links
 
-```ts file=explain:packages/cli/src/doc-root/check-page.ts:54-58
+```ts file=explain:packages/cli/src/doc-root/check-page.ts:71-79
 ```
 
-A link `./<id>.md` must name a page that is in `nav` *and* exists in this page's locale; a link from `en/` is not satisfied by `zh/<id>.md`. The anchor part of a link is not checked here.
+A link `./<id>.md` must name a page that is in `nav` *and* exists in this page's locale; a link from `en/` is not satisfied by `zh/<id>.md`. The anchor part of a link is not checked here. A bad link is a `PageLink` diagnostic: it fails `validate` but does not block `sync` or `check`.
 
 ### Sources and freshness
 
-```ts file=explain:packages/cli/src/doc-root/check-page.ts:60-85
+```ts file=explain:packages/cli/src/doc-root/check-page.ts:81-112
 ```
 
 After the checks, `checkPage` computes three things the freshness code needs:
 
 - `sources`: each cited file that resolved to a file, sorted, with its blob id. This is exactly what `explain freshness sync` writes.
-- `recorded`: the files from `<locale>/<id>.sources.json`, or `undefined` when there is no such file. A sources file that does not decode adds an error to the page.
-- `freshness`: the comparison of the two, from `compareSources`.
+- `recorded`: the files from `<locale>/<id>.sources.json`, or `undefined` when there is no such file. A sources file that does not decode adds a `SourcesRecord` diagnostic to the page.
+- `freshness`: the comparison of the two, from `compareSources`. When the sources file does not decode, freshness is stale with the single reason `sources-malformed` instead.
 
 How the comparison works is in [Freshness](./freshness.md); the file format is in [sources](./sources.md).
 
-Finally the `errors` are sorted by file, line and column ([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:86-89)), so output order follows the page, not the order of the checks.
+Finally the `diagnostics` are sorted by file, line and column ([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:113-116)), so output order follows the page, not the order of the checks.

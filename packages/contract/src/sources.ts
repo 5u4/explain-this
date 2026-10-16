@@ -22,6 +22,7 @@ export const SourcesFileFromJson = Schema.fromJsonString(SourcesFile);
 
 export type StaleReason =
   | { readonly kind: "sources-missing" }
+  | { readonly kind: "sources-malformed" }
   | { readonly kind: "not-recorded"; readonly repo: string; readonly path: string }
   | { readonly kind: "not-cited"; readonly repo: string; readonly path: string }
   | { readonly kind: "missing"; readonly repo: string; readonly path: string }

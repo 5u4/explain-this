@@ -60,7 +60,7 @@ describe("buildSite", () => {
     const loaded = await run(loadDocRoot(root));
     if (!Exit.isSuccess(loaded)) throw new Error(String(loaded.cause));
     const docRoot = loaded.value;
-    expect([...docRoot.errors, ...docRoot.pages.flatMap((page) => page.errors)]).toEqual([]);
+    expect([...docRoot.errors, ...docRoot.pages.flatMap((page) => page.diagnostics)]).toEqual([]);
 
     const out = join(base, "out");
     expect(Exit.isSuccess(await run(buildSite(docRoot, out)))).toBe(true);

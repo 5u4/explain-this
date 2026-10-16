@@ -1,4 +1,3 @@
-import * as Console from "effect/Console";
 import * as Effect from "effect/Effect";
 import * as Path from "effect/Path";
 import * as Queue from "effect/Queue";
@@ -7,7 +6,7 @@ import * as Semaphore from "effect/Semaphore";
 import * as Stream from "effect/Stream";
 import { createServer, type Plugin, type ViteDevServer } from "vite";
 import { loadDocRoot } from "../doc-root/load.ts";
-import type { DocRoot, DocRootServices } from "../doc-root/types.ts";
+import type { Diagnostic, DocRoot, DocRootServices } from "../doc-root/types.ts";
 import { type DevState, handleExplainRequest } from "./api.ts";
 import { viewerImportGuard, viewerRoot } from "./viewer.ts";
 
@@ -15,7 +14,13 @@ export class DevServerFailed extends Schema.TaggedError<DevServerFailed>()("DevS
   message: Schema.String,
 }) {}
 
-export const serveDocRoot = Effect.fnUntraced(function* (initial: DocRoot, port: number) {
+export const serveDocRoot = Effect.fnUntraced(function* (
+  initial: DocRoot,
+  listen: { readonly port: number; readonly strictPort: boolean },
+  printDiagnostics: (
+    diagnostics: ReadonlyArray<Diagnostic>,
+  ) => Effect.Effect<void, never, DocRootServices>,
+) {
   const path = yield* Path.Path;
   const run = Effect.runPromiseWith(yield* Effect.context<DocRootServices>());
   const viewer = yield* viewerRoot;
@@ -53,13 +58,7 @@ export const serveDocRoot = Effect.fnUntraced(function* (initial: DocRoot, port:
       server.watcher.unwatch([...watched].filter((directory) => !repos.has(directory)));
       server.watcher.add([...repos].filter((directory) => !watched.has(directory)));
       watched = repos;
-    } else {
-      yield* Effect.forEach(
-        next.errors,
-        (error) => Console.error(`${error.file}:${error.line}:${error.column} ${error.message}`),
-        { discard: true },
-      );
-    }
+    } else yield* printDiagnostics(next.errors);
     server.ws.send({ type: "full-reload" });
   });
 
@@ -115,7 +114,7 @@ export const serveDocRoot = Effect.fnUntraced(function* (initial: DocRoot, port:
           root: viewer,
           appType: "spa",
           clearScreen: false,
-          server: { port, strictPort: true },
+          server: listen,
           plugins: [viewerImportGuard(viewer, path.sep), plugin],
         });
         try {
@@ -138,5 +137,8 @@ export const serveDocRoot = Effect.fnUntraced(function* (initial: DocRoot, port:
       Stream.runForEach(() => reload(server)),
     ),
   );
-  return server.resolvedUrls?.local[0] ?? `http://localhost:${port}/`;
+  const url = server.resolvedUrls?.local[0];
+  if (url === undefined)
+    return yield* new DevServerFailed({ message: "vite reported no local URL" });
+  return url;
 });

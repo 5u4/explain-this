@@ -3,8 +3,9 @@ import * as Argument from "effect/cli/Argument";
 import * as Command from "effect/cli/Command";
 import * as Effect from "effect/Effect";
 import { writeSources } from "../../doc-root/freshness.ts";
+import { diagnosticsThat } from "../../doc-root/page-diagnostic.ts";
 import { ExitWith } from "../exit-with.ts";
-import { openDocRoot, pageDiagnostics, pagesFromArguments } from "../open-doc-root.ts";
+import { openDocRoot, pagesFromArguments } from "../open-doc-root.ts";
 
 export const sync = Command.make(
   "sync",
@@ -14,9 +15,9 @@ export const sync = Command.make(
     const { found, unknown } = yield* pagesFromArguments(cwd, docRoot, pages);
     let refused = unknown;
     for (const page of found) {
-      const diagnostics = pageDiagnostics(page);
-      if (page.status !== "parsed" || diagnostics.length > 0) {
-        yield* printDiagnostics(diagnostics);
+      const blocking = diagnosticsThat("refusesSync", page.diagnostics);
+      if (page.status !== "parsed" || blocking.length > 0) {
+        yield* printDiagnostics(blocking);
         yield* Console.error(`refused to sync ${display(page.file)}: fix the errors above`);
         refused = true;
         continue;

@@ -31,29 +31,29 @@
 |---|---|---|
 | `init` | [`Flag.String("locales")`](explain:packages/cli/src/commands/init.ts:13) | 必填，逗号分隔 |
 | `validate` | [`Argument.variadic()`](explain:packages/cli/src/commands/validate.ts:10) | 零个或多个页面；不给就检查全部 |
-| `freshness sync` | [`Argument.atLeast(1)`](explain:packages/cli/src/commands/freshness/sync.ts:11) | 至少一个页面 |
-| `dev` | [`Flag.withDefault(4321)`](explain:packages/cli/src/commands/dev.ts:11) | 端口默认 4321 |
+| `freshness sync` | [`Argument.atLeast(1)`](explain:packages/cli/src/commands/freshness/sync.ts:12) | 至少一个页面 |
+| `dev` | [`Flag.optional`](explain:packages/cli/src/commands/dev.ts:11) | 不给 `--port` 就从 4321 开始，被占用时 Vite 换下一个空闲端口；显式给出的端口是严格的 |
 | `build` | [`Flag.optional`](explain:packages/cli/src/commands/build.ts:12) | 不给 `--out` 就写到文档根下的 `dist` |
 
 ## 共用的开场：openDocRoot
 
 除了 `init`，每个命令第一步都是 `yield* openDocRoot`：
 
-```ts file=explain:packages/cli/src/commands/open-doc-root.ts:19-43
+```ts file=explain:packages/cli/src/commands/open-doc-root.ts:25-40
 ```
 
-`findDocRoot` 从当前目录逐级向上找 `explain.json`（[config.ts](explain:packages/cli/src/doc-root/config.ts:25-35)），所以在文档根的任何子目录里都能运行命令。只有两种失败会让命令无从下手：向上找不到 `explain.json`，或者它不符合 schema。这两种在这里被捕获、打印，然后变成退出码 2。其余问题都作为数据挂在返回的 `DocRoot` 上，由各命令自己决定怎么处理。`display` 把诊断里的路径改写成相对于你运行命令的位置。
+`findDocRoot` 从当前目录逐级向上找 `explain.json`（[config.ts](explain:packages/cli/src/doc-root/config.ts:25-35)），所以在文档根的任何子目录里都能运行命令。只有两种失败会让命令无从下手：向上找不到 `explain.json`，或者它不符合 schema。这两种在这里被捕获、打印，然后变成退出码 2。其余问题都作为数据挂在返回的 `DocRoot` 上，由各命令自己决定怎么处理。`display` 把诊断里的路径改写成相对于你运行命令的位置，配置错误也一样：在 `zh/` 里运行时，坏掉的配置打印为 `../explain.json:1:1 ...`。[`reportInvalidConfig`](explain:packages/cli/src/commands/open-doc-root.ts:20-23) 把 display 当参数接收；`init` 传入原样返回路径的函数。
 
 `init` 不走这条路，因为它要求文档根还不存在。它在写文件之前先用加载时同一个 `decodeConfig` 校验自己要写的内容，所以非法的语言标签会被拒绝，磁盘上什么也不留下：
 
-```ts file=explain:packages/cli/src/commands/init.ts:17-25
+```ts file=explain:packages/cli/src/commands/init.ts:22-29
 ```
 
 ## 页面参数如何解析
 
 `validate` 和 `sync` 接收页面路径，由 `pagesFromArguments` 映射到 `DocPage`：
 
-```ts file=explain:packages/cli/src/commands/open-doc-root.ts:45-62
+```ts file=explain:packages/cli/src/commands/open-doc-root.ts:42-59
 ```
 
 参数先相对当前目录解析成绝对路径，再换成相对文档根、以 `/` 分隔的路径，最后与每个页面的 `file`（固定是 `<locale>/<id>.md`）逐字比较。因此在文档根运行 `explain validate zh/commands.md`，和在 `zh/` 里运行 `explain validate commands.md` 指的是同一页。
@@ -63,9 +63,9 @@
 
 ## 各命令读哪些诊断
 
-解析成功的页面带两份列表：`errors` 和 `refProblems`（为什么分两份见[加载文档根](./load-doc-root.md)）。命令对它们的取舍不同：
+每个页面不论状态如何，都带一份列表：`diagnostics`。每条诊断有一个种类（`_tag`），一张表规定每个种类对 `sync` 和 `check` 的影响（种类有哪些见[加载文档根](./load-doc-root.md)）：
 
-```ts file=explain:packages/cli/src/commands/open-doc-root.ts:64-65
+```ts file=explain:packages/cli/src/doc-root/page-diagnostic.ts:13-26
 ```
 
 <Tabs>
@@ -74,23 +74,23 @@
 ```ts file=explain:packages/cli/src/commands/validate.ts:11-21
 ```
 
-`validate` 总会带上文档根级别的 `errors`（`explain.json` 里的仓库），再加上所选页面的 `pageDiagnostics`。
+`validate` 总会带上文档根级别的 `errors`（`explain.json` 里的仓库），再加上所选页面的全部 `diagnostics`，不分种类。
 
 </Tab>
 <Tab label="freshness sync">
 
-```ts file=explain:packages/cli/src/commands/freshness/sync.ts:12-28
+```ts file=explain:packages/cli/src/commands/freshness/sync.ts:13-29
 ```
 
-`sync` 逐页处理：有任何诊断的页面被拒绝，其余页面照常写入；只要有一页被拒，最后就以 2 退出。
+`sync` 逐页处理：没解析成功、或有拒绝同步的诊断种类的页面被拒绝，并只打印这些诊断；其余页面照常写入。坏掉的页面链接和损坏的来源文件不挡同步，因为同步本来就会重写来源文件。只要有一页被拒，最后就以 2 退出。
 
 </Tab>
 <Tab label="freshness check">
 
-```ts file=explain:packages/cli/src/commands/freshness/check.ts:28-53
+```ts file=explain:packages/cli/src/commands/freshness/check.ts:28-58
 ```
 
-`check` 只看 `page.errors`，不看 `refProblems`。所以被引用的文件被删掉时，页面在这里显示为过期，而不是“未检查”。
+`check` 把没解析成功、或有跳过检查的诊断种类的页面记为“未检查”。`CitationFile`（文件被删或行号越界）不跳过检查，所以被引用的文件被删掉时，页面在这里显示为过期，而不是“未检查”。
 
 </Tab>
 <Tab label="build">

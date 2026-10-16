@@ -20,7 +20,12 @@ export const init = Command.make(
       return yield* new ExitWith({ code: 2 });
     }
     const text = `${JSON.stringify({ locales: locales.split(","), repos: {}, nav: [] }, null, 2)}\n`;
-    yield* decodeConfig(text).pipe(Effect.catchTag("InvalidConfig", reportInvalidConfig));
+    yield* decodeConfig(text).pipe(
+      Effect.catchTag(
+        "InvalidConfig",
+        reportInvalidConfig((file) => file),
+      ),
+    );
     yield* fs.writeFileString(file, text);
     yield* Console.log(`explain init: wrote ${file}`);
   }),

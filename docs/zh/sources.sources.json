@@ -3,47 +3,47 @@
     {
       "repo": "explain",
       "path": "packages/cli/src/commands/freshness/check.ts",
-      "hash": "268a923dfeea01ed3f140615dfaa8fb774d81e9d"
+      "hash": "2dec1112670b6bd0ddddf8490fcaf542302e0198"
     },
     {
       "repo": "explain",
       "path": "packages/cli/src/doc-root/check-page.ts",
-      "hash": "cf0aab598bd243ed3439d51725e221b57c4dfa3c"
+      "hash": "9f9e5d290dfe9d9d8af165588fd4500fb19a5fa4"
     },
     {
       "repo": "explain",
       "path": "packages/cli/src/doc-root/freshness.ts",
-      "hash": "7501577366bd2c6e7796995149148331969ce7ba"
+      "hash": "12fd757682f304cdbefd003775a064666b6dbcab"
     },
     {
       "repo": "explain",
       "path": "packages/cli/src/doc-root/types.ts",
-      "hash": "b121ff2ef8b067d743ada34ffbc24ae43ac9757c"
+      "hash": "def428e368e568f1a457494ef5eb0dd4531c58ce"
     },
     {
       "repo": "explain",
       "path": "packages/cli/src/site/api-bodies.ts",
-      "hash": "0c53b625570bd1864c2ff932c2bdb2a85f383450"
+      "hash": "ac04003fbb30e733ddc15d5c94eab97b951523ab"
     },
     {
       "repo": "explain",
       "path": "packages/contract/src/sources.ts",
-      "hash": "5e211ecec44c186e7aa4a1c531473d7f7ef7dd82"
+      "hash": "1e58bd42e3fec37cecb7412b2fc38ffd69f3ce23"
     },
     {
       "repo": "explain",
       "path": "packages/viewer/src/api.ts",
-      "hash": "59df972e2f5bf2983441363f04f9a08f2de5c3ba"
+      "hash": "841af40a4c15116598032451a0482f4f6a1fa695"
     },
     {
       "repo": "explain",
       "path": "packages/viewer/src/i18n/strings.ts",
-      "hash": "55152febb099d623e2b370cf1516e00c52d1ad35"
+      "hash": "5ffa1fc0eebd55210f5d9bec1600bdfe2c9d6fc2"
     },
     {
       "repo": "explain",
       "path": "packages/viewer/src/routes/freshness.tsx",
-      "hash": "8a2454ea566fe6083bfa95a5910111c756bd52a3"
+      "hash": "0b52dee6fb1f3f6019bd42aa7f4e05308b9dcffb"
     },
     {
       "repo": "explain",

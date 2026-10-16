@@ -29,7 +29,7 @@ The entry point builds one root command and hangs the five subcommands off it:
 
 </Tree>
 
-Each command is declared the same way: `Command.make(name, config, handler)`, where `config` lists flags (`Flag.String`, `Flag.Int`) and positional arguments (`Argument.String`), and the handler is an `Effect.fnUntraced` generator that receives the parsed values. `validate` takes any number of pages with [`Argument.variadic()`](explain:packages/cli/src/commands/validate.ts:10), while `sync` demands at least one with [`Argument.atLeast(1)`](explain:packages/cli/src/commands/freshness/sync.ts:11); `build`'s `--out` is [optional](explain:packages/cli/src/commands/build.ts:12) and `dev`'s `--port` [defaults to 4321](explain:packages/cli/src/commands/dev.ts:11).
+Each command is declared the same way: `Command.make(name, config, handler)`, where `config` lists flags (`Flag.String`, `Flag.Int`) and positional arguments (`Argument.String`), and the handler is an `Effect.fnUntraced` generator that receives the parsed values. `validate` takes any number of pages with [`Argument.variadic()`](explain:packages/cli/src/commands/validate.ts:10), while `sync` demands at least one with [`Argument.atLeast(1)`](explain:packages/cli/src/commands/freshness/sync.ts:12); `build`'s `--out` and `dev`'s `--port` are both [optional](explain:packages/cli/src/commands/build.ts:12) [flags](explain:packages/cli/src/commands/dev.ts:11).
 
 ## What each command does
 
@@ -38,43 +38,43 @@ Each command is declared the same way: `Command.make(name, config, handler)`, wh
 | `init --locales=zh,en` | nothing | `explain.json` already exists, or the locales fail the config schema | `explain.json` in the current directory |
 | `validate [page.md...]` | the doc root | any doc-root error or any diagnostic on the selected pages (all pages when none are named) | nothing |
 | `freshness check` | the doc root | exits 2 when no doc root is found or `explain.json` is invalid; exits 1 when a page is stale or could not be checked | nothing |
-| `freshness sync page.md...` | the doc root | a named page has any diagnostic; other named pages still sync | `<locale>/<id>.sources.json` per page |
-| `dev [--port=4321]` | the doc root | the server cannot start | nothing; serves and reloads |
+| `freshness sync page.md...` | the doc root | a named page did not parse or has a diagnostic whose kind refuses sync; other named pages still sync | `<locale>/<id>.sources.json` per page |
+| `dev [--port=N]` | the doc root | the server cannot start, or an explicit `--port` is taken | nothing; serves and reloads |
 | `build [--out=dir]` | the doc root | any doc-root error or any page diagnostic | a static site, `dist/` under the doc root by default |
 
 `init` is the only command that does not need an existing doc root. It writes `{ locales, repos: {}, nav: [] }`, but first runs the text through the same `decodeConfig` that loading uses, so a malformed locale is rejected before anything touches the disk:
 
-```ts file=explain:packages/cli/src/commands/init.ts:17-25
+```ts file=explain:packages/cli/src/commands/init.ts:22-29
 ```
 
-`dev` and `build` differ on purpose. `dev` only needs `openDocRoot` to succeed, so it serves a doc root whose pages still have errors (the viewer shows them); `build` [refuses to build](explain:packages/cli/src/commands/build.ts:16-21) unless every page is clean. See [the site](./site.md) for what they serve.
+`dev` and `build` differ on purpose. `dev` only needs `openDocRoot` to succeed, so it serves a doc root whose pages still have errors (the viewer shows them); `build` [refuses to build](explain:packages/cli/src/commands/build.ts:16-21) unless every page is clean. Without `--port`, `dev` [starts at 4321](explain:packages/cli/src/commands/dev.ts:14-17) and lets Vite move to the next free port; an explicit `--port` is strict, and a taken port fails with `explain dev: Port N is already in use` and exit 2. See [the site](./site.md) for what they serve.
 
 ## Opening the doc root
 
 Every command but `init` starts with `openDocRoot`:
 
-```ts file=explain:packages/cli/src/commands/open-doc-root.ts:19-43
+```ts file=explain:packages/cli/src/commands/open-doc-root.ts:25-40
 ```
 
-`findDocRoot` walks up from the current directory until it finds an `explain.json` ([config.ts](explain:packages/cli/src/doc-root/config.ts:25-35)), so the commands work from any subdirectory of the doc root. The two failures that leave no doc root to work with, no `explain.json` anywhere above and an `explain.json` that fails the schema, are caught here, printed, and turned into exit code 2. Everything else is data on the returned `DocRoot`, and `display` prints every diagnostic path relative to where you ran the command.
+`findDocRoot` walks up from the current directory until it finds an `explain.json` ([config.ts](explain:packages/cli/src/doc-root/config.ts:25-35)), so the commands work from any subdirectory of the doc root. The two failures that leave no doc root to work with, no `explain.json` anywhere above and an `explain.json` that fails the schema, are caught here, printed, and turned into exit code 2. Everything else is data on the returned `DocRoot`, and `display` prints every diagnostic path relative to where you ran the command. That includes config errors: run from `en/`, a broken config prints as `../explain.json:1:1 ...`. [`reportInvalidConfig`](explain:packages/cli/src/commands/open-doc-root.ts:20-23) takes the display as an argument; `init` passes the path unchanged.
 
 ### Page arguments
 
 `validate` and `sync` take page paths, resolved by `pagesFromArguments`:
 
-```ts file=explain:packages/cli/src/commands/open-doc-root.ts:45-62
+```ts file=explain:packages/cli/src/commands/open-doc-root.ts:42-59
 ```
 
 An argument is resolved against the current directory, made relative to the doc root, and compared with each page's `file`, which is always `<locale>/<id>.md`. So `explain validate zh/commands.md` from the doc root and `explain validate commands.md` from inside `zh/` name the same page. Only pages listed in `nav` exist in the `DocRoot`; a Markdown file that is not in `nav` is reported as "not a page of the doc root". An unknown argument does not stop the others from being processed, but it makes the command exit 2 at the end.
 
 ### Which diagnostics count
 
-A parsed page carries two lists, `errors` and `refProblems` ([why two](./load-doc-root.md)). The commands combine them differently:
+Every page, whatever its status, carries one list, `diagnostics`. Each diagnostic has a kind (`_tag`), and a table says what each kind does to `sync` and `check` ([what the kinds are](./load-doc-root.md)):
 
-```ts file=explain:packages/cli/src/commands/open-doc-root.ts:64-65
+```ts file=explain:packages/cli/src/doc-root/page-diagnostic.ts:13-26
 ```
 
-`validate`, `sync` and `build` use `pageDiagnostics`, so a citation to a deleted file or past the end of a file blocks them. `freshness check` looks only at `page.errors` ([check.ts](explain:packages/cli/src/commands/freshness/check.ts:33-38)), so the same deleted file shows up there as a stale page rather than as "not checked". That is how a refresh workflow can list exactly which pages a code change broke.
+`validate` and `build` report every kind. `sync` refuses a page that did not parse or has a kind that refuses sync, and prints only those; a bad page link or a malformed sources file does not stop it, since sync rewrites the sources file anyway. `freshness check` lists a page as "not checked" when it did not parse or has a kind that skips the check ([check.ts](explain:packages/cli/src/commands/freshness/check.ts:36-41)). A citation to a deleted file or past the end of a file (`CitationFile`) does not skip the check, so the same deleted file shows up there as a stale page rather than as "not checked". That is how a refresh workflow can list exactly which pages a code change broke.
 
 <Tabs>
 <Tab label="validate">
@@ -85,13 +85,13 @@ A parsed page carries two lists, `errors` and `refProblems` ([why two](./load-do
 </Tab>
 <Tab label="freshness sync">
 
-```ts file=explain:packages/cli/src/commands/freshness/sync.ts:12-28
+```ts file=explain:packages/cli/src/commands/freshness/sync.ts:13-29
 ```
 
 </Tab>
 <Tab label="freshness check">
 
-```ts file=explain:packages/cli/src/commands/freshness/check.ts:28-53
+```ts file=explain:packages/cli/src/commands/freshness/check.ts:28-58
 ```
 
 </Tab>

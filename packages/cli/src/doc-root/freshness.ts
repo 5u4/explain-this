@@ -44,7 +44,7 @@ export const compareSources = Effect.fnUntraced(function* <E, R>(
     current.map((file) => [sourceKey(file.repo, file.path), file.hash]),
   );
   const recordedKeys = new Set(recorded.map((file) => sourceKey(file.repo, file.path)));
-  const reasons: Array<StaleReason> = [];
+  const reasons: Array<Extract<StaleReason, { readonly repo: string }>> = [];
   for (const [key, source] of cited) {
     if (!recordedKeys.has(key)) reasons.push({ kind: "not-recorded", ...source });
   }
@@ -63,9 +63,7 @@ export const compareSources = Effect.fnUntraced(function* <E, R>(
     }
     if (hash !== file.hash) reasons.push({ kind: "changed", ...source });
   }
-  reasons.sort((a, b) =>
-    a.kind === "sources-missing" || b.kind === "sources-missing" ? 0 : compareSourceKeys(a, b),
-  );
+  reasons.sort(compareSourceKeys);
   return reasons.length === 0
     ? ({ status: "fresh" } satisfies Freshness)
     : ({ status: "stale", reasons } satisfies Freshness);

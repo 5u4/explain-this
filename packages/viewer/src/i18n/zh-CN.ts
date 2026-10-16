@@ -22,6 +22,7 @@ export const zhCN: Strings = {
   staleNote: "在仓库中已改动，本页依据的是旧版本。",
   staleMixedNote: "；本页依据的是旧版本。",
   unhashedNote: "本页还没有来源文件，请运行 explain freshness sync。",
+  malformedSourcesNote: "本页的来源文件格式有误，请运行 explain freshness sync。",
   listSeparator: "、",
   sources: "来源",
   sourcesIntro: (repos, count) =>

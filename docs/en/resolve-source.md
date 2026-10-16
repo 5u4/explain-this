@@ -1,6 +1,6 @@
 # Resolving a source
 
-A citation names a file as a repo key plus a path, `explain:packages/cli/src/main.ts`. `resolveSource` is the one function that turns that pair into bytes. Page checking, freshness hashing and the source endpoint of the dev server all go through it, and `explain build` writes its source files by calling that same endpoint for every cited or recorded file ([build.ts](explain:packages/cli/src/site/build.ts:55-63)), so every consumer agrees on what a citation points at.
+A citation names a file as a repo key plus a path, `explain:packages/cli/src/main.ts`. `resolveSource` is the one function that turns that pair into bytes. Page checking, freshness hashing and the source endpoint of the dev server all go through it, and `explain build` writes its source files by calling that same endpoint for every cited or recorded file ([build.ts](explain:packages/cli/src/site/build.ts:23-40,55-63)), so every consumer agrees on what a citation points at.
 
 ## Two steps: repos, then files
 
@@ -16,7 +16,7 @@ A repo whose path does not exist or is not a directory becomes one doc-root erro
 ```ts file=explain:packages/cli/src/doc-root/resolve-source.ts:46-53
 ```
 
-The cache key is `sourceKey(repo, path)`, the two strings joined with a NUL ([resolve-source.ts](explain:packages/cli/src/doc-root/resolve-source.ts:10)), a character that cannot appear in a repo key; since the key comes first, the joined key is unambiguous. `explain dev` queues every change under the doc root or a repo and answers it by loading a fresh doc root ([dev.ts](explain:packages/cli/src/site/dev.ts:29-31,70-78)), which is what keeps the cache from going stale.
+The cache key is `sourceKey(repo, path)`, the two strings joined with a NUL ([resolve-source.ts](explain:packages/cli/src/doc-root/resolve-source.ts:10)), a character that cannot appear in a repo key; since the key comes first, the joined key is unambiguous. `explain dev` queues every change under the doc root or a repo and answers it by loading a fresh doc root ([dev.ts](explain:packages/cli/src/site/dev.ts:29,34-37,69-78)), which is what keeps the cache from going stale.
 
 <AnnotatedSource file="explain:packages/cli/src/doc-root/resolve-source.ts:54-70">
 <Note lines="58">The key is not in `explain.json` `repos` at all.</Note>
@@ -41,7 +41,7 @@ A citation path cannot climb out of the repo by spelling: `parseRef` already rej
 ```ts file=explain:packages/contract/src/citation.ts:30-41
 ```
 
-But a path made only of plain segments can still leave the repo through a symlink. `src/outside.ts` may be a link to `../../secret.ts`, and `realPath` follows it. The prefix check on the real path catches exactly that case; the CLI test builds such a link and expects `resolves outside the repo` ([explain.test.ts](explain:packages/cli/test/explain.test.ts:166-177)).
+But a path made only of plain segments can still leave the repo through a symlink. `src/outside.ts` may be a link to `../../secret.ts`, and `realPath` follows it. The prefix check on the real path catches exactly that case; the CLI test builds such a link and expects `resolves outside the repo` ([explain.test.ts](explain:packages/cli/test/explain.test.ts:235-246)).
 
 The reason this matters is the dev server. The viewer fetches cited files from `/@explain/api/source/<repo>/<path>`, and that endpoint resolves whatever path the request names, not only paths a page cites:
 
@@ -57,4 +57,4 @@ Without `escapes`, a repo that contains a symlink to, say, a home directory woul
 ```ts file=explain:packages/cli/src/doc-root/resolve-source.ts:74-92
 ```
 
-A `file` is a problem only when one of the citation's ranges ends past the last line. Which of these messages block which command is decided by the page checker: `unknown-repo` and `escapes` are page errors, the others are `refProblems` that freshness treats as a change in the code. See [Loading a doc root](./load-doc-root.md) for that split, and [Freshness](./freshness.md) for how the bytes are hashed.
+A `file` is a problem only when one of the citation's ranges ends past the last line. The page checker turns each message into a diagnostic kind: `unknown-repo` and `escapes` become `CitationRepo`, which makes `freshness check` skip the page; the others become `CitationFile`, which freshness treats as a change in the code. Both kinds refuse `sync`. See [Loading a doc root](./load-doc-root.md) for that split, and [Freshness](./freshness.md) for how the bytes are hashed.

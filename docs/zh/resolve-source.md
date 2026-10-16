@@ -16,7 +16,7 @@
 ```ts file=explain:packages/cli/src/doc-root/resolve-source.ts:39-53
 ```
 
-缓存键 `sourceKey` 用 NUL 字符把仓库键和路径连起来（[resolve-source.ts](explain:packages/cli/src/doc-root/resolve-source.ts:10)），仓库键里不可能出现这个字符，而仓库键在前，所以拼出来的键不会有歧义。缓存不会过期，是因为 `explain dev` 在监听到文件变化后会整体重新加载文档根，得到一份新缓存（[dev.ts](explain:packages/cli/src/site/dev.ts:29-31,70-78)）。
+缓存键 `sourceKey` 用 NUL 字符把仓库键和路径连起来（[resolve-source.ts](explain:packages/cli/src/doc-root/resolve-source.ts:10)），仓库键里不可能出现这个字符，而仓库键在前，所以拼出来的键不会有歧义。缓存不会过期，是因为 `explain dev` 在监听到文件变化后会整体重新加载文档根，得到一份新缓存（[dev.ts](explain:packages/cli/src/site/dev.ts:29,34-37,69-78)）。
 
 ## 依次做的检查
 
@@ -45,7 +45,7 @@
 
 但一个全是普通段的路径，仍然可以经由符号链接离开仓库：`src/outside.ts` 可以是指向 `../../secret.ts` 的链接，`realPath` 会跟过去。对真实路径做前缀判断，拦的正是这种情况。CLI 测试专门造了这样一个链接，期望得到 `resolves outside the repo`：
 
-```ts file=explain:packages/cli/test/explain.test.ts:166-177
+```ts file=explain:packages/cli/test/explain.test.ts:235-246
 ```
 
 这件事要紧，是因为开发服务器。查看器通过 `/@explain/api/source/<repo>/<path>` 取源码，而这个接口解析的是请求里写的任意路径，不限于页面引用过的：
@@ -62,4 +62,4 @@
 ```ts file=explain:packages/cli/src/doc-root/resolve-source.ts:74-92
 ```
 
-`file` 只有在某个行号范围超出最后一行时才算问题。这些消息分别会挡住哪些命令，由页面检查决定：`unknown-repo` 和 `escapes` 是页面错误，其余是 `refProblems`，新鲜度把它们看作代码发生了变化。分流规则见[加载文档根](./load-doc-root.md)，字节如何被哈希见[新鲜度](./freshness.md)。
+`file` 只有在某个行号范围超出最后一行时才算问题。页面检查把每条消息变成一种诊断：`unknown-repo` 和 `escapes` 成为 `CitationRepo`，它让 `freshness check` 跳过页面；其余成为 `CitationFile`，新鲜度把它们看作代码发生了变化。两种都拒绝 `sync`。分流规则见[加载文档根](./load-doc-root.md)，字节如何被哈希见[新鲜度](./freshness.md)。

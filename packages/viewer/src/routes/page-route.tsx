@@ -112,12 +112,21 @@ function PageContent({
           <h1>{place.page.title}</h1>
           <p className="fresh-note">{strings.unparsedPage}</p>
         </header>
-        <DevErrors title={strings.pageErrors(response.errors.length)} errors={response.errors} />
+        <DevErrors
+          title={strings.pageErrors(response.diagnostics.length)}
+          errors={response.diagnostics}
+        />
         {siteErrors}
       </article>
     );
   }
 
+  const citation = response.diagnostics.filter(
+    (diagnostic) => diagnostic._tag === "CitationRepo" || diagnostic._tag === "CitationFile",
+  );
+  const other = response.diagnostics.filter(
+    (diagnostic) => diagnostic._tag !== "CitationRepo" && diagnostic._tag !== "CitationFile",
+  );
   return (
     <article className="page" data-page={response.id}>
       <header className="page-head">
@@ -127,14 +136,12 @@ function PageContent({
         </h1>
         <Freshness response={response} />
       </header>
-      {response.errors.length > 0 && (
-        <DevErrors title={strings.pageErrors(response.errors.length)} errors={response.errors} />
-      )}
+      {other.length > 0 && <DevErrors title={strings.pageErrors(other.length)} errors={other} />}
       {siteErrors}
       <div className="page-body">
         <Blocks blocks={response.page.blocks} lede />
       </div>
-      <Sources entries={response.sources} problems={response.refProblems} />
+      <Sources entries={response.sources} problems={citation} />
       <Pager place={place} />
     </article>
   );
