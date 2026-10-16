@@ -1,7 +1,7 @@
 # Writing a page
 
 The reader is an engineer new to this code. They scan headings and first sentences, and read on only
-where those promise an answer. Every rule below ends in a check; a page is done when it passes each.
+where those promise an answer. Every rule below ends in a check.
 
 ## Page
 
@@ -17,8 +17,9 @@ where those promise an answer. Every rule below ends in a check; a page is done 
 ## Examples
 
 - **Trace one case.** Pick one concrete case and state its assumptions in one sentence: the input,
-  the caller, the state it starts from. Follow it through every step the page covers, citing the
-  lines each step runs. Variants come after the trace, each naming the step where it diverges.
+  the caller, the state it starts from. Follow it through every step the page covers; each step cites
+  the lines it runs, says why it happens, and names the condition that would skip it. Variants come
+  after the trace, each naming the step where it diverges.
 - **Running example.** Later sections reuse the traced case. A new case appears only where the
   traced one cannot reach.
 - **Concrete before general.** When the page names an abstraction (an interface, a generic type, a
@@ -33,9 +34,16 @@ where those promise an answer. Every rule below ends in a check; a page is done 
   only the ranges that carry the point; several ranges in one citation skip the lines between. An
   excerpt longer than about ten lines becomes an `<AnnotatedSource>` whose notes label each chunk
   with its purpose (validate input, resolve target, dispatch).
-- **Why and when.** Each trace step says why it happens and which condition would skip it.
 
-## Chinese pages
+## Pages in another language
+
+- **Terms stay in English.** Write every word that names a thing or state in software in English:
+  skill, stale, citation, page, claim, file, command, directory, commit, exit code. The page's
+  language carries verbs, connectives, explanation, and the page naming itself (本页). The Curse of
+  knowledge definition is in the page's language; after it, the English term stands alone. Swapping
+  the page's language would leave every software term as it is.
+
+### Chinese
 
 - **Break 一逗到底.** Keep each clause under about 20 characters. End the sentence with 。 once a
   comma chain reaches three clauses.
