@@ -1,7 +1,7 @@
 @media (min-width: 1360px) {
   .shell.no-pane {
-    grid-template-columns: var(--rail-w) minmax(0, 1fr);
-    grid-template-areas: "rail main";
+    grid-template-columns: var(--gutter) var(--rail-w) minmax(0, 1fr);
+    grid-template-areas: ". rail main";
   }
 }
 @media (max-width: 1359px) {

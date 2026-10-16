@@ -1,8 +1,8 @@
 .shell {
   display: grid;
-  grid-template-columns: var(--rail-w) var(--prose-w) minmax(var(--pane-min), var(--pane-max));
-  grid-template-areas: "rail main pane";
-  justify-content: safe center;
+  --gutter: max(0px, (100% - var(--rail-w) - var(--prose-w) - var(--pane-max)) / 2);
+  grid-template-columns: var(--gutter) var(--rail-w) var(--prose-w) minmax(var(--pane-min), 1fr);
+  grid-template-areas: ". rail main pane";
   min-height: 100vh;
 }
 .topbar {

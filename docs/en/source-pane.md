@@ -255,9 +255,11 @@ The pane is a grid column beside the prose. Hover previews, click toggles a pin,
 drawn. `sheetOpen` stays `false`: [`setSheet(true)`](explain:packages/viewer/src/pane/controller.ts:134-149)
 returns early when split, and a resize into the split layout closes an open sheet.
 
-From 1360px up the shell has three columns: the rail, the prose at `--prose-w`, and the pane between
-`--pane-min` (440px) and `--pane-max`; `justify-content: safe center` centers the grid when the
-window is wider than all three ([shell.css](explain:packages/viewer/src/styles/viewer/shell.css:1-7)).
+From 1360px up the shell has a gutter and three columns: the rail, the prose at `--prose-w`, and the
+pane, which is at least `--pane-min` (440px) and runs to the right edge of the window. The gutter
+stays zero until the window is wider than the rail, the prose and `--pane-max` together, then takes
+half the leftover width, so the rail and prose sit where a centered layout would put them and the
+pane keeps the rest ([shell.css](explain:packages/viewer/src/styles/viewer/shell.css:1-7)).
 Between 1080px and 1359px the rail moves into a drawer and the pane takes the remaining `1fr`, with no
 cap ([drawer.css](explain:packages/viewer/src/styles/viewer/drawer.css:1-6)). Both widths derive
 from the font size ([tokens.css](explain:packages/viewer/src/styles/tokens.css:58-59,133-136)):
@@ -266,8 +268,8 @@ to the prose column ([shell.css](explain:packages/viewer/src/styles/viewer/shell
 pane's code is set at `--size-code`, 0.796875 of it
 ([pane-view.css](explain:packages/viewer/src/styles/viewer/pane-view.css:26-32)). `--prose-w` is
 34 times `--size-prose` plus 126px, and `--pane-max` is `60 * --size-code + 100px`, so on a wider
-screen the prose, the code and both columns grow together. Reading `60` as 100 monospace columns at
-0.6em each is an inference; the code does not name it.
+screen the prose, the code and the gutter threshold grow together. Reading `60` as 100 monospace
+columns at 0.6em each is an inference; the code does not name it.
 
 </Tab>
 <Tab label="Narrow (< 1080px)">

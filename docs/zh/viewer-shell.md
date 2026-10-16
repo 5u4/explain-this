@@ -240,7 +240,7 @@ graph TD
 | `--prose-w` | 34 × 正文字号 + 126px | 704px | 806px |
 | `--pane-max` | 60 × 代码字号 + 100px | 约 913px | 约 1056px |
 
-所以正文列始终保持约 34 个字号宽的行长，只是随字号一起变宽；面板上限大致是 100 列等宽代码（每列按 0.6 个字号估算）加 100px（推断：0.6 是对等宽字符宽度的近似，代码里只写了算式）。
+所以正文列始终保持约 34 个字号宽的行长，只是随字号一起变宽。`--pane-max` 并不是面板的宽度上限，它决定左侧留白从多宽开始出现，大致是 100 列等宽代码（每列按 0.6 个字号估算）加 100px（推断：0.6 是对等宽字符宽度的近似，代码里只写了算式）。
 
 ### 断点 {#breakpoints}
 
@@ -248,8 +248,8 @@ graph TD
 
 | 视口宽度 | 布局 |
 |---|---|
-| ≥ 1360px | 导航 · 正文 · 面板 三列：导航 `--rail-w`，正文 `--prose-w`，面板在 `--pane-min` 与 `--pane-max` 之间；三列都到上限后，多出的宽度由 `justify-content: safe center` 平分到两侧，整个布局居中（[shell.css](explain:packages/viewer/src/styles/viewer/shell.css:1-7)） |
+| ≥ 1360px | 留白 · 导航 · 正文 · 面板 四列：导航 `--rail-w`，正文 `--prose-w`，面板 `minmax(--pane-min, 1fr)` 一直延伸到右边缘。留白列是 `max(0px, (100% - 导航 - 正文 - pane-max) / 2)`：窗口宽到三列（面板按 `--pane-max` 算）放下之前为 0，之后取多出宽度的一半，于是导航和正文落在居中布局的位置，另一半归面板（[shell.css](explain:packages/viewer/src/styles/viewer/shell.css:1-7)） |
 | ≤ 1359px | 导航移出网格变成左侧抽屉，出现吸顶顶栏；面板列为 `minmax(--pane-min, 1fr)`，不设上限（[drawer.css](explain:packages/viewer/src/styles/viewer/drawer.css:1-43)） |
 | ≤ 1079px | 单列，源码面板变成底部抽屉（[bottom-sheet.css](explain:packages/viewer/src/styles/viewer/bottom-sheet.css:1-9)） |
 
-`safe` 的作用是：网格比视口宽时不居中，改为从起始边对齐，避免左侧内容被推出屏幕。没有面板的路由给外壳加 `no-pane`，去掉面板列，正文列最宽到 `--prose-w` 加 320px（[source-page.css](explain:packages/viewer/src/styles/viewer/source-page.css:1-15)）。
+没有面板的路由（以及每个页面加载完成之前）给外壳加 `no-pane`，去掉面板列，正文列最宽到 `--prose-w` 加 320px。它们沿用同一个留白列，所以面板出现时导航和正文不会移动（[source-page.css](explain:packages/viewer/src/styles/viewer/source-page.css:1-15)）。

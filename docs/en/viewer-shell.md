@@ -243,7 +243,7 @@ The root font size is `--step-0`, `1.0625em` ([globals.css](explain:packages/vie
 | `--prose-w` | 34 × prose size + 126px | 704px | 806px |
 | `--pane-max` | 60 × code size + 100px | about 913px | about 1056px |
 
-So the prose column keeps a measure of about 34 em and widens with the type instead of staying a fixed 704px, and the pane's cap is roughly 100 columns of monospace code at 0.6 em per column plus 100px (inference: 0.6 is an estimate of the monospace advance; the code only has the formula).
+So the prose column keeps a measure of about 34 em and widens with the type instead of staying a fixed 704px. `--pane-max` is not a width the pane ever stops at: it sets where the left gutter starts, roughly 100 columns of monospace code at 0.6 em per column plus 100px (inference: 0.6 is an estimate of the monospace advance; the code only has the formula).
 
 ### Breakpoints {#breakpoints}
 
@@ -251,8 +251,8 @@ The layout is one CSS grid whose columns collapse at two breakpoints:
 
 | Width | Layout |
 |---|---|
-| ≥ 1360px | `rail · main · pane` columns: the rail at `--rail-w`, prose at `--prose-w`, the pane between `--pane-min` and `--pane-max`. Once all three are at their maximum, `justify-content: safe center` splits the leftover width between both sides, centering the layout ([shell.css](explain:packages/viewer/src/styles/viewer/shell.css:1-7)) |
+| ≥ 1360px | `gutter · rail · main · pane` columns: the rail at `--rail-w`, prose at `--prose-w`, the pane `minmax(--pane-min, 1fr)` running to the right edge. The gutter is `max(0px, (100% - rail - prose - pane-max) / 2)`: zero until the window is wider than all three at `--pane-max`, then half the leftover width, which puts the rail and prose where a centered layout would, while the pane keeps the other half ([shell.css](explain:packages/viewer/src/styles/viewer/shell.css:1-7)) |
 | ≤ 1359px | the rail leaves the grid and becomes an off-canvas drawer; a sticky top bar appears; the pane column is `minmax(--pane-min, 1fr)` with no cap ([drawer.css](explain:packages/viewer/src/styles/viewer/drawer.css:1-43)) |
 | ≤ 1079px | single column; the pane turns into a bottom sheet ([bottom-sheet.css](explain:packages/viewer/src/styles/viewer/bottom-sheet.css:1-9)) |
 
-`safe` means that when the grid is wider than the viewport it aligns to the start edge instead of centering, so nothing is pushed off the left of the screen. Routes without a pane add `no-pane` to the shell, which drops the pane column and lets the prose column grow to `--prose-w` plus 320px ([source-page.css](explain:packages/viewer/src/styles/viewer/source-page.css:1-15)).
+Routes without a pane (and every page while it is still loading) add `no-pane` to the shell, which drops the pane column and lets the prose column grow to `--prose-w` plus 320px. They keep the same gutter, so the rail and the text do not move when the pane appears ([source-page.css](explain:packages/viewer/src/styles/viewer/source-page.css:1-15)).

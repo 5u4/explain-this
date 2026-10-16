@@ -183,12 +183,12 @@
     {
       "repo": "explain",
       "path": "packages/viewer/src/styles/viewer/shell.css",
-      "hash": "46738ad4929b0d223daf3460bf272669919a2a2f"
+      "hash": "2dddcc8f79ced50af9cc24a3f270b63b0028740b"
     },
     {
       "repo": "explain",
       "path": "packages/viewer/src/styles/viewer/source-page.css",
-      "hash": "fc83a30afac0317da0cfe060a7d1d2ae13d3180f"
+      "hash": "718159a5c00f4ced0cda2af812faf80794c8553b"
     }
   ]
 }
