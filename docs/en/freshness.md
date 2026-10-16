@@ -24,7 +24,7 @@ Each loaded page carries three views of its sources, all built in `checkPage` ([
 
 | Name | What it is |
 |---|---|
-| `cited` | every distinct repo and path the page cites now, from links, excerpts, `AnnotatedSource`, `Diff` and `Widget source` |
+| `cited` | every distinct repo and path the page cites now, from links, excerpts, `AnnotatedSource` and `Diff` |
 | `sources` | the cited files that resolve to a file, each with its current hash |
 | `recorded` | the files in the sources file, or `undefined` when there is none |
 
@@ -86,7 +86,7 @@ flowchart TD
 ```
 
 > [!CAUTION]
-> A sources file that fails to decode adds an error to the page whose message says to rerun `explain freshness sync` ([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:74-89)). But that error is one of the page's diagnostics, so `sync` refuses the page ("refused to sync …: fix the errors above"), and `check` lists it as not checked. Running it confirms the loop. Until that changes, delete the malformed `.sources.json` by hand and then sync.
+> A sources file that fails to decode adds an error to the page whose message says to rerun `explain freshness sync` ([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:68-83)). But that error is one of the page's diagnostics, so `sync` refuses the page ("refused to sync …: fix the errors above"), and `check` lists it as not checked. Running it confirms the loop. Until that changes, delete the malformed `.sources.json` by hand and then sync.
 
 ## Where freshness shows up
 

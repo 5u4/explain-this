@@ -10,7 +10,6 @@ export interface ParseContext {
   readonly usedIds: Set<string>;
   readonly refs: Array<{ ref: Ref; at: Position }>;
   readonly pageLinks: Array<{ page: string; anchor: string | null; at: Position }>;
-  readonly widgets: Array<{ name: string; at: Position }>;
 }
 
 export const report = (ctx: ParseContext, at: Position, message: string): undefined => {

@@ -33,7 +33,6 @@ const fixture = () => {
   writeFileSync(join(repo, "src", "数据.ts"), "export const a = 1;\n");
   writeFileSync(join(repo, "src", "index.html"), "<p>home</p>\n");
   mkdirSync(join(root, "zh-CN"), { recursive: true });
-  mkdirSync(join(root, "widgets"));
   writeFileSync(
     join(root, "explain.json"),
     JSON.stringify({
@@ -46,15 +45,11 @@ const fixture = () => {
   );
   writeFileSync(
     join(root, "zh-CN", "index.md"),
-    '# 首页\n\n见 [a](fold:src/数据.ts:1)、[b](fold:src/index.html:1)。\n\n<Widget name="probe" title="Probe" source="fold:src/数据.ts">\n\n说明。\n\n</Widget>\n',
+    "# 首页\n\n见 [a](fold:src/数据.ts:1)、[b](fold:src/index.html:1)。\n",
   );
   writeFileSync(
     join(root, "zh-CN", "index.sources.json"),
     JSON.stringify({ files: [{ repo: "fold", path: "src/old.ts", hash: "0".repeat(40) }] }),
-  );
-  writeFileSync(
-    join(root, "widgets", "probe.js"),
-    'export function mount(root) {\n  root.textContent = "ok";\n}\n',
   );
   return { base, root };
 };
@@ -69,9 +64,7 @@ describe("buildSite", () => {
 
     const out = join(base, "out");
     expect(Exit.isSuccess(await run(buildSite(docRoot, out)))).toBe(true);
-    expect(await run(buildSite(docRoot, out))).toEqual(
-      Exit.succeed({ pages: 1, sources: 3, widgets: 1 }),
-    );
+    expect(await run(buildSite(docRoot, out))).toEqual(Exit.succeed({ pages: 1, sources: 3 }));
 
     const explain = join(out, "@explain");
     const written = filesUnder(explain);
@@ -83,8 +76,6 @@ describe("buildSite", () => {
         "api/source/fold/src/index.html.json",
         "api/source/fold/src/old.ts.json",
         "api/source/fold/src/数据.ts.json",
-        "widgets.css",
-        "widgets/probe.js",
       ].sort(),
     );
 

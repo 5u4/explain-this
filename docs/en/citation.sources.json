@@ -13,7 +13,7 @@
     {
       "repo": "explain",
       "path": "packages/cli/src/site/api.ts",
-      "hash": "f87392a300a7d6721d1cbf5d955506c2bd5f90b9"
+      "hash": "7e8412fe16a0005e24cbd36ee0b5cbfb54fa47ef"
     },
     {
       "repo": "explain",
@@ -38,7 +38,7 @@
     {
       "repo": "explain",
       "path": "packages/contract/src/parse-page/context.ts",
-      "hash": "dc2debdfc88fc7b1542b604b84623043e46e3faa"
+      "hash": "46fdaa6861d8ec5bc74180fe8c35a97e0247076e"
     },
     {
       "repo": "explain",
@@ -48,12 +48,7 @@
     {
       "repo": "explain",
       "path": "packages/viewer/package.json",
-      "hash": "115ed479056a5aee493798ada345b10fa9426b44"
-    },
-    {
-      "repo": "explain",
-      "path": "packages/viewer/src/blocks/widget.tsx",
-      "hash": "8cc9544ddf58b51b9080e0c18021a1637eff14fc"
+      "hash": "3b4f58a5b936ab72c7a82a7e4b044c1dddd4d470"
     },
     {
       "repo": "explain",

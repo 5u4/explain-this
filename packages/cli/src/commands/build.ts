@@ -29,7 +29,7 @@ export const build = Command.make(
       ),
     );
     yield* Console.log(
-      `explain build: ${directory} (${counts.pages} pages, ${counts.sources} sources, ${counts.widgets} widgets)`,
+      `explain build: ${directory} (${counts.pages} pages, ${counts.sources} sources)`,
     );
   }),
 ).pipe(Command.withDescription("Write the doc root as a static site"));

@@ -8,12 +8,12 @@
     {
       "repo": "explain",
       "path": "packages/cli/package.json",
-      "hash": "9e07566d134eab8bda1e8c27d7c79e8541a9df3e"
+      "hash": "e119542fe5af9761150bd90514de4e4c3847e999"
     },
     {
       "repo": "explain",
       "path": "packages/cli/src/commands/build.ts",
-      "hash": "2bdaaeacf453ac1d9b946a7d507344aef9ec341d"
+      "hash": "48d580ca3edbc8ade916b68b4a09c0a57c15306a"
     },
     {
       "repo": "explain",
@@ -48,7 +48,7 @@
     {
       "repo": "explain",
       "path": "packages/cli/src/commands/validate.ts",
-      "hash": "78ce4bf1e55f9339f3ad997bb7bcfde4d49c19b4"
+      "hash": "2eebbda0c386f5f5f5946ef41c280b68034467bb"
     },
     {
       "repo": "explain",
@@ -63,7 +63,7 @@
     {
       "repo": "explain",
       "path": "packages/cli/src/doc-root/load.ts",
-      "hash": "b83bf7e8c9e865d34fac574b11786b7637f6450e"
+      "hash": "c344d80a95ad8ed946fe12671050009195a5ea97"
     },
     {
       "repo": "explain",
@@ -78,12 +78,12 @@
     {
       "repo": "explain",
       "path": "packages/cli/src/site/api-bodies.ts",
-      "hash": "b656ba602baba5229acf2fc83d7bf3fbd81c702b"
+      "hash": "0c53b625570bd1864c2ff932c2bdb2a85f383450"
     },
     {
       "repo": "explain",
       "path": "packages/cli/src/site/build.ts",
-      "hash": "f35445bc2b029fee5735cc26b2a7f8ed2d0be611"
+      "hash": "ac7813c9f2ba32029bc31ec74446f8ae1622b5aa"
     },
     {
       "repo": "explain",
@@ -98,17 +98,12 @@
     {
       "repo": "explain",
       "path": "skills/explain-this/SKILL.md",
-      "hash": "205e726aa95ae22b65771de9d0c736a39ce0cf8a"
+      "hash": "d31b464a533daf7c426bf2417231c64240ad6b30"
     },
     {
       "repo": "explain",
       "path": "skills/explain-this/format.md",
-      "hash": "44147c0186173adb656d20df75d8cbeca4a3c56c"
-    },
-    {
-      "repo": "explain",
-      "path": "skills/explain-this/widgets.md",
-      "hash": "f18a758b9aa27bf405c234c70868c90ef3062cf5"
+      "hash": "6854c7d920c398a4a9a8fc0f7a496a66d0f5a1a7"
     }
   ]
 }

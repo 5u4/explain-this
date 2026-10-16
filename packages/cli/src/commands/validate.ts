@@ -19,4 +19,4 @@ export const validate = Command.make(
     if (diagnostics.length > 0 || unknown) return yield* new ExitWith({ code: 2 });
     yield* Console.log(`${found.length} pages valid`);
   }),
-).pipe(Command.withDescription("Report what keeps explain.json, widgets and pages from rendering"));
+).pipe(Command.withDescription("Report what keeps explain.json and pages from rendering"));

@@ -175,50 +175,6 @@ describe("explain freshness and validate", () => {
     expect(result.code).toBe(2);
     expect(result.stderr).toContain("zh-CN/index.md:3:3 src:outside.ts resolves outside the repo");
   });
-
-  it("rejects a widget without a module, a widget stylesheet, and classes outside the widget theme", () => {
-    const docRoot = makeDocRoot(
-      '# 折叠\n\n<Widget name="fold-play" title="演练" source="src:fold.ts">\n\n说明。\n\n</Widget>\n',
-    );
-    mkdirSync(join(docRoot.docs, "widgets"));
-    writeFileSync(join(docRoot.docs, "widgets", "fold-play.css"), ".row { color: red; }\n");
-    const missingModule = docRoot.explain("validate", "zh-CN/index.md");
-    expect(missingModule.code).toBe(2);
-    expect(missingModule.stderr).toContain("zh-CN/index.md:3:1 ");
-    expect(missingModule.stderr).toContain(
-      "widgets/fold-play.css:1:1 widget stylesheets are not supported",
-    );
-
-    rmSync(join(docRoot.docs, "widgets", "fold-play.css"));
-    writeFileSync(
-      join(docRoot.docs, "widgets", "fold-play.js"),
-      [
-        "const tw = String.raw;",
-        "export function mount(root) {",
-        "  root.className = tw`flex bg-red-500 p-[3px] text-muted`;",
-        '  root.dataset.kind = "bg-red-500 overflow text";',
-        // biome-ignore lint/suspicious/noTemplateCurlyInString: the widget source under test has a substitution
-        "  root.title = tw`gap-${1}`;",
-        "}",
-        "",
-      ].join("\n"),
-    );
-    const badClasses = docRoot.explain("validate", "zh-CN/index.md");
-    expect(badClasses.code).toBe(2);
-    expect(badClasses.stderr.trim().split("\n")).toEqual([
-      'widgets/fold-play.js:3:28 "bg-red-500" is not a class of the widget theme',
-      'widgets/fold-play.js:3:39 "p-[3px]" is an arbitrary value; use a theme class',
-      "widgets/fold-play.js:5:23 tw`…` takes no substitutions; choose between whole tw`…` strings in JS",
-    ]);
-
-    writeFileSync(
-      join(docRoot.docs, "widgets", "fold-play.js"),
-      "const tw = String.raw;\nexport function mount(root) {\n  root.className = tw`flex gap-2 bg-raised text-pass`;\n}\n",
-    );
-    expect(docRoot.explain("freshness", "sync", "zh-CN/index.md").code).toBe(0);
-    expect(docRoot.explain("validate").code).toBe(0);
-    expect(docRoot.explain("freshness", "check").code).toBe(0);
-  });
 });
 
 describe("explain init", () => {

@@ -63,7 +63,7 @@ down to the files that actually changed (inference). An excerpt of the file this
 
 When the CLI loads a page, it reads this file back through `SourcesFileFromJson`. A missing file means
 "never synced"; a file that does not decode is a validation error telling you to sync again
-([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:74-89)).
+([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:68-83)).
 
 ## `Freshness` and `StaleReason`
 
@@ -108,11 +108,11 @@ On the CLI side a parsed page carries all three values: the current `sources`, t
 
 The viewer never computes freshness. It receives `Freshness` and `SourceFile` inside the page
 response, as types imported from the contract
-([api.ts](explain:packages/viewer/src/api.ts:1-2,56-82)). Because the reasons are per page, while
+([api.ts](explain:packages/viewer/src/api.ts:1-2,53-79)). Because the reasons are per page, while
 the sources table and source pane are per file, the server folds them into one `SourceEntry` per
 file: a `state` that is either `fresh` or the kind of the reason that names the file, plus the
 recorded and current `SourceFile`
-([api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:55-83)). `sources-missing` names no file,
+([api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:54-82)). `sources-missing` names no file,
 so it marks every entry `not-recorded`.
 
 The viewer then reads `freshness.status` and the `sources-missing` reason for the badge
@@ -122,9 +122,9 @@ falling back to the current one, for the sources table
 
 > [!IMPORTANT]
 > `SourceState` in the viewer API is written out separately as `fresh` plus the four per-file
-> `StaleReason` kinds ([api.ts](explain:packages/viewer/src/api.ts:56)). A new `StaleReason` kind
+> `StaleReason` kinds ([api.ts](explain:packages/viewer/src/api.ts:53)). A new `StaleReason` kind
 > must be added there too, and given a label in every locale's `sourceStates`, which is typed as a
 > record over `SourceState` ([strings.ts](explain:packages/viewer/src/i18n/strings.ts:36)). The server
 > stores `reason.kind` in a `Map<string, SourceState>`
-> ([api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:69-74)), so forgetting the first step
+> ([api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:68-73)), so forgetting the first step
 > should fail type-checking (inference).

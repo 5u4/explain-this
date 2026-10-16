@@ -34,10 +34,10 @@ There is no separate list of pages. `navPageIds` flattens the nav groups in orde
 ```
 
 The loader reads exactly those ids, in every locale
-([load.ts](explain:packages/cli/src/doc-root/load.ts:25-31)). A Markdown file that is not in nav is
+([load.ts](explain:packages/cli/src/doc-root/load.ts:24-30)). A Markdown file that is not in nav is
 never parsed, and a nav id without a file becomes a "missing" page with a diagnostic
-([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:34-37)). Page links are checked
-against the same set ([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:55-59)). A page
+([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:33-36)). Page links are checked
+against the same set ([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:54-56)). A page
 listed twice would have two places in the reading order, which is probably why the schema forbids it
 (inference).
 
@@ -55,7 +55,7 @@ has one:
 </AnnotatedSource>
 
 Consumers can therefore read `config.defaultLocale` without a fallback. The site response passes it
-straight to the viewer ([api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:44-52)), which
+straight to the viewer ([api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:44-51)), which
 uses it for the home redirect and for unknown locales
 ([app.tsx](explain:packages/viewer/src/app.tsx:35-55)).
 

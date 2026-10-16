@@ -45,11 +45,11 @@ The skill has two branches, picked by what the user asked for:
 <Note lines="33">Refreshed pages are validated and synced even when their claims still hold, so their recorded hashes catch up.</Note>
 </AnnotatedSource>
 
-The skill points the agent at [format.md](explain:skills/explain-this/format.md) for every file it writes, and at [widgets.md](explain:skills/explain-this/widgets.md) only when it writes a [widget](./widgets.md).
+The skill points the agent at [format.md](explain:skills/explain-this/format.md) for every file it writes ([SKILL.md](explain:skills/explain-this/SKILL.md:14)).
 
 ## 4. Check the pages: `explain validate`
 
-[`validate`](explain:packages/cli/src/commands/validate.ts:8-22) loads the whole doc root and prints the diagnostics of the pages you name, or of every page if you name none. It always adds the doc-root-wide errors as well, which come from `explain.json` repos and the `widgets/` folder ([load.ts](explain:packages/cli/src/doc-root/load.ts:47-55)). A page's diagnostics include both parse and link errors and citation problems: a cited file that does not exist, is not a file, or is shorter than the cited range ([resolve-source.ts](explain:packages/cli/src/doc-root/resolve-source.ts:74-92), [open-doc-root.ts](explain:packages/cli/src/commands/open-doc-root.ts:64-65)). Any diagnostic exits with code 2. The rules behind citations are on [citation](./citation.md) and [resolve-source](./resolve-source.md); the page grammar on [parse-page](./parse-page.md).
+[`validate`](explain:packages/cli/src/commands/validate.ts:8-21) loads the whole doc root and prints the diagnostics of the pages you name, or of every page if you name none. It always adds the doc-root-wide errors as well, which come from `explain.json` repos ([load.ts](explain:packages/cli/src/doc-root/load.ts:44-50)). A page's diagnostics include both parse and link errors and citation problems: a cited file that does not exist, is not a file, or is shorter than the cited range ([resolve-source.ts](explain:packages/cli/src/doc-root/resolve-source.ts:74-92), [open-doc-root.ts](explain:packages/cli/src/commands/open-doc-root.ts:64-65)). Any diagnostic exits with code 2. The rules behind citations are on [citation](./citation.md) and [resolve-source](./resolve-source.md); the page grammar on [parse-page](./parse-page.md).
 
 ## 5. Record what the pages cite: `explain freshness sync`
 
@@ -86,12 +86,12 @@ The printed texts are from [`describeReason`](explain:packages/cli/src/commands/
 <Tabs>
 <Tab label="explain dev">
 
-[`dev`](explain:packages/cli/src/commands/dev.ts:9-24) serves the doc root on port 4321 unless `--port` says otherwise, prints the URL, and runs until stopped. It watches the doc root and every repo listed in `explain.json` and reloads on any change ([site/dev.ts](explain:packages/cli/src/site/dev.ts:27,51-56,64,70)), so you can keep it open while the agent writes. It does not refuse pages with diagnostics; it serves them, diagnostics included, in the page response ([api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:85-103)).
+[`dev`](explain:packages/cli/src/commands/dev.ts:9-24) serves the doc root on port 4321 unless `--port` says otherwise, prints the URL, and runs until stopped. It watches the doc root and every repo listed in `explain.json` and reloads on any change ([site/dev.ts](explain:packages/cli/src/site/dev.ts:27,51-56,64,70)), so you can keep it open while the agent writes. It does not refuse pages with diagnostics; it serves them, diagnostics included, in the page response ([api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:84-102)).
 
 </Tab>
 <Tab label="explain build">
 
-[`build`](explain:packages/cli/src/commands/build.ts:10-35) is stricter: it refuses if *any* page in the doc root has a diagnostic, not only the ones you touched. By default it writes to `dist/` inside the doc root; `--out` picks another directory. It will not overwrite a non-empty directory that is not a previous explain build ([build.ts](explain:packages/cli/src/site/build.ts:83-91)). Stale pages are not a build error; they ship with their stale badge.
+[`build`](explain:packages/cli/src/commands/build.ts:10-35) is stricter: it refuses if *any* page in the doc root has a diagnostic, not only the ones you touched. By default it writes to `dist/` inside the doc root; `--out` picks another directory. It will not overwrite a non-empty directory that is not a previous explain build ([build.ts](explain:packages/cli/src/site/build.ts:77-85)). Stale pages are not a build error; they ship with their stale badge.
 
 </Tab>
 </Tabs>

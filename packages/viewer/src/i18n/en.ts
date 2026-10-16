@@ -76,8 +76,6 @@ export const en: Strings = {
   diffFold: (count) => `Show ${count} unchanged ${count === 1 ? "line" : "lines"}`,
   diagramFailed: "This diagram could not be rendered",
   diagramSource: "Show the source",
-  widgetSources: "Sources",
-  widgetFailed: (name) => `The widget ${name} failed to load`,
   fileGone: (path) => `${path} no longer exists in the repo`,
   fileGoneDetail:
     "The page was written against a version of the file that has since been deleted or moved.",

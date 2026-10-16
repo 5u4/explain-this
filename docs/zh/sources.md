@@ -55,7 +55,7 @@ contract 包里的 `sources.ts` 是两边共用的词汇表：一条文件记录
 ```
 
 CLI 加载页面时用 `SourcesFileFromJson` 把这个文件读回来。文件不存在表示"从没同步过"；文件存在但解码失败，则报一条校验错误，
-提示重新执行 sync（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:74-89)）。
+提示重新执行 sync（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:68-83)）。
 
 ## `Freshness` 与 `StaleReason`
 
@@ -95,9 +95,9 @@ CLI 这边，解析成功的页面同时带着三个值：当前的 `sources`、
 并用 `compareSourceKeys` 给原因排序，保证输出顺序稳定（[freshness.ts](explain:packages/cli/src/doc-root/freshness.ts:34-72)）。
 
 viewer 从不自己计算新鲜度。它在页面响应里拿到 `Freshness` 和 `SourceFile`，类型都从 contract 导入
-（[api.ts](explain:packages/viewer/src/api.ts:1-2,56-82)）。原因是按页面给的，而来源表和源码面板是按文件展示的，
+（[api.ts](explain:packages/viewer/src/api.ts:1-2,53-79)）。原因是按页面给的，而来源表和源码面板是按文件展示的，
 所以服务端把它们折叠成每个文件一条 `SourceEntry`：`state` 要么是 `fresh`，要么是指向该文件的那条原因的 `kind`，
-另附记录的和当前的 `SourceFile`（[api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:55-83)）。
+另附记录的和当前的 `SourceFile`（[api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:54-82)）。
 `sources-missing` 不指向具体文件，于是所有条目都标成 `not-recorded`。
 
 viewer 用 `freshness.status` 和 `sources-missing` 原因决定徽标
@@ -106,7 +106,7 @@ viewer 用 `freshness.status` 和 `sources-missing` 原因决定徽标
 
 > [!IMPORTANT]
 > viewer API 里的 `SourceState` 是单独写出来的：`fresh` 加上四种按文件的 `StaleReason`
-> （[api.ts](explain:packages/viewer/src/api.ts:56)）。新增 `StaleReason` 种类时，这里也要加上，并在每种语言的 `sourceStates`
+> （[api.ts](explain:packages/viewer/src/api.ts:53)）。新增 `StaleReason` 种类时，这里也要加上，并在每种语言的 `sourceStates`
 > 里给出文案；`sourceStates` 的类型是以 `SourceState` 为键的 record（[strings.ts](explain:packages/viewer/src/i18n/strings.ts:36)）。
-> 服务端把 `reason.kind` 存进 `Map<string, SourceState>`（[api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:69-74)），
+> 服务端把 `reason.kind` 存进 `Map<string, SourceState>`（[api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:68-73)），
 > 漏掉第一步应当会导致类型检查失败（推断）。

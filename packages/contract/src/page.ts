@@ -96,15 +96,7 @@ export type Block =
       readonly ref: Ref;
       readonly notes: ReadonlyArray<SourceNote>;
     }
-  | { readonly type: "diff"; readonly change: DiffChange }
-  | {
-      readonly type: "widget";
-      readonly name: string;
-      readonly title: string;
-      readonly sources: ReadonlyArray<Ref>;
-      readonly props: Readonly<Record<string, string>>;
-      readonly children: ReadonlyArray<Inline>;
-    };
+  | { readonly type: "diff"; readonly change: DiffChange };
 
 export interface TocEntry {
   readonly depth: HeadingDepth;
@@ -122,7 +114,6 @@ export interface Page {
     readonly anchor: string | null;
     readonly at: Position;
   }>;
-  readonly widgets: ReadonlyArray<{ readonly name: string; readonly at: Position }>;
 }
 
 export const plainText = (inlines: ReadonlyArray<Inline>): string =>

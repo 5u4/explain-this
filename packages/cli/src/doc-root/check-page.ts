@@ -13,13 +13,12 @@ export interface PageContext {
   readonly root: string;
   readonly pageIds: ReadonlySet<string>;
   readonly existing: ReadonlySet<string>;
-  readonly widgetFiles: ReadonlySet<string>;
   readonly resolve: DocRoot["resolveSource"];
   readonly blobId: Effect.Success<typeof makeBlobId>;
 }
 
 export const checkPage = Effect.fnUntraced(function* (
-  { root, pageIds, existing, widgetFiles, resolve, blobId }: PageContext,
+  { root, pageIds, existing, resolve, blobId }: PageContext,
   locale: string,
   id: string,
   parsed: ParseResult | undefined,
@@ -55,11 +54,6 @@ export const checkPage = Effect.fnUntraced(function* (
   for (const link of page.pageLinks) {
     if (!pageIds.has(link.page) || !existing.has(`${locale}/${link.page}`)) {
       at(link.at, `page link to "${link.page}" has no ${locale}/${link.page}.md`);
-    }
-  }
-  for (const widget of page.widgets) {
-    if (!widgetFiles.has(`${widget.name}.js`)) {
-      at(widget.at, `widget "${widget.name}" has no widgets/${widget.name}.js`);
     }
   }
 

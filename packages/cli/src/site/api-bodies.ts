@@ -46,7 +46,6 @@ export const siteResponse = (docRoot: DocRoot): SiteResponse => {
     title: config.title ?? "Document",
     locales: config.locales,
     defaultLocale: config.defaultLocale,
-    widgets: docRoot.widgets,
     errors: docRoot.errors,
     byLocale,
   };

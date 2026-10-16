@@ -5,7 +5,7 @@ Every claim on an explain page points at code through a citation string such as
 that string: it defines the [`Ref`](explain:packages/contract/src/citation.ts:3-12) value, parses
 text into it with `parseRef`, and writes it back with `formatRef`. The page parser calls `parseRef`
 for every link target that is not a page link or a web URL
-([context.ts](explain:packages/contract/src/parse-page/context.ts:21-26)), and the CLI's shared API
+([context.ts](explain:packages/contract/src/parse-page/context.ts:20-25)), and the CLI's shared API
 handler, which serves both `explain dev` and `explain build`, calls it to vet the `repo/path` of a
 source request ([api.ts](explain:packages/cli/src/site/api.ts:64-65)).
 
@@ -35,7 +35,7 @@ ever deal with spans.
 
 `parseRef` returns an Effect `Result` rather than throwing. The failure is a single human-readable
 message, which the page parser turns into a diagnostic at the link's position
-([context.ts](explain:packages/contract/src/parse-page/context.ts:16-25)). That is why every
+([context.ts](explain:packages/contract/src/parse-page/context.ts:15-24)). That is why every
 problem function returns `string | undefined`: the message itself is the error value.
 
 ### Ranges
@@ -87,14 +87,13 @@ step. The split keeps the contract package free of file system access, so it can
 code that has none (inference: the contract package lists no file system dependency in
 [package.json](explain:packages/contract/package.json:13-21)).
 
-## Try it on the test cases
+## The test cases
 
-<Widget name="citation-parse-ref" title="parseRef on its test cases" source="explain:packages/contract/src/citation.ts:14-72 explain:packages/contract/src/citation.test.ts:5-49">
+Two tests pin what parses: a whole-file citation yields empty `ranges`, and a list of single lines
+and spans comes back in order.
 
-Pick a case from `citation.test.ts`. The widget runs a JavaScript port of `parseRef` on the input,
-shows the `Ref` or the failure message, and checks the outcome against what the test expects.
-
-</Widget>
+```ts file=explain:packages/contract/src/citation.test.ts:6-24
+```
 
 The rejection table in the test is the clearest specification of the grammar: each row names the
 rule it breaks.
@@ -119,11 +118,10 @@ The CLI uses it to print stale sources
 The viewer keeps a separate `formatRef` and a looser `parseRef` in
 [ref.ts](explain:packages/viewer/src/ref.ts:5-30) and imports only the *types* from the contract
 package ([ref.ts](explain:packages/viewer/src/ref.ts:1)). The viewer lists `@explain/contract` as a
-dev dependency only ([package.json](explain:packages/viewer/package.json:11-21)), so the browser
+dev dependency only ([package.json](explain:packages/viewer/package.json:10-20)), so the browser
 bundle does not pull in `effect` (inference). Its `parseRef` returns `undefined` instead of a message
 and skips the repo, path and ordering rules: it only reads back strings that the viewer itself wrote
 into `data-ref` attributes from refs the CLI already validated
-([anchors.ts](explain:packages/viewer/src/pane/anchors.ts:19-21)), or citations a widget passes to
-`cite`/`readSource` ([widget.tsx](explain:packages/viewer/src/blocks/widget.tsx:55-68)).
+([anchors.ts](explain:packages/viewer/src/pane/anchors.ts:19-21)).
 
 </details>

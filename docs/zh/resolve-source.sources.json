@@ -8,17 +8,17 @@
     {
       "repo": "explain",
       "path": "packages/cli/src/doc-root/types.ts",
-      "hash": "e209762587e1aafc3ef1bab1ac95c8955ee2f7db"
+      "hash": "b121ff2ef8b067d743ada34ffbc24ae43ac9757c"
     },
     {
       "repo": "explain",
       "path": "packages/cli/src/site/api.ts",
-      "hash": "f87392a300a7d6721d1cbf5d955506c2bd5f90b9"
+      "hash": "7e8412fe16a0005e24cbd36ee0b5cbfb54fa47ef"
     },
     {
       "repo": "explain",
       "path": "packages/cli/src/site/build.ts",
-      "hash": "f35445bc2b029fee5735cc26b2a7f8ed2d0be611"
+      "hash": "ac7813c9f2ba32029bc31ec74446f8ae1622b5aa"
     },
     {
       "repo": "explain",
@@ -28,7 +28,7 @@
     {
       "repo": "explain",
       "path": "packages/cli/test/explain.test.ts",
-      "hash": "b38b918fcb6037650d97408b0cda5392a034d395"
+      "hash": "a760ed11d52e4e5ef5f28eac2010d30df839d39a"
     },
     {
       "repo": "explain",

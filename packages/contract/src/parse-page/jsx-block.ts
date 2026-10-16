@@ -3,7 +3,7 @@ import type { Block } from "../page.ts";
 import { type ParseContext, report } from "./context.ts";
 import { beforeAfter, details, tabs, tree } from "./layout-components.ts";
 import { positionOf } from "./markdown.ts";
-import { annotatedSource, diff, widget } from "./source-components.ts";
+import { annotatedSource, diff } from "./source-components.ts";
 
 const nestedOnlyTags: Readonly<Record<string, string>> = {
   Tab: "Tabs",
@@ -30,8 +30,6 @@ export const jsxBlock = (ctx: ParseContext, element: MdxJsxFlowElement): Block |
       return annotatedSource(ctx, element);
     case "Diff":
       return diff(ctx, element);
-    case "Widget":
-      return widget(ctx, element);
   }
   const parent = nestedOnlyTags[name];
   return report(

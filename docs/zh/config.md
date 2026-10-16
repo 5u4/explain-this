@@ -33,10 +33,10 @@
 ```ts file=explain:packages/contract/src/config.ts:99-100
 ```
 
-加载器在每种语言下只读这些 id（[load.ts](explain:packages/cli/src/doc-root/load.ts:25-31)）。不在 nav 里的
+加载器在每种语言下只读这些 id（[load.ts](explain:packages/cli/src/doc-root/load.ts:24-30)）。不在 nav 里的
 Markdown 文件根本不会被解析；nav 里有、磁盘上没有的页面，会变成带诊断的 "missing" 页面
-（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:34-37)）。页面链接也是对照同一个集合检查的
-（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:55-59)）。同一个页面若出现两次，就会在阅读顺序里占两个位置，
+（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:33-36)）。页面链接也是对照同一个集合检查的
+（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:54-56)）。同一个页面若出现两次，就会在阅读顺序里占两个位置，
 schema 禁止重复大概就是为此（推断）。
 
 ## `defaultLocale`：文件里可省，内存里一定有
@@ -52,7 +52,7 @@ schema 禁止重复大概就是为此（推断）。
 </AnnotatedSource>
 
 因此使用方读 `config.defaultLocale` 时不用再写兜底。站点响应把它原样交给 viewer
-（[api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:44-52)），viewer 在首页重定向和遇到未知语言时使用它
+（[api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:44-51)），viewer 在首页重定向和遇到未知语言时使用它
 （[app.tsx](explain:packages/viewer/src/app.tsx:35-55)）。
 
 测试固定了这两种行为，并为每条规则各写了一个拒绝用例：

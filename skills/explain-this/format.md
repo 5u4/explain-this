@@ -3,11 +3,9 @@
 ```text
 <doc root>/
 ├── explain.json                 site settings, repos, nav
-├── <locale>/                    one directory per entry in "locales"
-│   ├── <page>.md                page source
-│   └── <page>.sources.json      written by `explain freshness sync`
-└── widgets/
-    └── <name>.js                one ES module per widget, shared by all locales
+└── <locale>/                    one directory per entry in "locales"
+    ├── <page>.md                page source
+    └── <page>.sources.json      written by `explain freshness sync`
 ```
 
 Write each locale from the code on its own rather than translating another locale, so its pages may
@@ -98,10 +96,8 @@ content. Task lists (`- [ ]`) render as static checkboxes.
 Use `<Diff>` rather than `<BeforeAfter>` whenever both sides are code. Its sides may cite different
 repo keys, paths (a rename), and ranges.
 
-`<Widget>` embeds an interactive module; read [widgets.md](widgets.md) before writing one.
-
 ## Freshness
 
-`explain freshness sync` records every file a page cites, in links, excerpts, `AnnotatedSource file`, `Diff
-before` and `after`, and `Widget source`. The page goes stale when it cites a different set of files
+`explain freshness sync` records every file a page cites, in links, excerpts, `AnnotatedSource file`, and `Diff
+before` and `after`. The page goes stale when it cites a different set of files
 or any recorded file changes on disk.

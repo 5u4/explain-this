@@ -3,17 +3,17 @@
     {
       "repo": "explain",
       "path": "packages/cli/src/doc-root/check-page.ts",
-      "hash": "4da4c36d85a907428eebac5784bbd6d773b9ed48"
+      "hash": "cf0aab598bd243ed3439d51725e221b57c4dfa3c"
     },
     {
       "repo": "explain",
       "path": "packages/cli/src/doc-root/load.ts",
-      "hash": "b83bf7e8c9e865d34fac574b11786b7637f6450e"
+      "hash": "c344d80a95ad8ed946fe12671050009195a5ea97"
     },
     {
       "repo": "explain",
       "path": "packages/cli/src/doc-root/types.ts",
-      "hash": "e209762587e1aafc3ef1bab1ac95c8955ee2f7db"
+      "hash": "b121ff2ef8b067d743ada34ffbc24ae43ac9757c"
     }
   ]
 }

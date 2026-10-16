@@ -4,10 +4,10 @@ Every command that works on an existing doc root calls `loadDocRoot` once and th
 
 ## The DocRoot value
 
-```ts file=explain:packages/cli/src/doc-root/types.ts:46-57
+```ts file=explain:packages/cli/src/doc-root/types.ts:46-55
 ```
 
-`errors` holds problems that belong to the doc root rather than to one page: a repo path that is not a directory, and broken widget modules. `resolveSource` is the function every later step uses to read a cited file; it is described in [Resolving a source](./resolve-source.md).
+`errors` holds problems that belong to the doc root rather than to one page: a repo path that is not a directory. `resolveSource` is the function every later step uses to read a cited file; it is described in [Resolving a source](./resolve-source.md).
 
 Each entry of `pages` is a `DocPage`, a union on `status`:
 
@@ -24,14 +24,13 @@ Every variant has the same address: `locale`, `id`, `file` (`<locale>/<id>.md`) 
 
 ## Loading step by step
 
-<AnnotatedSource file="explain:packages/cli/src/doc-root/load.ts:14-56">
-<Note lines="19">Loading aborts only on doc-root-level failures: an `explain.json` that fails to decode surfaces as `InvalidConfig`, and file-system failures (reading the config, pages, or widgets) surface as `PlatformError`. Page-level problems never abort.</Note>
-<Note lines="21-23">Built once per load and shared by every page, so a file cited by ten pages is read and hashed once.</Note>
-<Note lines="25-31">The page set is `nav`, not the directory listing. A Markdown file that is not in `nav` is never read.</Note>
-<Note lines="33">Widget modules are checked up front so each page can ask whether `widgets/<name>.js` exists.</Note>
-<Note lines="35-38">A page that does not exist parses to `undefined`, which `checkPage` turns into a `missing` page.</Note>
-<Note lines="42-46">Pages are produced locale by locale in `nav` order.</Note>
-<Note lines="51">Repo errors and widget errors become the doc-root `errors`.</Note>
+<AnnotatedSource file="explain:packages/cli/src/doc-root/load.ts:13-51">
+<Note lines="18">Loading aborts only on doc-root-level failures: an `explain.json` that fails to decode surfaces as `InvalidConfig`, and file-system failures (reading the config or pages) surface as `PlatformError`. Page-level problems never abort.</Note>
+<Note lines="20-22">Built once per load and shared by every page, so a file cited by ten pages is read and hashed once.</Note>
+<Note lines="24-30">The page set is `nav`, not the directory listing. A Markdown file that is not in `nav` is never read.</Note>
+<Note lines="32-35">A page that does not exist parses to `undefined`, which `checkPage` turns into a `missing` page.</Note>
+<Note lines="39-43">Pages are produced locale by locale in `nav` order.</Note>
+<Note lines="48">Repo errors become the doc-root `errors`.</Note>
 </AnnotatedSource>
 
 ```mermaid
@@ -39,8 +38,7 @@ flowchart TD
   A[loadConfig explain.json] --> B[resolveRepos: realpath each repo]
   B --> C[makeResolveSource and makeBlobId: shared caches]
   C --> D[scan which locale/id.md files exist]
-  D --> E[loadWidgets]
-  E --> F[for each locale, for each nav id: parsePage then checkPage]
+  D --> F[for each locale, for each nav id: parsePage then checkPage]
   F --> G[DocRoot]
 ```
 
@@ -52,10 +50,10 @@ Parsing itself is pure and lives in the contract package ([parsing a page](./par
 
 ### Citations
 
-```ts file=explain:packages/cli/src/doc-root/check-page.ts:45-54
+```ts file=explain:packages/cli/src/doc-root/check-page.ts:44-53
 ```
 
-Every citation the parser found, in links, excerpts, `AnnotatedSource`, `Diff` and `Widget source`, is in `page.refs`. Each one is resolved, and the result picks one of two lists:
+Every citation the parser found, in links, excerpts, `AnnotatedSource` and `Diff`, is in `page.refs`. Each one is resolved, and the result picks one of two lists:
 
 | Resolved status | Message | List |
 |---|---|---|
@@ -70,16 +68,16 @@ Every citation the parser found, in links, excerpts, `AnnotatedSource`, `Diff` a
 
 The same loop fills `cited`, a map keyed by repo and path, so a file cited at five ranges counts once.
 
-### Page links and widgets
+### Page links
 
-```ts file=explain:packages/cli/src/doc-root/check-page.ts:55-64
+```ts file=explain:packages/cli/src/doc-root/check-page.ts:54-58
 ```
 
-A link `./<id>.md` must name a page that is in `nav` *and* exists in this page's locale; a link from `en/` is not satisfied by `zh/<id>.md`. The anchor part of a link is not checked here. A `<Widget name="x">` needs a file `widgets/x.js`; whether that module is itself valid is a doc-root error reported by `loadWidgets` ([widgets](./widgets.md)).
+A link `./<id>.md` must name a page that is in `nav` *and* exists in this page's locale; a link from `en/` is not satisfied by `zh/<id>.md`. The anchor part of a link is not checked here.
 
 ### Sources and freshness
 
-```ts file=explain:packages/cli/src/doc-root/check-page.ts:66-91
+```ts file=explain:packages/cli/src/doc-root/check-page.ts:60-85
 ```
 
 After the checks, `checkPage` computes three things the freshness code needs:
@@ -90,4 +88,4 @@ After the checks, `checkPage` computes three things the freshness code needs:
 
 How the comparison works is in [Freshness](./freshness.md); the file format is in [sources](./sources.md).
 
-Finally the `errors` are sorted by file, line and column ([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:92-95)), so output order follows the page, not the order of the checks.
+Finally the `errors` are sorted by file, line and column ([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:86-89)), so output order follows the page, not the order of the checks.

@@ -7,8 +7,6 @@ export type ApiPath =
   | `/@explain/api/source/${string}/${string}.json`
   | `/@explain/api/search/${string}.json`;
 
-export type WidgetPath = `/@explain/widgets/${string}.js` | "/@explain/widgets.css";
-
 const segment = encodeURIComponent;
 
 export const siteApiPath: ApiPath = "/@explain/api/site.json";
@@ -47,7 +45,6 @@ export type SiteResponse =
       readonly title: string;
       readonly locales: ReadonlyArray<string>;
       readonly defaultLocale: string;
-      readonly widgets: ReadonlyArray<string>;
       readonly errors: ReadonlyArray<Diagnostic>;
       readonly byLocale: Readonly<Record<string, LocaleSite>>;
     }

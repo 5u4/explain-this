@@ -1,6 +1,6 @@
 # The viewer shell
 
-The viewer is the browser app that renders a doc root: the left rail, search, routing, page chrome (freshness badge, sources table, pager), and the standalone source page. It is a React 19 single-page app ([`react` and `react-dom` 19.3.0](explain:package.json:28-29), pulled in by [the viewer's `package.json`](explain:packages/viewer/package.json:11-16)) with `highlight.js` for code and `beautiful-mermaid` for diagrams. It has no router or state library: routing is about 70 lines on top of the History API, and data loading is a promise cache read with React's `use`.
+The viewer is the browser app that renders a doc root: the left rail, search, routing, page chrome (freshness badge, sources table, pager), and the standalone source page. It is a React 19 single-page app ([`react` and `react-dom` 19.3.0](explain:package.json:28-29), pulled in by [the viewer's `package.json`](explain:packages/viewer/package.json:10-15)) with `highlight.js` for code and `beautiful-mermaid` for diagrams. It has no router or state library: routing is about 70 lines on top of the History API, and data loading is a promise cache read with React's `use`.
 
 This page covers everything in `packages/viewer` *except* the Markdown block renderers ([blocks](./blocks.md)) and the source pane on the right ([source-pane](./source-pane.md)). The viewer never reads the doc root itself; it only talks to the `/@explain/...` HTTP API that the CLI serves in `explain dev` or writes out as static files in `explain build` (see [site](./site.md)).
 
@@ -35,7 +35,7 @@ This page covers everything in `packages/viewer` *except* the Markdown block ren
 
 ## Boot {#boot}
 
-[`index.html`](explain:packages/viewer/index.html:15-18) links `tokens.css`, `base.css` and `viewer.css` as plain stylesheets and loads `/src/main.tsx` as a module; there is no bundler entry besides this file, because the CLI runs Vite with the viewer package as its root ([dev.ts](explain:packages/cli/src/site/dev.ts:113-119)). In a static build every route gets a copy of the same `index.html` ([build.ts](explain:packages/cli/src/site/build.ts:107-114)), so a deep link loads the SPA and the client decides what to show.
+[`index.html`](explain:packages/viewer/index.html:15-18) links `tokens.css`, `base.css` and `viewer.css` as plain stylesheets and loads `/src/main.tsx` as a module; there is no bundler entry besides this file, because the CLI runs Vite with the viewer package as its root ([dev.ts](explain:packages/cli/src/site/dev.ts:113-119)). In a static build every route gets a copy of the same `index.html` ([build.ts](explain:packages/cli/src/site/build.ts:101-108)), so a deep link loads the SPA and the client decides what to show.
 
 ```tsx file=explain:packages/viewer/src/main.tsx:8-14
 ```
@@ -83,7 +83,7 @@ Each route component wraps *itself* in `Shell` rather than `App` wrapping all ro
 | `/zh/source?explain/packages/viewer/src/app.tsx#L11` | `source`, repo `explain`, path after the first `/` |
 | anything deeper, or `source` without a repo and path | `unknown` |
 
-The source route keeps the repo and file path in the **query string**, not the path. The path segment is fixed (`source`), so the static build only needs one `index.html` per locale for all source files ([build.ts](explain:packages/cli/src/site/build.ts:46-49)), and a file path of any depth never collides with the "more than two segments is unknown" rule. The router tests pin this, including a path with spaces, `#` and `?`, a trailing slash, and the rejected old path form ([router.test.ts](explain:packages/viewer/src/router.test.ts:10-43)).
+The source route keeps the repo and file path in the **query string**, not the path. The path segment is fixed (`source`), so the static build only needs one `index.html` per locale for all source files ([build.ts](explain:packages/cli/src/site/build.ts:41-44)), and a file path of any depth never collides with the "more than two segments is unknown" rule. The router tests pin this, including a path with spaces, `#` and `?`, a trailing slash, and the rejected old path form ([router.test.ts](explain:packages/viewer/src/router.test.ts:10-43)).
 
 > [!IMPORTANT]
 > `source` is the one page id that can never be a page: the router treats `/<locale>/source` as the source route, and the config schema rejects it as a page id ([config.ts](explain:packages/contract/src/config.ts:7,18)).
@@ -93,7 +93,7 @@ Navigation is plain History API plus a custom event:
 ```ts file=explain:packages/viewer/src/router.ts:37-55
 ```
 
-`useLocation` re-renders `App` on `popstate` and on `navigate`. [`interceptLinks`](explain:packages/viewer/src/router.ts:57-72), installed once by `App`, turns every same-origin left-click on an `<a href>` into `navigate`, so pages, blocks and the rail can render ordinary anchors with no router-aware link component. It skips modifier clicks, links with a `target`, `/@...` paths (API and widget files), and a pure hash jump on the current page, which the browser handles natively.
+`useLocation` re-renders `App` on `popstate` and on `navigate`. [`interceptLinks`](explain:packages/viewer/src/router.ts:57-72), installed once by `App`, turns every same-origin left-click on an `<a href>` into `navigate`, so pages, blocks and the rail can render ordinary anchors with no router-aware link component. It skips modifier clicks, links with a `target`, `/@...` paths (API files), and a pure hash jump on the current page, which the browser handles natively.
 
 [`App`](explain:packages/viewer/src/app.tsx:34-81) then dispatches:
 
@@ -103,7 +103,7 @@ Navigation is plain History API plus a custom event:
 
 ## Data {#data}
 
-The API surface is typed in [`api.ts`](explain:packages/viewer/src/api.ts:4-23): `site.json`, one `page/<locale>/<id>.json` per page, `source/<repo>/<path>.json` per cited file, and `search/<locale>.json`. The package exports this file as `@explain/viewer/api` ([package.json](explain:packages/viewer/package.json:6-10)), and the CLI imports the same path builders and response types when it serves and builds the site ([build.ts](explain:packages/cli/src/site/build.ts:1-8)), so the two sides cannot drift silently.
+The API surface is typed in [`api.ts`](explain:packages/viewer/src/api.ts:4-21): `site.json`, one `page/<locale>/<id>.json` per page, `source/<repo>/<path>.json` per cited file, and `search/<locale>.json`. The package exports this file as `@explain/viewer/api` ([package.json](explain:packages/viewer/package.json:6-9)), and the CLI imports the same path builders and response types when it serves and builds the site ([build.ts](explain:packages/cli/src/site/build.ts:1-7)), so the two sides cannot drift silently.
 
 ```ts file=explain:packages/viewer/src/data.ts:15-27
 ```
@@ -157,7 +157,7 @@ The freshness badge and the sources table both read the same `sources` list that
 
 Doc locales are free-form strings from `explain.json`; UI strings exist in exactly two files. The bridge is this lookup:
 
-```ts file=explain:packages/viewer/src/i18n/strings.ts:106-109
+```ts file=explain:packages/viewer/src/i18n/strings.ts:104-107
 ```
 
 It keeps only the part of the locale before the first `-`, lowercases it, and looks it up in a table keyed by **language**, not by file name. So:
@@ -174,7 +174,7 @@ The file name `zh-CN.ts` and the export `zhCN` never take part in the lookup; th
 `Shell`, `App` and `SourceRoute` call `stringsFor(locale)` directly; components below the shell read `strings` from `ViewerContext`. The one exception is the invalid-site screen: there is no site, hence no locale, so it uses `navigator.language` ([app.tsx](explain:packages/viewer/src/app.tsx:14-15)). The UI locale and the content locale are the same value: the locale in the URL picks both the page file and the strings, and `Shell` writes it to `<html lang>`.
 
 > [!IMPORTANT]
-> Both string tables are typed as [`Strings`](explain:packages/viewer/src/i18n/strings.ts:6-104), so adding a UI string means adding it to the interface and to both `en.ts` and `zh-CN.ts`; the type check fails otherwise. Plural- or argument-dependent text is a function in the table (`freshNote(count)`, `lines(from, to)`), so each language builds its own sentence.
+> Both string tables are typed as [`Strings`](explain:packages/viewer/src/i18n/strings.ts:6-102), so adding a UI string means adding it to the interface and to both `en.ts` and `zh-CN.ts`; the type check fails otherwise. Plural- or argument-dependent text is a function in the table (`freshNote(count)`, `lines(from, to)`), so each language builds its own sentence.
 
 Note also that `brandMark` is `注` in both tables ([en.ts](explain:packages/viewer/src/i18n/en.ts:6), [zh-CN.ts](explain:packages/viewer/src/i18n/zh-CN.ts:6)): the brand glyph is intentionally not translated (inference).
 
@@ -185,8 +185,6 @@ Three layers, loaded in this order by `index.html`:
 - [`tokens.css`](explain:packages/viewer/src/styles/tokens.css) holds custom properties only: an `oklch` ink scale with a vermilion accent, semantic colors (`--fresh`, `--stale`, `--added`, `--removed`, alert colors), font stacks (Noto Serif SC for display, JetBrains Mono for code), a type and spacing scale, motion, and the three layout widths ([tokens.css](explain:packages/viewer/src/styles/tokens.css:131-133)). The page is dark-only (`color-scheme: dark` in `index.html`).
 - [`base.css`](explain:packages/viewer/src/styles/base.css) defines the small `ui-*` primitives (button, select, segmented control, table, code, tag).
 - [`viewer.css`](explain:packages/viewer/src/styles/viewer.css) is just `@import`s of one file per area in `viewer/`: shell, rail, page, each block kind, pane, search, drawer, bottom sheet, source page, and so on.
-
-[`widgets.css`](explain:packages/viewer/src/styles/widgets.css) is not linked by `index.html`; it is the Tailwind entry for widget modules, exported separately and compiled by the CLI (see [widgets](./widgets.md)).
 
 The layout is one CSS grid whose columns collapse at two breakpoints:
 

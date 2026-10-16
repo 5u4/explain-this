@@ -87,7 +87,7 @@ export const labeledBlocks = (
   ctx: ParseContext,
   element: JsxElement,
 ): LabeledBlocks | undefined => {
-  const values = attributes(ctx, element, { label: "required" }, false);
+  const values = attributes(ctx, element, { label: "required" });
   if (values === undefined || element.type !== "mdxJsxFlowElement") {
     if (element.type === "mdxJsxTextElement") {
       report(ctx, positionOf(element), `<${element.name}> must stand on its own lines`);

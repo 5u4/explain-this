@@ -9,7 +9,7 @@ The entry point builds one root command and hangs the five subcommands off it:
 ```ts file=explain:packages/cli/src/main.ts:11-16
 ```
 
-`Command.run({ version })` parses the command line against that tree and runs the chosen handler; `BunServices.layer` provides the platform services the handlers ask for, which for the doc-root code are [`FileSystem`, `Path` and `Crypto`](explain:packages/cli/src/doc-root/types.ts:59); `BunRuntime.runMain` runs the program as the process and decides its exit code. `freshness` is a command with no handler of its own, only the two subcommands [`check` and `sync`](explain:packages/cli/src/commands/freshness.ts:5-8).
+`Command.run({ version })` parses the command line against that tree and runs the chosen handler; `BunServices.layer` provides the platform services the handlers ask for, which for the doc-root code are [`FileSystem`, `Path` and `Crypto`](explain:packages/cli/src/doc-root/types.ts:57); `BunRuntime.runMain` runs the program as the process and decides its exit code. `freshness` is a command with no handler of its own, only the two subcommands [`check` and `sync`](explain:packages/cli/src/commands/freshness.ts:5-8).
 
 <Tree open="2">
 

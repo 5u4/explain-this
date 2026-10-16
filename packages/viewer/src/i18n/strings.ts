@@ -67,8 +67,6 @@ export interface Strings {
   readonly diffFold: (count: number) => string;
   readonly diagramFailed: string;
   readonly diagramSource: string;
-  readonly widgetSources: string;
-  readonly widgetFailed: (name: string) => string;
   readonly fileGone: (path: string) => string;
   readonly fileGoneDetail: string;
   readonly fileUnreadable: (ref: string) => string;

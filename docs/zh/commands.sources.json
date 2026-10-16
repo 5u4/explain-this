@@ -3,7 +3,7 @@
     {
       "repo": "explain",
       "path": "packages/cli/src/commands/build.ts",
-      "hash": "2bdaaeacf453ac1d9b946a7d507344aef9ec341d"
+      "hash": "48d580ca3edbc8ade916b68b4a09c0a57c15306a"
     },
     {
       "repo": "explain",
@@ -43,7 +43,7 @@
     {
       "repo": "explain",
       "path": "packages/cli/src/commands/validate.ts",
-      "hash": "78ce4bf1e55f9339f3ad997bb7bcfde4d49c19b4"
+      "hash": "2eebbda0c386f5f5f5946ef41c280b68034467bb"
     },
     {
       "repo": "explain",
@@ -53,7 +53,7 @@
     {
       "repo": "explain",
       "path": "packages/cli/src/doc-root/types.ts",
-      "hash": "e209762587e1aafc3ef1bab1ac95c8955ee2f7db"
+      "hash": "b121ff2ef8b067d743ada34ffbc24ae43ac9757c"
     },
     {
       "repo": "explain",

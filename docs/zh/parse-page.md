@@ -1,6 +1,6 @@
 # 页面解析
 
-`parsePage(source, pageId)` 把一个 `<locale>/<id>.md` 文件的文本变成 [page.ts](explain:packages/contract/src/page.ts:115-126) 里定义的 `Page` 树，同时返回一组带行号、列号的诊断。它是纯函数：不读文件，也不知道有哪些仓库。CLI 的加载器对每个页面调用一次（[load.ts](explain:packages/cli/src/doc-root/load.ts:35-38)），之后再拿解析时收集到的引用、页面链接和组件名去对照磁盘检查，那一步见[加载文档根](./load-doc-root.md)。树本身的形状见[页面模型](./page-model.md)。
+`parsePage(source, pageId)` 把一个 `<locale>/<id>.md` 文件的文本变成 [page.ts](explain:packages/contract/src/page.ts:107-117) 里定义的 `Page` 树，同时返回一组带行号、列号的诊断。它是纯函数：不读文件，也不知道有哪些仓库。CLI 的加载器对每个页面调用一次（[load.ts](explain:packages/cli/src/doc-root/load.ts:32-35)），之后再拿解析时收集到的引用和页面链接去对照磁盘检查，那一步见[加载文档根](./load-doc-root.md)。树本身的形状见[页面模型](./page-model.md)。
 
 ## 文件分工 {#files}
 
@@ -20,7 +20,7 @@
   - [attributes.ts](explain:packages/contract/src/parse-page/attributes.ts)：按规格校验属性
   - [jsx-children.ts](explain:packages/contract/src/parse-page/jsx-children.ts)：各组件共用的子节点形状检查
   - [layout-components.ts](explain:packages/contract/src/parse-page/layout-components.ts)：`details`、`Tree`、`Tabs`、`BeforeAfter`
-  - [source-components.ts](explain:packages/contract/src/parse-page/source-components.ts)：`AnnotatedSource`、`Diff`、`Widget`
+  - [source-components.ts](explain:packages/contract/src/parse-page/source-components.ts)：`AnnotatedSource`、`Diff`
   - [parse-page.test.ts](explain:packages/contract/src/parse-page/parse-page.test.ts)：本页描述的行为大多以它为证
 
 </Tree>
@@ -39,7 +39,7 @@ flowchart TD
   B --> J["jsxBlock"]
   Q -.->|子内容| B
   J --> L["details、Tree、Tabs、BeforeAfter"]
-  J --> S["AnnotatedSource、Diff、Widget"]
+  J --> S["AnnotatedSource、Diff"]
   L --> K["attributes、tagChildren、labeledBlocks、inlineChildren"]
   S --> K
   K -.->|子内容| B
@@ -53,17 +53,17 @@ flowchart TD
 
 ## 入口 {#entry}
 
-<AnnotatedSource file="explain:packages/contract/src/parse-page/parse-page.ts:13-61">
+<AnnotatedSource file="explain:packages/contract/src/parse-page/parse-page.ts:13-60">
 
 <Note lines="14-19">在解析之前先拒绝 frontmatter。解析器没有装 frontmatter 扩展，开头的 `---` 块否则会被当成分隔线加一个 setext 标题，而不是报错（推断，依据 CommonMark 规则）。</Note>
 
 <Note lines="21-36">唯一的致命路径。micromark 遇到无法切词的语法（比如残缺的 JSX 标签或 `<!--`）会抛异常，异常带着 `line`、`column`、`reason`，被转成唯一一条诊断，此时不返回 `Page`。</Note>
 
-<Note lines="38-47">每次调用一个可变上下文。各个转换函数都往这几个数组里追加，而不是把附带数据通过返回值传出来。</Note>
+<Note lines="38-46">每次调用一个可变上下文。各个转换函数都往这几个数组里追加，而不是把附带数据通过返回值传出来。</Note>
 
-<Note lines="48-55">第一个节点必须是一级标题。缺标题会报错，但解析继续，作者一次就能看到正文里的其他问题。</Note>
+<Note lines="47-54">第一个节点必须是一级标题。缺标题会报错，但解析继续，作者一次就能看到正文里的其他问题。</Note>
 
-<Note lines="56-60">标题转成行内内容，其余节点转成块。`toc`、`refs`、`pageLinks`、`widgets` 是在 `blocks` 遍历完之后从上下文里取的，所以都按文档顺序排列。</Note>
+<Note lines="55-59">标题转成行内内容，其余节点转成块。`toc`、`refs`、`pageLinks` 是在 `blocks` 遍历完之后从上下文里取的，所以都按文档顺序排列。</Note>
 
 </AnnotatedSource>
 
@@ -72,9 +72,9 @@ flowchart TD
 | 出了什么问题 | `page` | `errors` | 对应测试 |
 |---|---|---|---|
 | 有 frontmatter，或 micromark 抛异常 | `undefined` | 恰好一条 | [frontmatter](explain:packages/contract/src/parse-page/parse-page.test.ts:137-139)、[HTML 注释](explain:packages/contract/src/parse-page/parse-page.test.ts:111-113) |
-| 遍历阶段拒绝的任何节点 | 去掉被拒节点后的 `Page` | 全部 | [Diff 的各种错误](explain:packages/contract/src/parse-page/parse-page.test.ts:238-274) |
+| 遍历阶段拒绝的任何节点 | 去掉被拒节点后的 `Page` | 全部 | [Diff 的各种错误](explain:packages/contract/src/parse-page/parse-page.test.ts:217-253) |
 
-加载器给每条诊断补上文件名，只有 `page` 为 `undefined` 时才提前结束（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:39-43)）；否则继续解析页面里的引用、页面链接和组件（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:47-64)）。
+加载器给每条诊断补上文件名，只有 `page` 为 `undefined` 时才提前结束（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:38-42)）；否则继续解析页面里的引用和页面链接（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:46-58)）。
 
 ## Markdown 这一层 {#markdown}
 
@@ -91,7 +91,7 @@ flowchart TD
 
 ## 上下文与诊断 {#diagnostics}
 
-```ts file=explain:packages/contract/src/parse-page/context.ts:16-26
+```ts file=explain:packages/contract/src/parse-page/context.ts:15-25
 ```
 
 `report` 追加一条 `{ line, column, message }` 并返回 `undefined`。转换函数的写法是 `return report(...)`，两个列表遍历函数都会丢掉 `undefined` 结果（[blocks](explain:packages/contract/src/parse-page/block.ts:91-92)、[inlines](explain:packages/contract/src/parse-page/inline.ts:47-51)）。所以出错的节点从树里消失，兄弟节点照常保留，一个文件里的所有问题一次全报出来。
@@ -99,20 +99,20 @@ flowchart TD
 位置尽量精确：
 
 - 大多数错误指向出错节点的起点：标题、围栏、标签。
-- 属性错误指向属性本身（[attributes.ts](explain:packages/contract/src/parse-page/attributes.ts:20)）。`<Tree open={2}>` 的测试期望第 7 列，正是 `open` 开始的位置（[测试](explain:packages/contract/src/parse-page/parse-page.test.ts:105-109)）。
+- 属性错误指向属性本身（[attributes.ts](explain:packages/contract/src/parse-page/attributes.ts:19)）。`<Tree open={2}>` 的测试期望第 7 列，正是 `open` 开始的位置（[测试](explain:packages/contract/src/parse-page/parse-page.test.ts:105-109)）。
 - mermaid 的 `click`、`@{}`、状态图 note 问题指向围栏内部的那一行：围栏所在行加上行下标再加一（[code.ts](explain:packages/contract/src/parse-page/code.ts:14-20)）。不支持的 `gantt`、`architecture-beta` 图则报在围栏本身所在的位置（[code.ts](explain:packages/contract/src/parse-page/code.ts:10-13)）。
 - 链接错误指向链接的 `[`。同一行三个坏链接，测试期望列号 1、14、27（[测试](explain:packages/contract/src/parse-page/parse-page.test.ts:154-160)）。
 
 `citation` 包了一层 [`parseRef`](explain:packages/contract/src/citation.ts:62-72)（见[引用](./citation.md)）：失败时把 `parseRef` 的错误信息报在给定位置，成功时把 `{ ref, at }` 记进 `ctx.refs`。
 
 > [!IMPORTANT]
-> 页面里的每一处引用，无论是链接、摘录围栏、`AnnotatedSource file`、`Diff before`/`after` 还是 `Widget source`，都经过 `citation()`。因此 `page.refs` 就是该页引用文件的完整清单，`explain freshness sync` 记录的正是它。新增一个引用代码的组件也必须调用 `citation()`，否则它引用的文件会悄无声息地脱离新鲜度跟踪。
+> 页面里的每一处引用，无论是链接、摘录围栏、`AnnotatedSource file` 还是 `Diff before`/`after`，都经过 `citation()`。因此 `page.refs` 就是该页引用文件的完整清单，`explain freshness sync` 记录的正是它。新增一个引用代码的组件也必须调用 `citation()`，否则它引用的文件会悄无声息地脱离新鲜度跟踪。
 
 第一个测试把这一点钉住了：一个行内引用、一个摘录、一个 `AnnotatedSource` 分别在第 3、12、17 行产生 ref，顺序与文档一致（[测试](explain:packages/contract/src/parse-page/parse-page.test.ts:92-96)）。
 
 ## 块级节点 {#blocks}
 
-[`block`](explain:packages/contract/src/parse-page/block.ts:68-89) 是一个按 mdast 类型分支的 switch。标题、段落、列表（保留任务列表的 `checked`）、表格（第一行成为 `head`）、引用块、代码、分隔线和块级 JSX 元素各有一支，其他一律落到 `default` 报错。行内内容由 [`inline`](explain:packages/contract/src/parse-page/inline.ts:53-73) 按同样的方式处理。这两个 `default` 是有意为之：链接引用定义和脚注定义落到 `block` 的 `default`，图片落到 `inline` 的 `default`，否则它们会被静默丢掉（[测试](explain:packages/contract/src/parse-page/parse-page.test.ts:276-281)）。
+[`block`](explain:packages/contract/src/parse-page/block.ts:68-89) 是一个按 mdast 类型分支的 switch。标题、段落、列表（保留任务列表的 `checked`）、表格（第一行成为 `head`）、引用块、代码、分隔线和块级 JSX 元素各有一支，其他一律落到 `default` 报错。行内内容由 [`inline`](explain:packages/contract/src/parse-page/inline.ts:53-73) 按同样的方式处理。这两个 `default` 是有意为之：链接引用定义和脚注定义落到 `block` 的 `default`，图片落到 `inline` 的 `default`，否则它们会被静默丢掉（[测试](explain:packages/contract/src/parse-page/parse-page.test.ts:255-260)）。
 
 <details>
 <summary>能解析但会被拒绝的 Markdown</summary>
@@ -170,11 +170,11 @@ mermaid 检查（[code.ts](explain:packages/contract/src/parse-page/code.ts:6-22
 
 ## 标签 {#tags}
 
-所有块级标签都进入 [`jsxBlock`](explain:packages/contract/src/parse-page/jsx-block.ts:16-42)，按名字分发。只在某个父标签里才有意义的标签（`Tab`、`Before`、`After`、`Note`、`summary`）会得到专门的"only allowed inside"提示，其他不认识的一律报 `unknown tag <Name>`（[测试](explain:packages/contract/src/parse-page/parse-page.test.ts:119-121)）。要得到"only allowed inside"提示，游离的标签得独占几行：写在顶层的单行 `<Note lines="1">x</Note>` 在 Markdown 看来是段落里的行内元素，走的是 `inline`，报的是"must stand on its own lines, not inside text"。
+所有块级标签都进入 [`jsxBlock`](explain:packages/contract/src/parse-page/jsx-block.ts:16-40)，按名字分发。只在某个父标签里才有意义的标签（`Tab`、`Before`、`After`、`Note`、`summary`）会得到专门的"only allowed inside"提示，其他不认识的一律报 `unknown tag <Name>`（[测试](explain:packages/contract/src/parse-page/parse-page.test.ts:119-121)）。要得到"only allowed inside"提示，游离的标签得独占几行：写在顶层的单行 `<Note lines="1">x</Note>` 在 Markdown 看来是段落里的行内元素，走的是 `inline`，报的是"must stand on its own lines, not inside text"。
 
 各组件共用三个辅助函数。
 
-[`attributes`](explain:packages/contract/src/parse-page/attributes.ts:6-41) 按 `required` / `optional` 规格检查元素属性。值必须是字符串字面量，`{...}` 展开和 `name={expr}` 都是错误。未知属性名报错，除非 `rest` 为真；只有 `Widget` 这么用，好把多余属性当作 props 传下去。它只在本次调用没有新增诊断时才返回属性值，判断方式是比较调用前后的错误数量，而不是另设标志位。
+[`attributes`](explain:packages/contract/src/parse-page/attributes.ts:6-40) 按 `required` / `optional` 规格检查元素属性。值必须是字符串字面量，`{...}` 展开和 `name={expr}` 都是错误。未知属性名报错。它只在本次调用没有新增诊断时才返回属性值，判断方式是比较调用前后的错误数量，而不是另设标志位。
 
 [`requireBlankLines`](explain:packages/contract/src/parse-page/jsx-children.ts:12-34) 检查原始文本：开标签到第一个子节点之间、最后一个子节点到闭标签之间，都必须有空行。只含空格或 `>` 的行也算空行，大概是为了让引用块里的标签也能通过（推断）。这是基于源文本偏移量的文本检查，而不是 mdast 结构检查。测试里 `<Tab label="a">` 下一行直接写 `text`，期望在 `<Tab>` 那一行报一条错（[测试](explain:packages/contract/src/parse-page/parse-page.test.ts:168-172)）。
 
@@ -207,7 +207,7 @@ mermaid 检查（[code.ts](explain:packages/contract/src/parse-page/code.ts:6-22
 </AnnotatedSource>
 ```
 
-[`annotatedSource`](explain:packages/contract/src/parse-page/source-components.ts:12-45) 要求 `file` 恰好引用一个行区间。每个 `Note` 需要 `lines="N"` 或 `lines="N-M"` 和一段行内文字，且必须落在该区间内；区间是 `5-10` 时，`lines="9-12"` 会在该 note 处报错（[测试](explain:packages/contract/src/parse-page/parse-page.test.ts:162-166)）。被拒的 note 丢掉，块本身保留。
+[`annotatedSource`](explain:packages/contract/src/parse-page/source-components.ts:11-44) 要求 `file` 恰好引用一个行区间。每个 `Note` 需要 `lines="N"` 或 `lines="N-M"` 和一段行内文字，且必须落在该区间内；区间是 `5-10` 时，`lines="9-12"` 会在该 note 处报错（[测试](explain:packages/contract/src/parse-page/parse-page.test.ts:162-166)）。被拒的 note 丢掉，块本身保留。
 
 </Tab>
 
@@ -219,21 +219,7 @@ mermaid 检查（[code.ts](explain:packages/contract/src/parse-page/code.ts:6-22
 <Diff before="base:src/c.ts:3" />
 ```
 
-[`diff`](explain:packages/contract/src/parse-page/source-components.ts:47-73) 不接受子内容，有两个可选属性，每个都是至多一个行区间的引用。哪一侧存在决定 `DiffChange` 的种类：两侧都有是 `modified`，只有 `after` 是 `added`，只有 `before` 是 `deleted`，都没有则报错。两侧都进入 `refs`，所以一个 diff 算作引用了两个文件（[测试](explain:packages/contract/src/parse-page/parse-page.test.ts:195-236)）。
-
-</Tab>
-
-<Tab label="Widget">
-
-```md
-<Widget name="fold-play" title="Play" source="fold:fold.ts fold:t.ts:1-5" preset="a">
-
-What it shows.
-
-</Widget>
-```
-
-[`widget`](explain:packages/contract/src/parse-page/source-components.ts:75-95) 要求 `name`、`title`、`source` 三个属性，其余属性原样作为字符串 props 传下去（[测试](explain:packages/contract/src/parse-page/parse-page.test.ts:174-193)里是 `{ preset: "a" }`）。`source` 是用空白分隔的引用列表，有一个引用不合法整个组件就被丢掉。组件名记入 `ctx.widgets`，加载器据此检查 `widgets/<name>.js` 是否存在。见[组件](./widgets.md)。
+[`diff`](explain:packages/contract/src/parse-page/source-components.ts:46-72) 不接受子内容，有两个可选属性，每个都是至多一个行区间的引用。哪一侧存在决定 `DiffChange` 的种类：两侧都有是 `modified`，只有 `after` 是 `added`，只有 `before` 是 `deleted`，都没有则报错。两侧都进入 `refs`，所以一个 diff 算作引用了两个文件（[测试](explain:packages/contract/src/parse-page/parse-page.test.ts:174-215)）。
 
 </Tab>
 

@@ -10,7 +10,6 @@ import { Inlines } from "./inlines.tsx";
 import { Mermaid } from "./mermaid.tsx";
 import { TabsView } from "./tabs.tsx";
 import { TreeView } from "./tree.tsx";
-import { WidgetFrame } from "./widget.tsx";
 
 export type BlockOf<Type extends Block["type"]> = Extract<Block, { readonly type: Type }>;
 
@@ -152,8 +151,6 @@ export function BlockView({
       return <AnnotatedSourceView block={block} />;
     case "diff":
       return <Diff change={block.change} />;
-    case "widget":
-      return <WidgetFrame block={block} />;
     default:
       return block satisfies never;
   }

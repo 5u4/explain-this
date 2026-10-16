@@ -7,8 +7,8 @@ import type {
   SourceResponse,
 } from "@explain/viewer/api";
 import * as Effect from "effect/Effect";
-import * as FileSystem from "effect/FileSystem";
-import * as Path from "effect/Path";
+import type * as FileSystem from "effect/FileSystem";
+import type * as Path from "effect/Path";
 import type * as PlatformError from "effect/PlatformError";
 import type { Diagnostic, DocRoot } from "../doc-root/types.ts";
 import { pageResponse, pageTitle, siteResponse } from "./api-bodies.ts";
@@ -92,21 +92,6 @@ const sourceResponse = Effect.fnUntraced(function* (
   }
 });
 
-const widgetResponse = Effect.fnUntraced(function* (docRoot: DocRoot, file: string) {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  if (!(file.endsWith(".js") && docRoot.widgets.includes(file.slice(0, -".js".length)))) {
-    return json(404, { error: `no widget file "${file}"` });
-  }
-  const bytes = yield* fs.readFile(path.join(docRoot.root, "widgets", file)).pipe(Effect.option);
-  if (bytes._tag === "None") return json(404, { error: `no widget file "${file}"` });
-  return {
-    status: 200,
-    headers: { "Content-Type": "text/javascript", "Cache-Control": "no-store" },
-    body: bytes.value,
-  } satisfies DevResponse;
-});
-
 export const handleExplainRequest = Effect.fnUntraced(function* (
   state: DevState,
   method: string,
@@ -117,18 +102,6 @@ export const handleExplainRequest = Effect.fnUntraced(function* (
   const rest = decodeSegments(encoded);
   if (empty !== "" || prefix !== "@explain" || rest === undefined) {
     return json(404, { error: `no route for ${rawPath}` });
-  }
-  if (area === "widgets.css" && rest.length === 0) {
-    if (state.status === "invalid") return invalidState;
-    return {
-      status: 200,
-      headers: { "Content-Type": "text/css; charset=utf-8", "Cache-Control": "no-store" },
-      body: state.docRoot.widgetCss,
-    } satisfies DevResponse;
-  }
-  if (area === "widgets" && rest.length === 1 && rest[0] !== undefined) {
-    if (state.status === "invalid") return invalidState;
-    return yield* widgetResponse(state.docRoot, rest[0]);
   }
   const last = rest.at(-1);
   if (area !== "api" || last === undefined || !last.endsWith(".json")) {

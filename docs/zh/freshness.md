@@ -8,7 +8,7 @@
 
 | 名称 | 内容 |
 |---|---|
-| `cited` | 页面当前引用的每个不重复的仓库加路径，来自链接、摘录、`AnnotatedSource`、`Diff`、`Widget source` |
+| `cited` | 页面当前引用的每个不重复的仓库加路径，来自链接、摘录、`AnnotatedSource`、`Diff` |
 | `sources` | `cited` 中能解析成文件的那些，各带当前哈希 |
 | `recorded` | `.sources.json` 里的记录；没有这个文件时是 `undefined` |
 
@@ -77,7 +77,7 @@
 见 [check.ts](explain:packages/cli/src/commands/freshness/check.ts:33-52) 和 [sync.ts](explain:packages/cli/src/commands/freshness/sync.ts:16-27)。`sync` 之所以连 `refProblems` 也拒绝，是因为给一个还引用着已删除文件的页面记哈希，等于悄悄认可了一条坏引用；先改页面，再同步。
 
 > [!CAUTION]
-> `.sources.json` 解码失败时，页面会得到一条错误，提示“rerun explain freshness sync”（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:74-89)）。可这条错误本身就是页面诊断之一，于是 `sync` 拒绝该页（“refused to sync …: fix the errors above”），`check` 把它记为 not checked。实际运行可以复现这个死循环。在修复之前，只能手动删除坏掉的 `.sources.json` 再同步。
+> `.sources.json` 解码失败时，页面会得到一条错误，提示“rerun explain freshness sync”（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:68-83)）。可这条错误本身就是页面诊断之一，于是 `sync` 拒绝该页（“refused to sync …: fix the errors above”），`check` 把它记为 not checked。实际运行可以复现这个死循环。在修复之前，只能手动删除坏掉的 `.sources.json` 再同步。
 
 ## 在查看器里
 

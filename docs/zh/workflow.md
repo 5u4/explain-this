@@ -49,11 +49,11 @@ CLI 没有发布到包仓库，安装方式是克隆仓库、`bun install`、再
 <Note lines="33">即使论断仍然成立，刷新过的页面也要重新校验和同步，让记录的哈希跟上文件。</Note>
 </AnnotatedSource>
 
-技能让 agent 写任何文件前先读 [format.md](explain:skills/explain-this/format.md)，只有写 [widget](./widgets.md) 时才读 [widgets.md](explain:skills/explain-this/widgets.md)（[SKILL.md](explain:skills/explain-this/SKILL.md:14)）。
+技能让 agent 写任何文件前先读 [format.md](explain:skills/explain-this/format.md)（[SKILL.md](explain:skills/explain-this/SKILL.md:14)）。
 
 ## 4. 校验：`explain validate`
 
-[`validate`](explain:packages/cli/src/commands/validate.ts:8-22) 加载整个 doc root，输出所点名页面的诊断；不带参数时检查所有页面。无论点名与否，它都会带上 doc root 级别的错误，也就是来自 `explain.json` 仓库路径和 `widgets/` 的错误（[load.ts](explain:packages/cli/src/doc-root/load.ts:47-55)）。页面诊断既包括解析和链接错误，也包括引用问题：被引用的文件不存在、不是普通文件，或者引用的行号超出文件行数（[refProblem](explain:packages/cli/src/doc-root/resolve-source.ts:74-92)、[pageDiagnostics](explain:packages/cli/src/commands/open-doc-root.ts:64-65)）。只要有一条诊断，退出码就是 2。引用规则见 [citation](./citation.md) 和 [resolve-source](./resolve-source.md)，页面语法见 [parse-page](./parse-page.md)。
+[`validate`](explain:packages/cli/src/commands/validate.ts:8-21) 加载整个 doc root，输出所点名页面的诊断；不带参数时检查所有页面。无论点名与否，它都会带上 doc root 级别的错误，也就是来自 `explain.json` 仓库路径的错误（[load.ts](explain:packages/cli/src/doc-root/load.ts:44-50)）。页面诊断既包括解析和链接错误，也包括引用问题：被引用的文件不存在、不是普通文件，或者引用的行号超出文件行数（[refProblem](explain:packages/cli/src/doc-root/resolve-source.ts:74-92)、[pageDiagnostics](explain:packages/cli/src/commands/open-doc-root.ts:64-65)）。只要有一条诊断，退出码就是 2。引用规则见 [citation](./citation.md) 和 [resolve-source](./resolve-source.md)，页面语法见 [parse-page](./parse-page.md)。
 
 ## 5. 记录引用：`explain freshness sync`
 
@@ -72,12 +72,12 @@ CLI 没有发布到包仓库，安装方式是克隆仓库、`bun install`、再
 <Tabs>
 <Tab label="explain dev">
 
-[`dev`](explain:packages/cli/src/commands/dev.ts:9-24) 默认在 4321 端口提供站点，可用 `--port` 改，打印 URL 后一直运行。它监听 doc root 和 `explain.json` 中登记的每个仓库，任何变动都会重新加载并刷新浏览器（[site/dev.ts](explain:packages/cli/src/site/dev.ts:27,51-56,64,70)），适合在 agent 写作时一直开着。它不会因为页面有诊断而拒绝服务，而是把诊断放进页面响应一起返回（[pageResponse](explain:packages/cli/src/site/api-bodies.ts:85-103)）。
+[`dev`](explain:packages/cli/src/commands/dev.ts:9-24) 默认在 4321 端口提供站点，可用 `--port` 改，打印 URL 后一直运行。它监听 doc root 和 `explain.json` 中登记的每个仓库，任何变动都会重新加载并刷新浏览器（[site/dev.ts](explain:packages/cli/src/site/dev.ts:27,51-56,64,70)），适合在 agent 写作时一直开着。它不会因为页面有诊断而拒绝服务，而是把诊断放进页面响应一起返回（[pageResponse](explain:packages/cli/src/site/api-bodies.ts:84-102)）。
 
 </Tab>
 <Tab label="explain build">
 
-[`build`](explain:packages/cli/src/commands/build.ts:10-35) 更严格：doc root 里**任何**页面有诊断就拒绝构建，不只看你改过的页面。默认输出到 doc root 下的 `dist/`，可用 `--out` 指定；如果目标目录非空且不是之前的 explain 构建产物，它拒绝覆盖（[build.ts](explain:packages/cli/src/site/build.ts:83-91)）。过期本身不算构建错误，过期页面照常发布，由 viewer 标出状态（[navPage](explain:packages/cli/src/site/api-bodies.ts:17-26)）。
+[`build`](explain:packages/cli/src/commands/build.ts:10-35) 更严格：doc root 里**任何**页面有诊断就拒绝构建，不只看你改过的页面。默认输出到 doc root 下的 `dist/`，可用 `--out` 指定；如果目标目录非空且不是之前的 explain 构建产物，它拒绝覆盖（[build.ts](explain:packages/cli/src/site/build.ts:77-85)）。过期本身不算构建错误，过期页面照常发布，由 viewer 标出状态（[navPage](explain:packages/cli/src/site/api-bodies.ts:17-26)）。
 
 </Tab>
 </Tabs>

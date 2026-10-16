@@ -2,7 +2,7 @@
 
 查看器是渲染文档根目录的浏览器应用。本页讲它除正文块渲染（见 [blocks](./blocks.md)）和右侧源码面板（见 [source-pane](./source-pane.md)）之外的部分：启动、路由、数据加载、外壳（左侧导航、搜索、抽屉）、页面四周的附属信息（新鲜度徽标、来源表、上一页/下一页）、独立的源码页、界面文案的语言选择，以及样式的分层。
 
-技术选型很克制：UI 框架是 React 19（[`react`、`react-dom` 均为 19.3.0](explain:package.json:28-29)，由[查看器的 `package.json`](explain:packages/viewer/package.json:11-16) 引入），另外只依赖 `highlight.js` 做代码高亮、`beautiful-mermaid` 画图。没有路由库，也没有状态管理库。查看器自己从不读文档根目录，只请求 `/@explain/...` 下的 HTTP 接口；这些接口在 `explain dev` 时由 CLI 实时提供，在 `explain build` 时被写成静态文件（见 [site](./site.md)）。
+技术选型很克制：UI 框架是 React 19（[`react`、`react-dom` 均为 19.3.0](explain:package.json:28-29)，由[查看器的 `package.json`](explain:packages/viewer/package.json:10-15) 引入），另外只依赖 `highlight.js` 做代码高亮、`beautiful-mermaid` 画图。没有路由库，也没有状态管理库。查看器自己从不读文档根目录，只请求 `/@explain/...` 下的 HTTP 接口；这些接口在 `explain dev` 时由 CLI 实时提供，在 `explain build` 时被写成静态文件（见 [site](./site.md)）。
 
 ## 模块边界 {#modules}
 
@@ -78,7 +78,7 @@ graph TD
 | `/zh/source?explain/packages/viewer/src/app.tsx#L11` | `source`：查询串第一个 `/` 前是仓库键，其余是路径 |
 | 三段及以上，或 `source` 后缺仓库/路径 | `unknown` |
 
-源码路由把文件放在**查询串**里而不是路径里。这样路径部分永远只有 `/<locale>/source` 两段，静态构建时每个语言只需要一份 `source/index.html`（[build.ts](explain:packages/cli/src/site/build.ts:46-49)），任意深度、含空格或 `#`、`?` 的文件路径也不会撞上"超过两段即未知"的规则。[router.test.ts](explain:packages/viewer/src/router.test.ts:10-43) 覆盖了这些情形，也确认旧的路径式写法 `/zh-CN/source/fold/README.md` 会被拒绝。
+源码路由把文件放在**查询串**里而不是路径里。这样路径部分永远只有 `/<locale>/source` 两段，静态构建时每个语言只需要一份 `source/index.html`（[build.ts](explain:packages/cli/src/site/build.ts:41-44)），任意深度、含空格或 `#`、`?` 的文件路径也不会撞上"超过两段即未知"的规则。[router.test.ts](explain:packages/viewer/src/router.test.ts:10-43) 覆盖了这些情形，也确认旧的路径式写法 `/zh-CN/source/fold/README.md` 会被拒绝。
 
 > [!IMPORTANT]
 > 因为 `/<locale>/source` 固定是源码路由，`source` 不能作为页面 id；配置校验把它列为保留 id（[config.ts](explain:packages/contract/src/config.ts:7,18)）。
@@ -90,7 +90,7 @@ graph TD
 <Note lines="48-49">`useSyncExternalStore` 以完整地址（含 hash）为快照，地址一变 `App` 就重新渲染。</Note>
 <Note lines="51-55">`pushState`/`replaceState` 不会触发 `popstate`，所以手动派发 `explain:route`。</Note>
 <Note lines="59-60">带修饰键或非左键的点击交给浏览器，保留"新标签页打开"。</Note>
-<Note lines="62-64">有 `target` 的链接、外站链接、`/@` 开头的接口和小组件文件都不拦截。</Note>
+<Note lines="62-64">有 `target` 的链接、外站链接、`/@` 开头的接口都不拦截。</Note>
 <Note lines="65-66">同一页内只改 hash 的跳转也交给浏览器原生处理。</Note>
 </AnnotatedSource>
 
@@ -104,7 +104,7 @@ graph TD
 
 ## 数据加载 {#data}
 
-接口在 [`api.ts`](explain:packages/viewer/src/api.ts:4-23) 里定义了四类路径：`site.json`、每页一个 `page/<locale>/<id>.json`、每个被引用文件一个 `source/<repo>/<path>.json`、每个语言一个 `search/<locale>.json`。查看器包把这个文件导出为 `@explain/viewer/api`（[package.json](explain:packages/viewer/package.json:6-10)），CLI 构建站点时直接复用这些路径函数（[build.ts](explain:packages/cli/src/site/build.ts:36-44)），两端不会各写一套。
+接口在 [`api.ts`](explain:packages/viewer/src/api.ts:4-21) 里定义了四类路径：`site.json`、每页一个 `page/<locale>/<id>.json`、每个被引用文件一个 `source/<repo>/<path>.json`、每个语言一个 `search/<locale>.json`。查看器包把这个文件导出为 `@explain/viewer/api`（[package.json](explain:packages/viewer/package.json:6-9)），CLI 构建站点时直接复用这些路径函数（[build.ts](explain:packages/cli/src/site/build.ts:36-39)），两端不会各写一套。
 
 ```ts file=explain:packages/viewer/src/data.ts:15-29
 ```
@@ -160,7 +160,7 @@ graph TD
 
 文档的语言是 `explain.json` 里的任意字符串，界面文案却只有两份。两者之间只靠这一个函数衔接：
 
-```ts file=explain:packages/viewer/src/i18n/strings.ts:106-109
+```ts file=explain:packages/viewer/src/i18n/strings.ts:104-107
 ```
 
 它取语言代码第一个 `-` 之前的部分、转小写，再到以**语种**为键的表里查找，查不到就回落到英文：
@@ -177,7 +177,7 @@ graph TD
 `App`、`Shell`、`SourceRoute` 直接调用 `stringsFor(locale)`，外壳以下的组件从 `ViewerContext` 取 `strings`。唯一的例外是 `site.json` 无效时：此时没有站点，也就没有语言，只能用浏览器的 `navigator.language`（[app.tsx](explain:packages/viewer/src/app.tsx:14-15)）。其余情况下界面语言和内容语言是同一个值：URL 里的语言段同时决定读哪个页面文件、用哪份文案，并被写进 `<html lang>`。
 
 > [!IMPORTANT]
-> 两份文案都声明为 [`Strings`](explain:packages/viewer/src/i18n/strings.ts:6-104) 类型。新增一条界面文案必须同时改接口、`en.ts` 和 `zh-CN.ts`，否则类型检查不通过。与数量或参数有关的句子写成函数（如 `freshNote(count)`、`pageOf(index, total)`），让每种语言自己组织语序，例如中文的[`pageOf`](explain:packages/viewer/src/i18n/zh-CN.ts:16) 是"第 N 页，共 M 页"。
+> 两份文案都声明为 [`Strings`](explain:packages/viewer/src/i18n/strings.ts:6-102) 类型。新增一条界面文案必须同时改接口、`en.ts` 和 `zh-CN.ts`，否则类型检查不通过。与数量或参数有关的句子写成函数（如 `freshNote(count)`、`pageOf(index, total)`），让每种语言自己组织语序，例如中文的[`pageOf`](explain:packages/viewer/src/i18n/zh-CN.ts:16) 是"第 N 页，共 M 页"。
 
 ## 样式 {#styles}
 
@@ -186,8 +186,6 @@ graph TD
 - [`tokens.css`](explain:packages/viewer/src/styles/tokens.css) 只定义自定义属性：一组 `oklch` 墨色灰阶和朱红强调色（`--ink-*`、`--zhu-*`），语义色（`--fresh`、`--stale`、`--added`、`--removed`、各类提示色），字体（标题用 Noto Serif SC，代码用 JetBrains Mono），字号、间距、圆角、动效，以及三个布局宽度 `--rail-w`、`--prose-w`、`--pane-min`（[tokens.css](explain:packages/viewer/src/styles/tokens.css:131-133)）。只有深色主题（`index.html` 声明 `color-scheme: dark`）。
 - [`base.css`](explain:packages/viewer/src/styles/base.css) 定义少量 `ui-*` 基础组件：按钮、下拉、分段控件、表格、代码、标签。
 - [`viewer.css`](explain:packages/viewer/src/styles/viewer.css) 本身只有 `@import`，按区域拆到 `viewer/` 下：外壳、导航、页面、各种正文块、面板、搜索、抽屉、底部抽屉、源码页等，一个区域一个文件。
-
-[`widgets.css`](explain:packages/viewer/src/styles/widgets.css) 不在 `index.html` 里，它是小组件用的 Tailwind 入口，由 CLI 单独编译（见 [widgets](./widgets.md)）。
 
 整体布局是一个 CSS Grid，在两个断点处收拢：
 

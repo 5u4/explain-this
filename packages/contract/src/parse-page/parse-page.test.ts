@@ -171,27 +171,6 @@ describe("parsePage", () => {
     ]);
   });
 
-  it("keeps the widget frame and passes other attributes as props", () => {
-    const { page, errors } = parsePage(
-      '# T\n\n<Widget name="fold-play" title="Play" source="fold:fold.ts fold:t.ts:1-5" preset="a">\n\nWhat it shows.\n\n</Widget>\n',
-      "fold",
-    );
-    expect(errors).toEqual([]);
-    expect(page?.blocks).toEqual([
-      {
-        type: "widget",
-        name: "fold-play",
-        title: "Play",
-        sources: [
-          { repo: "fold", path: "fold.ts", ranges: [] },
-          { repo: "fold", path: "t.ts", ranges: [{ from: 1, to: 5 }] },
-        ],
-        props: { preset: "a" },
-        children: [{ type: "text", value: "What it shows." }],
-      },
-    ]);
-  });
-
   it("reads Diff sides as a modified, added, or deleted file and records both citations", () => {
     const { page, errors } = parsePage(
       [

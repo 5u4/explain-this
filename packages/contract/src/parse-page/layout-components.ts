@@ -40,7 +40,7 @@ const treeItems = (ctx: ParseContext, node: List): Array<TreeItem> =>
 
 export const tree = (ctx: ParseContext, element: MdxJsxFlowElement): Block | undefined => {
   const at = positionOf(element);
-  const values = attributes(ctx, element, { open: "optional" }, false);
+  const values = attributes(ctx, element, { open: "optional" });
   requireBlankLines(ctx, element, element.children);
   const [only, ...rest] = element.children;
   if (only?.type !== "list" || rest.length > 0)
@@ -58,7 +58,7 @@ export const tree = (ctx: ParseContext, element: MdxJsxFlowElement): Block | und
 };
 
 export const tabs = (ctx: ParseContext, element: MdxJsxFlowElement): Block | undefined => {
-  attributes(ctx, element, {}, false);
+  attributes(ctx, element, {});
   const found = tagChildren(ctx, element, "Tab").flatMap((tab) => labeledBlocks(ctx, tab) ?? []);
   if (found.length === 0) {
     return report(ctx, positionOf(element), "<Tabs> needs at least one <Tab>");
@@ -67,7 +67,7 @@ export const tabs = (ctx: ParseContext, element: MdxJsxFlowElement): Block | und
 };
 
 export const beforeAfter = (ctx: ParseContext, element: MdxJsxFlowElement): Block | undefined => {
-  attributes(ctx, element, {}, false);
+  attributes(ctx, element, {});
   const [before, after, ...rest] = element.children;
   if (
     before?.type !== "mdxJsxFlowElement" ||
@@ -85,7 +85,7 @@ export const beforeAfter = (ctx: ParseContext, element: MdxJsxFlowElement): Bloc
 };
 
 export const details = (ctx: ParseContext, element: MdxJsxFlowElement): Block | undefined => {
-  attributes(ctx, element, {}, false);
+  attributes(ctx, element, {});
   const [first, ...rest] = element.children;
   const summaries =
     first?.type === "mdxJsxFlowElement" && first.name === "summary"
@@ -97,7 +97,7 @@ export const details = (ctx: ParseContext, element: MdxJsxFlowElement): Block | 
   if (summary === undefined || extraSummaries.length > 0) {
     return report(ctx, positionOf(element), "<details> starts with one <summary>");
   }
-  attributes(ctx, summary, {}, false);
+  attributes(ctx, summary, {});
   const summaryInlines = inlineChildren(ctx, summary);
   if (summaryInlines === undefined) return undefined;
   if (first !== undefined) requireBlankLines(ctx, element, rest, first);

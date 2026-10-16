@@ -48,8 +48,6 @@ export interface DocRoot {
   readonly config: ExplainConfig;
   readonly pages: ReadonlyArray<DocPage>;
   readonly errors: ReadonlyArray<Diagnostic>;
-  readonly widgets: ReadonlyArray<string>;
-  readonly widgetCss: string;
   readonly resolveSource: (
     repo: string,
     path: string,

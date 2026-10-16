@@ -9,7 +9,6 @@ import { type InvalidConfig, loadConfig } from "./config.ts";
 import { makeBlobId } from "./freshness.ts";
 import { makeResolveSource, resolveRepos } from "./resolve-source.ts";
 import type { DocPage, DocRoot, DocRootServices } from "./types.ts";
-import { loadWidgets } from "./widgets.ts";
 
 export const loadDocRoot = Effect.fnUntraced(function* (
   root: string,
@@ -30,14 +29,12 @@ export const loadDocRoot = Effect.fnUntraced(function* (
     }
   }
 
-  const widgets = yield* loadWidgets(root);
-
   const readPage = Effect.fnUntraced(function* (locale: string, id: string) {
     if (!existing.has(`${locale}/${id}`)) return undefined;
     return parsePage(yield* fs.readFileString(path.join(root, locale, `${id}.md`)), id);
   });
 
-  const context = { root, pageIds, existing, widgetFiles: widgets.files, resolve, blobId };
+  const context = { root, pageIds, existing, resolve, blobId };
   const pages: Array<DocPage> = [];
   for (const locale of config.locales) {
     for (const id of pageIds) {
@@ -48,9 +45,7 @@ export const loadDocRoot = Effect.fnUntraced(function* (
     root,
     config,
     pages,
-    errors: [...repoErrors, ...widgets.errors],
-    widgets: widgets.modules.map((module) => module.name),
-    widgetCss: widgets.css,
+    errors: repoErrors,
     resolveSource: resolve,
   } satisfies DocRoot;
 });

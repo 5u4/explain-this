@@ -7,7 +7,7 @@
 ```ts file=explain:packages/cli/src/main.ts:1-16
 ```
 
-根命令 `explain` 本身没有处理函数，只挂了五个子命令。`Command.run({ version: "0.1.0" })` 按这棵命令树解析命令行并执行选中的处理函数；`BunServices.layer` 提供处理函数需要的平台服务，文档根代码用到的是 [`FileSystem`、`Path`、`Crypto`](explain:packages/cli/src/doc-root/types.ts:59)；`BunRuntime.runMain` 把整个程序作为进程运行，并决定退出码。`freshness` 同样只是一个分组，下面挂着 [`check` 和 `sync`](explain:packages/cli/src/commands/freshness.ts:5-8)。
+根命令 `explain` 本身没有处理函数，只挂了五个子命令。`Command.run({ version: "0.1.0" })` 按这棵命令树解析命令行并执行选中的处理函数；`BunServices.layer` 提供处理函数需要的平台服务，文档根代码用到的是 [`FileSystem`、`Path`、`Crypto`](explain:packages/cli/src/doc-root/types.ts:57)；`BunRuntime.runMain` 把整个程序作为进程运行，并决定退出码。`freshness` 同样只是一个分组，下面挂着 [`check` 和 `sync`](explain:packages/cli/src/commands/freshness.ts:5-8)。
 
 <Tree open="2">
 
@@ -74,7 +74,7 @@
 ```ts file=explain:packages/cli/src/commands/validate.ts:11-21
 ```
 
-`validate` 总会带上文档根级别的 `errors`（`explain.json` 里的仓库、`widgets/`），再加上所选页面的 `pageDiagnostics`。
+`validate` 总会带上文档根级别的 `errors`（`explain.json` 里的仓库），再加上所选页面的 `pageDiagnostics`。
 
 </Tab>
 <Tab label="freshness sync">

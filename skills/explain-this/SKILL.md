@@ -11,7 +11,7 @@ The doc root is the current directory. Confirm both preconditions first; when on
 - `explain.json` exists. When it is missing, ask the user to run `explain init --locales=<a,b>`.
 - `explain` is on `PATH`. When it is not, tell the user the `explain` CLI is not installed.
 
-[format.md](format.md) is the format of every file in the doc root; read it before writing a page. [widgets.md](widgets.md) is the format of a widget; read it before writing one.
+[format.md](format.md) is the format of every file in the doc root; read it before writing a page.
 
 Pick the branch:
 
@@ -24,7 +24,7 @@ Pick the branch:
 2. **Survey.** Split the scope into components: parts a reader can understand one at a time. Add each repo to `explain.json` `repos` as a key and an absolute path. Done when every component has a name and the paths it covers.
 3. **Pages.** Write one or more pages per component, in every locale of `explain.json`. Pages are free form. Cite the code behind each claim as `repo:path:ranges`, reading the cited lines as you write the sentence; mark what you could not confirm in code as inference. For a follow-up, extend existing pages or add new ones. Done when every component has its pages in every locale.
 4. **Nav.** Edit `explain.json`: set `title` if it has none, and place every new page in `nav` where a reader would look for it. Done when every page you wrote is in `nav`.
-5. **Validate.** Run `explain validate` on the pages you wrote or changed and fix every diagnostic; it always validates `explain.json` and `widgets/` too. Then run `explain freshness sync` on those same pages. Done when `explain validate <your pages>` exits 0 and the sync succeeded.
+5. **Validate.** Run `explain validate` on the pages you wrote or changed and fix every diagnostic; it always validates `explain.json` too. Then run `explain freshness sync` on those same pages. Done when `explain validate <your pages>` exits 0 and the sync succeeded.
 
 ## Refresh
 

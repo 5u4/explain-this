@@ -11,7 +11,6 @@
     "@explain/contract": "workspace:*",
     "@explain/viewer": "workspace:*",
     "effect": "catalog:",
-    "tailwindcss": "catalog:",
     "vite": "catalog:"
   },
   "devDependencies": {

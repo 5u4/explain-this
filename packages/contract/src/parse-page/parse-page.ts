@@ -43,7 +43,6 @@ export const parsePage = (source: string, pageId: string): ParseResult => {
     usedIds: new Set(),
     refs: [],
     pageLinks: [],
-    widgets: [],
   };
   const [first, ...rest] = root.children;
   if (first?.type !== "heading" || first.depth !== 1) {
@@ -55,7 +54,7 @@ export const parsePage = (source: string, pageId: string): ParseResult => {
   }
   const title = first?.type === "heading" && first.depth === 1 ? inlines(ctx, first.children) : [];
   const body = first?.type === "heading" && first.depth === 1 ? rest : root.children;
-  const { toc, refs, pageLinks, widgets } = ctx;
-  const page: Page = { title, blocks: blocks(ctx, body), toc, refs, pageLinks, widgets };
+  const { toc, refs, pageLinks } = ctx;
+  const page: Page = { title, blocks: blocks(ctx, body), toc, refs, pageLinks };
   return { page, errors: ctx.errors };
 };

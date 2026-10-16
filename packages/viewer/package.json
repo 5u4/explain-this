@@ -5,8 +5,7 @@
   "type": "module",
   "exports": {
     "./api": "./src/api.ts",
-    "./package.json": "./package.json",
-    "./widgets.css": "./src/styles/widgets.css"
+    "./package.json": "./package.json"
   },
   "dependencies": {
     "beautiful-mermaid": "catalog:",

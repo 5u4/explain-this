@@ -7,7 +7,6 @@ export const attributes = (
   ctx: ParseContext,
   element: JsxElement,
   spec: AttributeSpec,
-  rest: boolean,
 ): Record<string, string> | undefined => {
   const at = positionOf(element);
   const values: Record<string, string> = {};
@@ -22,7 +21,7 @@ export const attributes = (
       report(ctx, attributeAt, `attribute "${attribute.name}" must be a string literal`);
       continue;
     }
-    if (!rest && !Object.hasOwn(spec, attribute.name)) {
+    if (!Object.hasOwn(spec, attribute.name)) {
       report(ctx, attributeAt, `<${element.name}> has no attribute "${attribute.name}"`);
       continue;
     }

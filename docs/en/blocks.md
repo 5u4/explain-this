@@ -4,18 +4,18 @@ The CLI parses each page into a `Page` whose body is a tree of `Block` and `Inli
 
 ## One switch per node type
 
-[`BlockView`](explain:packages/viewer/src/blocks/blocks.tsx:30-160) is a single `switch` over `block.type`; its `default` branch is [`block satisfies never`](explain:packages/viewer/src/blocks/blocks.tsx:157-158), so adding a member to the [`Block` union](explain:packages/contract/src/page.ts:60-107) without a renderer fails to type-check. [`Inlines`](explain:packages/viewer/src/blocks/inlines.tsx:11-64) does the same over the [`Inline` union](explain:packages/contract/src/page.ts:12-26). [`Blocks`](explain:packages/viewer/src/blocks/blocks.tsx:17-28) maps a list of blocks and, when `lede` is set, gives the first paragraph the `lede` class; the page route sets it only for the page body ([page-route.tsx](explain:packages/viewer/src/routes/page-route.tsx:135)).
+[`BlockView`](explain:packages/viewer/src/blocks/blocks.tsx:29-157) is a single `switch` over `block.type`; its `default` branch is [`block satisfies never`](explain:packages/viewer/src/blocks/blocks.tsx:154-155), so adding a member to the [`Block` union](explain:packages/contract/src/page.ts:60-98) without a renderer fails to type-check. [`Inlines`](explain:packages/viewer/src/blocks/inlines.tsx:11-64) does the same over the [`Inline` union](explain:packages/contract/src/page.ts:12-26). [`Blocks`](explain:packages/viewer/src/blocks/blocks.tsx:16-27) maps a list of blocks and, when `lede` is set, gives the first paragraph the `lede` class; the page route sets it only for the page body ([page-route.tsx](explain:packages/viewer/src/routes/page-route.tsx:135)).
 
-Components that need one variant take it as [`BlockOf<"tree">`](explain:packages/viewer/src/blocks/blocks.tsx:15) and so on, which keeps the narrowed type without redeclaring it.
+Components that need one variant take it as [`BlockOf<"tree">`](explain:packages/viewer/src/blocks/blocks.tsx:14) and so on, which keeps the narrowed type without redeclaring it.
 
 | `Block` type | Renderer | What it draws |
 |---|---|---|
-| `heading` | [inline in `BlockView`](explain:packages/viewer/src/blocks/blocks.tsx:39-49) | `h2`–`h4` with the parsed `id` and a `#` anchor |
-| `paragraph` | [inline](explain:packages/viewer/src/blocks/blocks.tsx:50-55) | `p`, `lede` class on the page's first paragraph |
-| `list` | [inline](explain:packages/viewer/src/blocks/blocks.tsx:56-84) | `ol`/`ul`; if any item has `checked`, every item becomes a disabled checkbox row |
-| `table` | [inline](explain:packages/viewer/src/blocks/blocks.tsx:85-111) | a focusable scroll region around `table`, column alignment from `align` |
-| `alert` | [inline](explain:packages/viewer/src/blocks/blocks.tsx:112-121) | `aside.alert-<kind>` with icon and localized label |
-| `quote`, `thematicBreak`, `details` | [inline](explain:packages/viewer/src/blocks/blocks.tsx:122-144) | `blockquote`, `hr`, native `details`/`summary` |
+| `heading` | [inline in `BlockView`](explain:packages/viewer/src/blocks/blocks.tsx:38-48) | `h2`–`h4` with the parsed `id` and a `#` anchor |
+| `paragraph` | [inline](explain:packages/viewer/src/blocks/blocks.tsx:49-54) | `p`, `lede` class on the page's first paragraph |
+| `list` | [inline](explain:packages/viewer/src/blocks/blocks.tsx:55-83) | `ol`/`ul`; if any item has `checked`, every item becomes a disabled checkbox row |
+| `table` | [inline](explain:packages/viewer/src/blocks/blocks.tsx:84-110) | a focusable scroll region around `table`, column alignment from `align` |
+| `alert` | [inline](explain:packages/viewer/src/blocks/blocks.tsx:111-120) | `aside.alert-<kind>` with icon and localized label |
+| `quote`, `thematicBreak`, `details` | [inline](explain:packages/viewer/src/blocks/blocks.tsx:121-143) | `blockquote`, `hr`, native `details`/`summary` |
 | `code` | [`CodeBlock`](explain:packages/viewer/src/blocks/code.tsx:79-99) | highlighted literal code with a copy button |
 | `excerpt` | [`Excerpt`](explain:packages/viewer/src/blocks/code.tsx:135-188) | lines read from the repo, numbered, with the cited path as header |
 | `mermaid` | [`Mermaid`](explain:packages/viewer/src/blocks/mermaid.tsx:24-69) | SVG from beautiful-mermaid, loaded lazily |
@@ -24,11 +24,10 @@ Components that need one variant take it as [`BlockOf<"tree">`](explain:packages
 | `beforeAfter` | [`BeforeAfterView`](explain:packages/viewer/src/blocks/before-after.tsx:14-93) | two columns; list items missing from the after side are struck through |
 | `annotatedSource` | [`AnnotatedSourceView`](explain:packages/viewer/src/blocks/annotated-source.tsx:7-41) | a numbered list of notes; the code itself appears in the source pane |
 | `diff` | [`Diff`](explain:packages/viewer/src/blocks/diff.tsx:21-27) | a unified line diff computed in the browser |
-| `widget` | [`WidgetFrame`](explain:packages/viewer/src/blocks/widget.tsx:37-131) | a frame that imports and mounts `widgets/<name>.js` |
 
 ## Citations are attributes {#citations}
 
-A `citation` inline renders as a plain link ([inlines.tsx](explain:packages/viewer/src/blocks/inlines.tsx:44-54)): `href` points at the file's source route with `#L<first line>` ([`sourceHref`](explain:packages/viewer/src/ref.ts:40-43)), `data-ref` holds the formatted citation, and `data-kind` is `file` when the citation has no ranges, `cite` otherwise. Excerpts, diff gutters, annotation notes, and widget source lists emit the same attributes.
+A `citation` inline renders as a plain link ([inlines.tsx](explain:packages/viewer/src/blocks/inlines.tsx:44-54)): `href` points at the file's source route with `#L<first line>` ([`sourceHref`](explain:packages/viewer/src/ref.ts:40-43)), `data-ref` holds the formatted citation, and `data-kind` is `file` when the citation has no ranges, `cite` otherwise. Excerpts, diff gutters, and annotation notes emit the same attributes.
 
 The pane picks these elements up by querying `[data-ref]` under the page and parsing each one back into a `Ref` ([`discoverAnchors`](explain:packages/viewer/src/pane/anchors.ts:11-31)). Hover, focus and click are delegated from the page root; a plain left click calls `preventDefault` and toggles or pins the anchor in the pane instead of following the link ([`onClick`](explain:packages/viewer/src/pane/input.ts:56-67)). A click with ⌘, Ctrl or Shift held, or with a button other than the primary one, returns early, so the `href` still opens the file's source page, for example in a new tab. Alt is not checked: an Alt-click is handled like a plain click.
 
@@ -38,7 +37,7 @@ The pane picks these elements up by querying `[data-ref]` under the page and par
 | `data-kind` | `cite`, `file`, `excerpt`, `note` | how the anchor is drawn and grouped |
 | `data-follow` | `"0"` or absent | `"0"` keeps the anchor out of the reading-line follow ([anchors.ts](explain:packages/viewer/src/pane/anchors.ts:27), [controller.ts](explain:packages/viewer/src/pane/controller.ts:187-189)) |
 
-`data-follow="0"` appears on secondary links: the header of an excerpt, each diff line number, and widget citations. The excerpt `figure` itself carries `data-kind="excerpt"` without it ([code.tsx](explain:packages/viewer/src/blocks/code.tsx:148)), so while scrolling the pane follows the excerpt as one unit rather than its header link.
+`data-follow="0"` appears on secondary links: the header of an excerpt, and each diff line number. The excerpt `figure` itself carries `data-kind="excerpt"` without it ([code.tsx](explain:packages/viewer/src/blocks/code.tsx:148)), so while scrolling the pane follows the excerpt as one unit rather than its header link.
 
 > [!IMPORTANT]
 > Nothing in `blocks/` imports from `pane/`. The contract between them is DOM only: the `data-ref`, `data-kind`, and `data-follow` attributes, the `data-index` number on annotation notes, and the `note` and `annotated` class names the pane queries to collect a group's notes ([anchors.ts](explain:packages/viewer/src/pane/anchors.ts:33-39), [controller.ts](explain:packages/viewer/src/pane/controller.ts:229)). The `cite` class on links is used only by CSS. A new block that points at code must emit those attributes to take part in the pane.
@@ -58,7 +57,7 @@ The fence body is in the AST, so `CodeBlock` highlights it synchronously with th
 </Tab>
 <Tab label="Excerpt">
 
-The AST holds only a `Ref`. [`useSourceLines`](explain:packages/viewer/src/blocks/code.tsx:14-32) loads the file through [`loadSourceLines`](explain:packages/viewer/src/data.ts:49-60), which fetches the source API once per `repo:path`, drops a trailing newline, splits into lines, and highlights them by file extension. Every excerpt, diff, and widget on the page that cites the same file shares that one promise.
+The AST holds only a `Ref`. [`useSourceLines`](explain:packages/viewer/src/blocks/code.tsx:14-32) loads the file through [`loadSourceLines`](explain:packages/viewer/src/data.ts:49-60), which fetches the source API once per `repo:path`, drops a trailing newline, splits into lines, and highlights them by file extension. Every excerpt and diff on the page that cites the same file shares that one promise.
 
 ```tsx file=explain:packages/viewer/src/blocks/code.tsx:138-146
 ```
@@ -109,17 +108,21 @@ Cost follows from the loops: rounds stop at the edit distance `D`, each round to
 
 `DiffFigure` draws a folded piece as a button labeled with its row count; clicking it adds the piece index to the `opened` set and the rows render in place ([diff.tsx](explain:packages/viewer/src/blocks/diff.tsx:177-193)).
 
-<Widget name="blocks-line-diff" title="lineDiff and foldContext on their test cases" source="explain:packages/viewer/src/blocks/line-diff.ts explain:packages/viewer/src/blocks/line-diff.test.ts">
+The tests pin the row shapes. A changed middle line comes out as a removal followed by an addition between context rows, and an inserted line shifts the after numbering of every later row. The indices are `lineDiff`'s raw 0-based positions, not the file line numbers the diff block shows.
 
-Pick a case from `line-diff.test.ts`. The widget runs a JavaScript port of `lineDiff` or `foldContext` on the test's input, draws the rows in the diff block's column layout (before number, after number, sign, text), and checks the result against the test's expectation. The numbers are `lineDiff`'s raw 0-based indices, as in the test, not the file line numbers the diff block shows.
+```ts file=explain:packages/viewer/src/blocks/line-diff.test.ts:23-40
+```
 
-</Widget>
+`foldContext` folds a ten-line unchanged run down to three lines on each side and keeps a run of exactly six.
+
+```ts file=explain:packages/viewer/src/blocks/line-diff.test.ts:51-65
+```
 
 ## The other components
 
 ### Tree
 
-[`TreeNode`](explain:packages/viewer/src/blocks/tree.tsx:19-61) splits each item label: if the first inline is not plain text (a code span or a citation), it becomes the node name and the rest the description, with a leading space or `·` trimmed by [`trimStart`](explain:packages/viewer/src/blocks/blocks.tsx:175-180). Branches are native `details` elements, open while `depth < open`, and `open` defaults to 1 ([tree.tsx](explain:packages/viewer/src/blocks/tree.tsx:12)). A citation in a tree item is an ordinary citation inline, so it reaches the pane like any other.
+[`TreeNode`](explain:packages/viewer/src/blocks/tree.tsx:19-61) splits each item label: if the first inline is not plain text (a code span or a citation), it becomes the node name and the rest the description, with a leading space or `·` trimmed by [`trimStart`](explain:packages/viewer/src/blocks/blocks.tsx:172-177). Branches are native `details` elements, open while `depth < open`, and `open` defaults to 1 ([tree.tsx](explain:packages/viewer/src/blocks/tree.tsx:12)). A citation in a tree item is an ordinary citation inline, so it reaches the pane like any other.
 
 ### Tabs
 
@@ -136,7 +139,3 @@ The block itself draws no code. [`AnnotatedSourceView`](explain:packages/viewer/
 ### Mermaid
 
 [`Mermaid`](explain:packages/viewer/src/blocks/mermaid.tsx:24-47) imports `beautiful-mermaid` on first use and renders with a [theme](explain:packages/viewer/src/blocks/mermaid.tsx:9-22) whose colors are the viewer's CSS variables, so diagrams take the page's colors instead of fixed ones. It strips `@import url(…)` rules from the SVG and widens the font stack with CJK fonts. A diagram that fails to render shows the error and its source in a `details` ([mermaid.tsx](explain:packages/viewer/src/blocks/mermaid.tsx:58-66)).
-
-### Widget
-
-[`WidgetFrame`](explain:packages/viewer/src/blocks/widget.tsx:37-131) draws the title, description, and source citations, then imports `/@explain/widgets/<name>.js` together with the shared widget stylesheet and calls the module's `mount` with a context whose `cite` builds the same `a.cite` elements as above. A name not listed in the site's widgets, or a module without `mount`, shows an error in the frame. The module contract and how the CLI serves widgets are on the [widgets](./widgets.md) page.

@@ -4,10 +4,10 @@
 
 ## 结果长什么样
 
-```ts file=explain:packages/cli/src/doc-root/types.ts:24-57
+```ts file=explain:packages/cli/src/doc-root/types.ts:24-55
 ```
 
-`DocRoot.errors` 放不属于任何单页的问题：`explain.json` 里某个仓库路径不是目录，以及 `widgets/` 下有问题的模块。`resolveSource` 是之后所有步骤读取被引用文件的唯一入口，见[解析源文件](./resolve-source.md)。
+`DocRoot.errors` 放不属于任何单页的问题：`explain.json` 里某个仓库路径不是目录。`resolveSource` 是之后所有步骤读取被引用文件的唯一入口，见[解析源文件](./resolve-source.md)。
 
 `pages` 的每一项是 `DocPage`，按 `status` 分三种：
 
@@ -26,18 +26,16 @@ flowchart TD
   A[loadConfig 读取并校验 explain.json] --> B[resolveRepos 取每个仓库的真实路径]
   B --> C[makeResolveSource 与 makeBlobId 建立共享缓存]
   C --> D[按 nav 检查每个 locale/id.md 是否存在]
-  D --> E[loadWidgets 读取 widgets 目录]
-  E --> F[每个语言、每个 nav id: parsePage 后 checkPage]
+  D --> F[每个语言、每个 nav id: parsePage 后 checkPage]
   F --> G[DocRoot]
 ```
 
-<AnnotatedSource file="explain:packages/cli/src/doc-root/load.ts:14-56">
-<Note lines="19">只有文档根级别的失败才会中止加载：`explain.json` 解码失败表现为 `InvalidConfig`，读配置、页面或组件时的文件系统错误表现为 `PlatformError`。单个页面的问题从不中止加载。</Note>
-<Note lines="21-23">解析器和哈希函数各自带缓存，整个加载过程共用一份：同一个文件被十个页面引用，也只读一次、算一次哈希。</Note>
-<Note lines="25-31">页面集合来自 `nav`，不是目录列表。不在 `nav` 里的 Markdown 文件根本不会被读取。</Note>
-<Note lines="33">先加载小部件，这样每页都能查询 `widgets/<name>.js` 是否存在。</Note>
-<Note lines="35-38">文件不存在时返回 `undefined`，由 `checkPage` 变成 `missing` 页面。</Note>
-<Note lines="51">仓库错误和小部件错误合并成文档根级别的 `errors`。</Note>
+<AnnotatedSource file="explain:packages/cli/src/doc-root/load.ts:13-51">
+<Note lines="18">只有文档根级别的失败才会中止加载：`explain.json` 解码失败表现为 `InvalidConfig`，读配置或页面时的文件系统错误表现为 `PlatformError`。单个页面的问题从不中止加载。</Note>
+<Note lines="20-22">解析器和哈希函数各自带缓存，整个加载过程共用一份：同一个文件被十个页面引用，也只读一次、算一次哈希。</Note>
+<Note lines="24-30">页面集合来自 `nav`，不是目录列表。不在 `nav` 里的 Markdown 文件根本不会被读取。</Note>
+<Note lines="32-35">文件不存在时返回 `undefined`，由 `checkPage` 变成 `missing` 页面。</Note>
+<Note lines="48">仓库错误成为文档根级别的 `errors`。</Note>
 </AnnotatedSource>
 
 解析本身是纯函数，放在 contract 包里（见[解析页面](./parse-page.md)）；`loadDocRoot` 只负责读文件，把文本和 id 交给 `parsePage`。
@@ -46,16 +44,16 @@ flowchart TD
 
 `checkPage` 把一次解析结果变成一个 `DocPage`。它不会因为页面有问题而失败，只记录诊断。每条诊断都有文件、从 1 开始的行列号和消息（[Diagnostic](explain:packages/cli/src/doc-root/types.ts:10-15)）。
 
-```ts file=explain:packages/cli/src/doc-root/check-page.ts:34-43
+```ts file=explain:packages/cli/src/doc-root/check-page.ts:33-42
 ```
 
 文件缺失时直接返回 `missing`；解析出错时先把解析错误逐条记下，如果连 `Page` 都没有，就返回 `invalid`。其余检查只对 `parsed` 页面进行。
 
 ### 引用
 
-页面里的每一处引用，无论来自链接、`file=` 摘录、`AnnotatedSource`、`Diff` 还是 `Widget source`，解析器都放进了 `page.refs`。`checkPage` 逐个交给解析器，再按结果分到两份列表里：
+页面里的每一处引用，无论来自链接、`file=` 摘录、`AnnotatedSource` 还是 `Diff`，解析器都放进了 `page.refs`。`checkPage` 逐个交给解析器，再按结果分到两份列表里：
 
-```ts file=explain:packages/cli/src/doc-root/check-page.ts:45-54
+```ts file=explain:packages/cli/src/doc-root/check-page.ts:44-53
 ```
 
 | 解析结果 | 去向 | 为什么 |
@@ -71,16 +69,16 @@ flowchart TD
 
 同一个循环还填好了 `cited`：以仓库加路径为键的映射。同一个文件引用五个行号范围，也只算一个文件。
 
-### 页面链接和小部件
+### 页面链接
 
-```ts file=explain:packages/cli/src/doc-root/check-page.ts:55-64
+```ts file=explain:packages/cli/src/doc-root/check-page.ts:54-58
 ```
 
-`./<id>.md` 形式的链接要求目标在 `nav` 里，**并且**在当前页面的语言下存在：`en/` 页面链接的目标若只有 `zh/` 版本，照样报错。链接里的 `#锚点` 在这里不检查。`<Widget name="x">` 只要求存在 `widgets/x.js` 这个文件；模块本身是否合法属于文档根错误，由 `loadWidgets` 报告（见[小部件](./widgets.md)）。
+`./<id>.md` 形式的链接要求目标在 `nav` 里，**并且**在当前页面的语言下存在：`en/` 页面链接的目标若只有 `zh/` 版本，照样报错。链接里的 `#锚点` 在这里不检查。
 
 ### 为新鲜度做准备
 
-```ts file=explain:packages/cli/src/doc-root/check-page.ts:66-91
+```ts file=explain:packages/cli/src/doc-root/check-page.ts:60-85
 ```
 
 检查完之后，`checkPage` 还为新鲜度算出三样东西：
@@ -91,4 +89,4 @@ flowchart TD
 
 比较规则见[新鲜度](./freshness.md)，文件格式见[来源记录](./sources.md)。
 
-最后 `errors` 按文件、行、列排序（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:92-95)），输出顺序跟着页面走，而不是跟着检查的先后。
+最后 `errors` 按文件、行、列排序（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:86-89)），输出顺序跟着页面走，而不是跟着检查的先后。

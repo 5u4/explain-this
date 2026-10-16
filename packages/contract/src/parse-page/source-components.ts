@@ -7,14 +7,13 @@ import { inlineChildren, tagChildren } from "./jsx-children.ts";
 import { positionOf } from "./markdown.ts";
 
 const notePattern = /^([1-9][0-9]*)(?:-([1-9][0-9]*))?$/;
-const widgetNamePattern = /^[a-z0-9][a-z0-9-]*$/;
 
 export const annotatedSource = (
   ctx: ParseContext,
   element: MdxJsxFlowElement,
 ): Block | undefined => {
   const at = positionOf(element);
-  const values = attributes(ctx, element, { file: "required" }, false);
+  const values = attributes(ctx, element, { file: "required" });
   const noteElements = tagChildren(ctx, element, "Note");
   if (values?.file === undefined) return undefined;
   const ref = citation(ctx, values.file, at);
@@ -25,7 +24,7 @@ export const annotatedSource = (
   }
   const notes = noteElements.flatMap((note): Array<SourceNote> => {
     const noteAt = positionOf(note);
-    const lines = attributes(ctx, note, { lines: "required" }, false)?.lines;
+    const lines = attributes(ctx, note, { lines: "required" })?.lines;
     const children = inlineChildren(ctx, note);
     if (lines === undefined || children === undefined) return [];
     const match = notePattern.exec(lines);
@@ -46,7 +45,7 @@ export const annotatedSource = (
 
 export const diff = (ctx: ParseContext, element: MdxJsxFlowElement): Block | undefined => {
   const at = positionOf(element);
-  const values = attributes(ctx, element, { before: "optional", after: "optional" }, false);
+  const values = attributes(ctx, element, { before: "optional", after: "optional" });
   if (element.children.length > 0) {
     return report(ctx, at, '<Diff> takes no children; write <Diff before="…" after="…" />');
   }
@@ -70,26 +69,4 @@ export const diff = (ctx: ParseContext, element: MdxJsxFlowElement): Block | und
     type: "diff",
     change: after === null ? { kind: "deleted", before } : { kind: "modified", before, after },
   };
-};
-
-export const widget = (ctx: ParseContext, element: MdxJsxFlowElement): Block | undefined => {
-  const at = positionOf(element);
-  const values = attributes(
-    ctx,
-    element,
-    { name: "required", title: "required", source: "required" },
-    true,
-  );
-  const children = inlineChildren(ctx, element);
-  if (values === undefined || children === undefined) return undefined;
-  const { name = "", title = "", source: sourceList = "", ...props } = values;
-  if (!widgetNamePattern.test(name)) {
-    return report(ctx, at, `widget name "${name}" must match ${widgetNamePattern.source}`);
-  }
-  const citations = sourceList.trim() === "" ? [] : sourceList.trim().split(/\s+/);
-  if (citations.length === 0) return report(ctx, at, "<Widget source> lists no citations");
-  const sources = citations.flatMap((text) => citation(ctx, text, at) ?? []);
-  if (sources.length !== citations.length) return undefined;
-  ctx.widgets.push({ name, at });
-  return { type: "widget", name, title, sources, props, children };
 };

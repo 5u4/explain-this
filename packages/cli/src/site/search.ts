@@ -31,8 +31,6 @@ const blockText = (block: Block): ReadonlyArray<string> => {
       ]);
     case "annotatedSource":
       return block.notes.map((note) => plainText(note.children));
-    case "widget":
-      return [block.title, plainText(block.children)];
     case "code":
     case "excerpt":
     case "mermaid":

@@ -1,6 +1,6 @@
 # 解析源文件
 
-引用用“仓库键 + 路径”指向一个文件，比如 `explain:packages/cli/src/main.ts`。把这一对变成字节的只有一个函数：`resolveSource`。页面检查、新鲜度哈希、开发服务器的源码接口都调用它；`explain build` 生成静态源码文件时，也是对每个被引用或被记录的文件请求同一个接口（[build.ts](explain:packages/cli/src/site/build.ts:24-45,61-69)）。所有使用者因此对“这个引用指向什么”看法一致。
+引用用“仓库键 + 路径”指向一个文件，比如 `explain:packages/cli/src/main.ts`。把这一对变成字节的只有一个函数：`resolveSource`。页面检查、新鲜度哈希、开发服务器的源码接口都调用它；`explain build` 生成静态源码文件时，也是对每个被引用或被记录的文件请求同一个接口（[build.ts](explain:packages/cli/src/site/build.ts:23-40,55-63)）。所有使用者因此对“这个引用指向什么”看法一致。
 
 ## 先解析仓库，再解析文件
 

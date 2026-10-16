@@ -8,29 +8,28 @@ contract 包里的 `page.ts` 规定了"解析后的页面"长什么样：一棵�
 flowchart TD
   M[zh/page.md] --> P[parsePage]
   P --> R[ParseResult：page 或 undefined，外加 errors]
-  R --> C[CLI checkPage：引用、页面链接、组件、新鲜度]
+  R --> C[CLI checkPage：引用、页面链接、新鲜度]
   C --> A[pageResponse，以 JSON 经 HTTP 返回]
   A --> V[viewer：Blocks 与 Inlines 按 type 分派]
 ```
 
 ## `Page`
 
-```ts file=explain:packages/contract/src/page.ts:115-126
+```ts file=explain:packages/contract/src/page.ts:107-117
 ```
 
-`title` 和 `blocks` 是正文内容。另外四个字段是解析器遍历 Markdown 时顺手建好的索引，下游不必再遍历一遍树：
+`title` 和 `blocks` 是正文内容。另外三个字段是解析器遍历 Markdown 时顺手建好的索引，下游不必再遍历一遍树：
 
 | 字段 | 由谁填写 | 由谁读取 |
 |---|---|---|
 | `toc` | 每个 `##`–`####` 标题（[heading.ts](explain:packages/contract/src/parse-page/heading.ts:49)） | viewer 的目录（[page-route.tsx](explain:packages/viewer/src/routes/page-route.tsx:50)） |
-| `refs` | 行内引用、摘录、`<AnnotatedSource>`、`<Diff>` 两侧、`<Widget source>`，全部经过同一个 `citation` 辅助函数（[context.ts](explain:packages/contract/src/parse-page/context.ts:21-26)） | CLI：解析每个文件并为新鲜度计算哈希（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:47-54,66-72)） |
-| `pageLinks` | `./<id>.md` 和 `#anchor` 链接（[inline.ts](explain:packages/contract/src/parse-page/inline.ts:17-33)） | CLI：检查目标页面是否存在（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:55-59)） |
-| `widgets` | 每个 `<Widget>` | CLI：检查 `widgets/<name>.js` 是否存在（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:60-64)） |
+| `refs` | 行内引用、摘录、`<AnnotatedSource>`、`<Diff>` 两侧，全部经过同一个 `citation` 辅助函数（[context.ts](explain:packages/contract/src/parse-page/context.ts:20-25)） | CLI：解析每个文件并为新鲜度计算哈希（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:46-53,60-66)） |
+| `pageLinks` | `./<id>.md` 和 `#anchor` 链接（[inline.ts](explain:packages/contract/src/parse-page/inline.ts:17-33)） | CLI：检查目标页面是否存在（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:54-56)） |
 
-`refs`、`pageLinks`、`widgets` 每一项都带 `Position`，出了问题可以报到对应 Markdown 的行和列上。
+`refs`、`pageLinks` 每一项都带 `Position`，出了问题可以报到对应 Markdown 的行和列上。
 
 `parsePage` 不抛异常，而是返回 `{ page, errors }`。只有两种情况 `page` 是 `undefined`：Markdown 根本解析不了，
-或者页面带 frontmatter（[parse-page.ts](explain:packages/contract/src/parse-page/parse-page.ts:8-36,59-60)）。
+或者页面带 frontmatter（[parse-page.ts](explain:packages/contract/src/parse-page/parse-page.ts:8-36,58-59)）。
 其他问题都只记成一条 `Diagnostic`，页面其余部分照常构建。所以有错误的页面在 viewer 里仍能显示，错误列表放在正文上方
 （[page-route.tsx](explain:packages/viewer/src/routes/page-route.tsx:130-137)）。
 
@@ -40,8 +39,8 @@ flowchart TD
 ```
 
 contract 里的 `Diagnostic` 只知道自己在页面源码里的行列，不知道来自哪个文件。CLI 收集诊断时补上文件名
-（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:29-33)）；viewer API 里的 `Diagnostic`
-就是 contract 类型再加一个 `file` 字段（[api.ts](explain:packages/viewer/src/api.ts:25)）。
+（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:28-32)）；viewer API 里的 `Diagnostic`
+就是 contract 类型再加一个 `file` 字段（[api.ts](explain:packages/viewer/src/api.ts:23)）。
 
 ## 行内节点
 
@@ -57,7 +56,7 @@ viewer 直接读 `ref.repo`、`ref.path`、`ref.ranges`（[inlines.tsx](explain:
 
 ## 块节点
 
-```ts file=explain:packages/contract/src/page.ts:60-107
+```ts file=explain:packages/contract/src/page.ts:60-98
 ```
 
 多数块就是常见的 GFM 块，其余的与格式自有语法一一对应：
@@ -73,7 +72,6 @@ viewer 直接读 `ref.repo`、`ref.path`、`ref.ranges`（[inlines.tsx](explain:
 | `<Tabs>`、`<BeforeAfter>` | `tabs`、`beforeAfter`，都由 [`LabeledBlocks`](explain:packages/contract/src/page.ts:44-47) 组成 |
 | `<AnnotatedSource>` | `annotatedSource`：一个 `Ref` 加若干 [`SourceNote`](explain:packages/contract/src/page.ts:49-53)，行号是文件里的绝对行号 |
 | `<Diff>` | `diff`，内含一个 `DiffChange` |
-| `<Widget>` | `widget`：名称、标题、来源引用、其余属性组成的字符串 `props`，以及行内说明 |
 
 > [!IMPORTANT]
 > 页面里展示的 repo 代码从不复制进 `Page`。`excerpt`、`annotatedSource`、`diff` 都只带 `Ref`。
@@ -90,7 +88,7 @@ viewer 直接读 `ref.repo`、`ref.path`、`ref.ranges`（[inlines.tsx](explain:
 
 ## 从行内节点取文本：`TocEntry` 与 `plainText`
 
-```ts file=explain:packages/contract/src/page.ts:109-113,128-141
+```ts file=explain:packages/contract/src/page.ts:101-105,119-132
 ```
 
 `TocEntry` 里的标题是已经用 `plainText` 压平的纯文本，目录不需要再渲染行内节点。CLI 生成导航标题和搜索索引时也用这个函数
@@ -100,10 +98,10 @@ viewer 直接读 `ref.repo`、`ref.path`、`ref.ranges`（[inlines.tsx](explain:
 
 viewer 从 `page.ts` 只导入类型、不导入值，因此它自己留了一份同样逻辑的 `inlineText`
 （[inlines.tsx](explain:packages/viewer/src/blocks/inlines.tsx:66-75)）。`BlockView` 和 `InlineView` 的
-`switch` 都以 `satisfies never` 收尾（[blocks.tsx](explain:packages/viewer/src/blocks/blocks.tsx:155-158)、
+`switch` 都以 `satisfies never` 收尾（[blocks.tsx](explain:packages/viewer/src/blocks/blocks.tsx:154-155)、
 [inlines.tsx](explain:packages/viewer/src/blocks/inlines.tsx:61-62)），所以新增一种 `Block` 或 `Inline`，
 在 viewer 渲染它之前都会是类型错误。CLI 的搜索索引在一个没有 `default` 的 `switch` 里列出了所有 `Block` 类型
-（[search.ts](explain:packages/cli/src/site/search.ts:9-43)），新增变体会让函数在那条路径上缺少返回值，TypeScript 同样会报错（推断）。
+（[search.ts](explain:packages/cli/src/site/search.ts:9-41)），新增变体会让函数在那条路径上缺少返回值，TypeScript 同样会报错（推断）。
 
 > [!TIP]
 > 新增组件时先改 `page.ts`，再顺着类型错误往下改：解析器要产出这个变体，viewer 要渲染它，搜索索引要决定它贡献哪些文本。

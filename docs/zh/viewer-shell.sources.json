@@ -3,12 +3,12 @@
     {
       "repo": "explain",
       "path": "package.json",
-      "hash": "3fd68af2cc768acb9fde4ad9bf42c1ac878a00ce"
+      "hash": "ac724f78e5e944edfe2ba6f06f24e0a5f7e83eda"
     },
     {
       "repo": "explain",
       "path": "packages/cli/src/site/build.ts",
-      "hash": "f35445bc2b029fee5735cc26b2a7f8ed2d0be611"
+      "hash": "ac7813c9f2ba32029bc31ec74446f8ae1622b5aa"
     },
     {
       "repo": "explain",
@@ -28,12 +28,12 @@
     {
       "repo": "explain",
       "path": "packages/viewer/package.json",
-      "hash": "115ed479056a5aee493798ada345b10fa9426b44"
+      "hash": "3b4f58a5b936ab72c7a82a7e4b044c1dddd4d470"
     },
     {
       "repo": "explain",
       "path": "packages/viewer/src/api.ts",
-      "hash": "2146a8b4758381504e28b8f1e9ef06d252ac7729"
+      "hash": "59df972e2f5bf2983441363f04f9a08f2de5c3ba"
     },
     {
       "repo": "explain",
@@ -48,27 +48,27 @@
     {
       "repo": "explain",
       "path": "packages/viewer/src/data.ts",
-      "hash": "983992829a4f5657062ced8bcc9b1f57503d44ba"
+      "hash": "9ca3f2e16ff5eb3a8600328ecfc5667842fcc9e4"
     },
     {
       "repo": "explain",
       "path": "packages/viewer/src/highlight.ts",
-      "hash": "ad6d1ec78b174df15073916b793523e6b68aed1d"
+      "hash": "87cf41a32e82997dc3e5d99e7c3f0697da509e4c"
     },
     {
       "repo": "explain",
       "path": "packages/viewer/src/i18n/en.ts",
-      "hash": "91b3655326b16c5e9d89439ab29b567fdde7f4f6"
+      "hash": "e56863aaa4c5cbe6a76ee35714957d9a4f6ef0bd"
     },
     {
       "repo": "explain",
       "path": "packages/viewer/src/i18n/strings.ts",
-      "hash": "d46c6a5aa53553c4162a3fd422a42c1383c3e6cd"
+      "hash": "55152febb099d623e2b370cf1516e00c52d1ad35"
     },
     {
       "repo": "explain",
       "path": "packages/viewer/src/i18n/zh-CN.ts",
-      "hash": "04d53e7b2c091582d33d4a3580479dfe9cb3f3bb"
+      "hash": "b5577c8ad3dc1a1ca7d3e446a7b555c80889265e"
     },
     {
       "repo": "explain",
@@ -143,12 +143,12 @@
     {
       "repo": "explain",
       "path": "packages/viewer/src/styles/tokens.css",
-      "hash": "135e16f47f38edb54e6eeeac26b65be2816467ff"
+      "hash": "3679e47c35fca6fd6e5feb854a51589654166eab"
     },
     {
       "repo": "explain",
       "path": "packages/viewer/src/styles/viewer.css",
-      "hash": "f43738096d089f97a1163c30659d831b9ebb983a"
+      "hash": "1cab6788ecd01b6c16acf7b5f606905c755b43f8"
     },
     {
       "repo": "explain",
@@ -163,17 +163,12 @@
     {
       "repo": "explain",
       "path": "packages/viewer/src/styles/viewer/shell.css",
-      "hash": "65c939370719d0d6d4acd5c50fe367dae78a6804"
+      "hash": "46738ad4929b0d223daf3460bf272669919a2a2f"
     },
     {
       "repo": "explain",
       "path": "packages/viewer/src/styles/viewer/source-page.css",
       "hash": "fc83a30afac0317da0cfe060a7d1d2ae13d3180f"
-    },
-    {
-      "repo": "explain",
-      "path": "packages/viewer/src/styles/widgets.css",
-      "hash": "2490c6503bf19bd838df7823566fbc3e5794ee1a"
     }
   ]
 }

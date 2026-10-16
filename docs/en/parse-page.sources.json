@@ -3,12 +3,12 @@
     {
       "repo": "explain",
       "path": "packages/cli/src/doc-root/check-page.ts",
-      "hash": "4da4c36d85a907428eebac5784bbd6d773b9ed48"
+      "hash": "cf0aab598bd243ed3439d51725e221b57c4dfa3c"
     },
     {
       "repo": "explain",
       "path": "packages/cli/src/doc-root/load.ts",
-      "hash": "b83bf7e8c9e865d34fac574b11786b7637f6450e"
+      "hash": "c344d80a95ad8ed946fe12671050009195a5ea97"
     },
     {
       "repo": "explain",
@@ -18,12 +18,12 @@
     {
       "repo": "explain",
       "path": "packages/contract/src/page.ts",
-      "hash": "ca03b4f7cdbcfb8d6741f7d75d9299a80e24cab6"
+      "hash": "145007a3a3bb1b9cf9d062fc28c76baf4a5ac9dd"
     },
     {
       "repo": "explain",
       "path": "packages/contract/src/parse-page/attributes.ts",
-      "hash": "4bd111603158dc599fa1d4c335abb07b3f17cc38"
+      "hash": "2d6ece574d2223fadf3505ae14aee4a6243a383f"
     },
     {
       "repo": "explain",
@@ -38,7 +38,7 @@
     {
       "repo": "explain",
       "path": "packages/contract/src/parse-page/context.ts",
-      "hash": "dc2debdfc88fc7b1542b604b84623043e46e3faa"
+      "hash": "46fdaa6861d8ec5bc74180fe8c35a97e0247076e"
     },
     {
       "repo": "explain",
@@ -53,17 +53,17 @@
     {
       "repo": "explain",
       "path": "packages/contract/src/parse-page/jsx-block.ts",
-      "hash": "53d354453f00d31c7b92719cd2eb5b38c6610746"
+      "hash": "99ca808aaeb62631ce201c40652929ea8f555cc1"
     },
     {
       "repo": "explain",
       "path": "packages/contract/src/parse-page/jsx-children.ts",
-      "hash": "1df92b4361d1216bd61c2219ec72b9c1fc52cf18"
+      "hash": "9a6052ca1a0c9820aa57697f03605f6b055d16d6"
     },
     {
       "repo": "explain",
       "path": "packages/contract/src/parse-page/layout-components.ts",
-      "hash": "ade0e81886d66c6b31700732b4cf2cd59a9aec9d"
+      "hash": "a8f2b1ca9ffac5b20b04ee7a34233d2300cbdf7b"
     },
     {
       "repo": "explain",
@@ -73,17 +73,17 @@
     {
       "repo": "explain",
       "path": "packages/contract/src/parse-page/parse-page.test.ts",
-      "hash": "6167b49618caff91baf90d427bdccd14d2272003"
+      "hash": "3199ccac3a0d48a1a4548308cf263693c522e558"
     },
     {
       "repo": "explain",
       "path": "packages/contract/src/parse-page/parse-page.ts",
-      "hash": "2884a58fcde0cd1b5771e3c4de7523c8e3287e54"
+      "hash": "12390c55d25abbd104e22dd168a13ba1c363c482"
     },
     {
       "repo": "explain",
       "path": "packages/contract/src/parse-page/source-components.ts",
-      "hash": "301441596b12af2969c445e8394c2ec7087992fa"
+      "hash": "9fb4281e82256bac658408f8a47247eeb3b65319"
     }
   ]
 }

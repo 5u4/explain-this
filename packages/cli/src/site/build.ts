@@ -4,7 +4,6 @@ import {
   searchApiPath,
   siteApiPath,
   sourceApiPath,
-  type WidgetPath,
 } from "@explain/viewer/api";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -33,15 +32,11 @@ const staticSite = (docRoot: DocRoot) => {
     }
   }
   const { locales } = docRoot.config;
-  const requests: ReadonlyArray<ApiPath | WidgetPath> = [
+  const requests: ReadonlyArray<ApiPath> = [
     siteApiPath,
-    "/@explain/widgets.css",
     ...docRoot.pages.map((page) => pageApiPath(page.locale, page.id)),
     ...locales.map(searchApiPath),
     ...[...sources.values()].map(({ repo, path }) => sourceApiPath(repo, path)),
-    ...docRoot.widgets.map(
-      (name): WidgetPath => `/@explain/widgets/${encodeURIComponent(name)}.js`,
-    ),
   ];
   const routes: ReadonlyArray<ReadonlyArray<string>> = [
     ...locales.flatMap((locale) => [[locale], [locale, "source"]]),
@@ -53,7 +48,6 @@ const staticSite = (docRoot: DocRoot) => {
     counts: {
       pages: docRoot.pages.length,
       sources: sources.size,
-      widgets: docRoot.widgets.length,
     },
   };
 };

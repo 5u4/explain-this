@@ -3,17 +3,17 @@
     {
       "repo": "explain",
       "path": "packages/cli/src/doc-root/check-page.ts",
-      "hash": "4da4c36d85a907428eebac5784bbd6d773b9ed48"
+      "hash": "cf0aab598bd243ed3439d51725e221b57c4dfa3c"
     },
     {
       "repo": "explain",
       "path": "packages/cli/src/site/api-bodies.ts",
-      "hash": "b656ba602baba5229acf2fc83d7bf3fbd81c702b"
+      "hash": "0c53b625570bd1864c2ff932c2bdb2a85f383450"
     },
     {
       "repo": "explain",
       "path": "packages/cli/src/site/search.ts",
-      "hash": "858ff0f5bb7bd4029a1a6d670b1d76ee669bee28"
+      "hash": "9778807cbb20a206afaa333704628b905c32fbdf"
     },
     {
       "repo": "explain",
@@ -23,12 +23,12 @@
     {
       "repo": "explain",
       "path": "packages/contract/src/page.ts",
-      "hash": "ca03b4f7cdbcfb8d6741f7d75d9299a80e24cab6"
+      "hash": "145007a3a3bb1b9cf9d062fc28c76baf4a5ac9dd"
     },
     {
       "repo": "explain",
       "path": "packages/contract/src/parse-page/context.ts",
-      "hash": "dc2debdfc88fc7b1542b604b84623043e46e3faa"
+      "hash": "46fdaa6861d8ec5bc74180fe8c35a97e0247076e"
     },
     {
       "repo": "explain",
@@ -43,17 +43,17 @@
     {
       "repo": "explain",
       "path": "packages/contract/src/parse-page/parse-page.ts",
-      "hash": "2884a58fcde0cd1b5771e3c4de7523c8e3287e54"
+      "hash": "12390c55d25abbd104e22dd168a13ba1c363c482"
     },
     {
       "repo": "explain",
       "path": "packages/viewer/src/api.ts",
-      "hash": "2146a8b4758381504e28b8f1e9ef06d252ac7729"
+      "hash": "59df972e2f5bf2983441363f04f9a08f2de5c3ba"
     },
     {
       "repo": "explain",
       "path": "packages/viewer/src/blocks/blocks.tsx",
-      "hash": "deb8ab72420848924df76fef2ce45c11339cbfd8"
+      "hash": "dd734c714ad43ad3e93730a0f978864c281777a9"
     },
     {
       "repo": "explain",

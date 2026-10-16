@@ -1,6 +1,6 @@
 # Parsing a page
 
-`parsePage(source, pageId)` turns the text of one `<locale>/<id>.md` file into the `Page` tree defined in [page.ts](explain:packages/contract/src/page.ts:115-126), plus a list of diagnostics that each carry a line and a column. It is a pure function: it reads no files and knows nothing about repos. The CLI's loader calls it once per page ([load.ts](explain:packages/cli/src/doc-root/load.ts:35-38)) and then checks the collected citations, page links, and widget names against the disk; that second step is covered in [Loading a doc root](./load-doc-root.md). The shape of the tree itself is on [The page model](./page-model.md).
+`parsePage(source, pageId)` turns the text of one `<locale>/<id>.md` file into the `Page` tree defined in [page.ts](explain:packages/contract/src/page.ts:107-117), plus a list of diagnostics that each carry a line and a column. It is a pure function: it reads no files and knows nothing about repos. The CLI's loader calls it once per page ([load.ts](explain:packages/cli/src/doc-root/load.ts:32-35)) and then checks the collected citations and page links against the disk; that second step is covered in [Loading a doc root](./load-doc-root.md). The shape of the tree itself is on [The page model](./page-model.md).
 
 ## The files {#files}
 
@@ -20,7 +20,7 @@ Each file owns one layer. Container components recurse into `blocks` for their c
   - [attributes.ts](explain:packages/contract/src/parse-page/attributes.ts): attribute validation against a spec
   - [jsx-children.ts](explain:packages/contract/src/parse-page/jsx-children.ts): child shape helpers shared by the components
   - [layout-components.ts](explain:packages/contract/src/parse-page/layout-components.ts): `details`, `Tree`, `Tabs`, `BeforeAfter`
-  - [source-components.ts](explain:packages/contract/src/parse-page/source-components.ts): `AnnotatedSource`, `Diff`, `Widget`
+  - [source-components.ts](explain:packages/contract/src/parse-page/source-components.ts): `AnnotatedSource`, `Diff`
   - [parse-page.test.ts](explain:packages/contract/src/parse-page/parse-page.test.ts): the behavior spec this page leans on
 
 </Tree>
@@ -39,7 +39,7 @@ flowchart TD
   B --> J["jsxBlock"]
   Q -.->|children| B
   J --> L["details, Tree, Tabs, BeforeAfter"]
-  J --> S["AnnotatedSource, Diff, Widget"]
+  J --> S["AnnotatedSource, Diff"]
   L --> K["attributes, tagChildren, labeledBlocks, inlineChildren"]
   S --> K
   K -.->|children| B
@@ -53,17 +53,17 @@ Two passes happen. First the whole file goes through a real Markdown parser and 
 
 ## The entry {#entry}
 
-<AnnotatedSource file="explain:packages/contract/src/parse-page/parse-page.ts:13-61">
+<AnnotatedSource file="explain:packages/contract/src/parse-page/parse-page.ts:13-60">
 
 <Note lines="14-19">Frontmatter is rejected before parsing. The parser has no frontmatter extension, so a leading `---` block would otherwise turn into a thematic break and a setext heading instead of an error (inference from CommonMark rules).</Note>
 
 <Note lines="21-36">The only fatal path. micromark throws on syntax it cannot tokenize, such as a broken JSX tag or `<!--`; the thrown message carries `line`, `column` and `reason`, which become the single diagnostic. No `Page` comes back.</Note>
 
-<Note lines="38-47">One mutable context per call. Every converter appends to these arrays rather than returning side data.</Note>
+<Note lines="38-46">One mutable context per call. Every converter appends to these arrays rather than returning side data.</Note>
 
-<Note lines="48-55">The first node must be a depth-1 heading. A missing title is reported but parsing continues, so the author still sees the body's problems in the same run.</Note>
+<Note lines="47-54">The first node must be a depth-1 heading. A missing title is reported but parsing continues, so the author still sees the body's problems in the same run.</Note>
 
-<Note lines="56-60">The title becomes inline content; the rest becomes blocks. `toc`, `refs`, `pageLinks` and `widgets` are read from the context after `blocks` has walked everything, so they are in document order.</Note>
+<Note lines="55-59">The title becomes inline content; the rest becomes blocks. `toc`, `refs` and `pageLinks` are read from the context after `blocks` has walked everything, so they are in document order.</Note>
 
 </AnnotatedSource>
 
@@ -72,9 +72,9 @@ There are therefore two failure modes, and callers treat them differently:
 | What went wrong | `page` | `errors` | Example test |
 |---|---|---|---|
 | Frontmatter, or micromark threw | `undefined` | exactly one | [frontmatter](explain:packages/contract/src/parse-page/parse-page.test.ts:137-139), [HTML comment](explain:packages/contract/src/parse-page/parse-page.test.ts:111-113) |
-| Anything the walk rejects | a `Page` without the rejected nodes | all of them | [Diff errors](explain:packages/contract/src/parse-page/parse-page.test.ts:238-274) |
+| Anything the walk rejects | a `Page` without the rejected nodes | all of them | [Diff errors](explain:packages/contract/src/parse-page/parse-page.test.ts:217-253) |
 
-The loader adds the file name to each diagnostic and stops early only when `page` is `undefined` ([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:39-43)); otherwise it goes on to resolve the page's refs, page links and widgets ([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:47-64)).
+The loader adds the file name to each diagnostic and stops early only when `page` is `undefined` ([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:38-42)); otherwise it goes on to resolve the page's refs and page links ([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:46-58)).
 
 ## The Markdown layer {#markdown}
 
@@ -91,7 +91,7 @@ Every mdast node carries a start position, and [`positionOf`](explain:packages/c
 
 ## Context and diagnostics {#diagnostics}
 
-```ts file=explain:packages/contract/src/parse-page/context.ts:16-26
+```ts file=explain:packages/contract/src/parse-page/context.ts:15-25
 ```
 
 `report` pushes a `{ line, column, message }` and returns `undefined`. Converters use it as `return report(...)`, and both list walkers drop `undefined` results ([blocks](explain:packages/contract/src/parse-page/block.ts:91-92), [inlines](explain:packages/contract/src/parse-page/inline.ts:47-51)). A bad node therefore disappears from the tree while its siblings survive, and every problem in the file is reported in one run.
@@ -99,20 +99,20 @@ Every mdast node carries a start position, and [`positionOf`](explain:packages/c
 Positions are as specific as the code can make them:
 
 - Most errors point at the start of the offending node: a heading, a fence, a tag.
-- Attribute errors point at the attribute itself ([attributes.ts](explain:packages/contract/src/parse-page/attributes.ts:20)). The test with `<Tree open={2}>` expects column 7, where `open` starts ([test](explain:packages/contract/src/parse-page/parse-page.test.ts:105-109)).
+- Attribute errors point at the attribute itself ([attributes.ts](explain:packages/contract/src/parse-page/attributes.ts:19)). The test with `<Tree open={2}>` expects column 7, where `open` starts ([test](explain:packages/contract/src/parse-page/parse-page.test.ts:105-109)).
 - Mermaid `click`, `@{}` and state-diagram note problems point at the line inside the fence: the fence's line plus the line's index plus one ([code.ts](explain:packages/contract/src/parse-page/code.ts:14-20)). An unsupported `gantt` or `architecture-beta` diagram is reported at the fence itself ([code.ts](explain:packages/contract/src/parse-page/code.ts:10-13)).
 - Bad links point at the link's `[` ([test](explain:packages/contract/src/parse-page/parse-page.test.ts:154-160) expects columns 1, 14 and 27 for three links on one line).
 
 `citation` wraps [`parseRef`](explain:packages/contract/src/citation.ts:62-72) (see [Citations](./citation.md)): on failure it reports `parseRef`'s message at the given position, on success it records `{ ref, at }` in `ctx.refs`.
 
 > [!IMPORTANT]
-> Every citation in a page, whether a link, an excerpt fence, `AnnotatedSource file`, `Diff before`/`after`, or `Widget source`, goes through `citation()`. That makes `page.refs` the complete list of cited files, which is what `explain freshness sync` records. A new component that cites code must call `citation()` too, or its files silently drop out of freshness tracking.
+> Every citation in a page, whether a link, an excerpt fence, `AnnotatedSource file`, or `Diff before`/`after`, goes through `citation()`. That makes `page.refs` the complete list of cited files, which is what `explain freshness sync` records. A new component that cites code must call `citation()` too, or its files silently drop out of freshness tracking.
 
 The first test pins this down: an inline citation, an excerpt and an `AnnotatedSource` produce refs at lines 3, 12 and 17, in document order ([test](explain:packages/contract/src/parse-page/parse-page.test.ts:92-96)).
 
 ## Blocks {#blocks}
 
-[`block`](explain:packages/contract/src/parse-page/block.ts:68-89) is a switch over the mdast node type. Headings, paragraphs, lists (keeping the task-list `checked` state), tables (first row becomes `head`), blockquotes, code, thematic breaks and flow JSX elements each have a case; anything else falls to `default` and is reported. [`inline`](explain:packages/contract/src/parse-page/inline.ts:53-73) has the same shape for phrasing content. Those defaults are deliberate: link reference definitions and footnote definitions reach the one in `block`, images reach the one in `inline`, and each would otherwise be dropped silently ([test](explain:packages/contract/src/parse-page/parse-page.test.ts:276-281)).
+[`block`](explain:packages/contract/src/parse-page/block.ts:68-89) is a switch over the mdast node type. Headings, paragraphs, lists (keeping the task-list `checked` state), tables (first row becomes `head`), blockquotes, code, thematic breaks and flow JSX elements each have a case; anything else falls to `default` and is reported. [`inline`](explain:packages/contract/src/parse-page/inline.ts:53-73) has the same shape for phrasing content. Those defaults are deliberate: link reference definitions and footnote definitions reach the one in `block`, images reach the one in `inline`, and each would otherwise be dropped silently ([test](explain:packages/contract/src/parse-page/parse-page.test.ts:255-260)).
 
 <details>
 <summary>Markdown that parses but is rejected</summary>
@@ -170,11 +170,11 @@ The mermaid lint ([code.ts](explain:packages/contract/src/parse-page/code.ts:6-2
 
 ## Tags {#tags}
 
-Every flow-level tag goes to [`jsxBlock`](explain:packages/contract/src/parse-page/jsx-block.ts:16-42), which dispatches on the name. Tags that only make sense inside a parent (`Tab`, `Before`, `After`, `Note`, `summary`) get a specific "only allowed inside" message; everything else unknown is `unknown tag <Name>` ([test](explain:packages/contract/src/parse-page/parse-page.test.ts:119-121)). The "only allowed inside" message needs the stray tag on its own lines: a one-line `<Note lines="1">x</Note>` at the top level is a text element inside a paragraph, so it reaches `inline` instead and gets "must stand on its own lines, not inside text".
+Every flow-level tag goes to [`jsxBlock`](explain:packages/contract/src/parse-page/jsx-block.ts:16-40), which dispatches on the name. Tags that only make sense inside a parent (`Tab`, `Before`, `After`, `Note`, `summary`) get a specific "only allowed inside" message; everything else unknown is `unknown tag <Name>` ([test](explain:packages/contract/src/parse-page/parse-page.test.ts:119-121)). The "only allowed inside" message needs the stray tag on its own lines: a one-line `<Note lines="1">x</Note>` at the top level is a text element inside a paragraph, so it reaches `inline` instead and gets "must stand on its own lines, not inside text".
 
 The components share three helpers.
 
-[`attributes`](explain:packages/contract/src/parse-page/attributes.ts:6-41) checks the element's attributes against a spec of `required` / `optional` names. Values must be string literals: `{...}` spreads and `name={expr}` are both errors. Unknown names are errors unless `rest` is set, which only `Widget` does so that extra attributes become props. It returns the values only if it added no new diagnostic; it compares the error count before and after rather than tracking a flag.
+[`attributes`](explain:packages/contract/src/parse-page/attributes.ts:6-40) checks the element's attributes against a spec of `required` / `optional` names. Values must be string literals: `{...}` spreads and `name={expr}` are both errors. Unknown names are errors. It returns the values only if it added no new diagnostic; it compares the error count before and after rather than tracking a flag.
 
 [`requireBlankLines`](explain:packages/contract/src/parse-page/jsx-children.ts:12-34) checks the raw source between the opening tag and the first child, and between the last child and the closing tag, for an empty line. A line of only spaces or `>` counts, presumably so that tags inside a blockquote pass (inference). It is a text check on source offsets, not an mdast check. The test writes `<Tab label="a">` with `text` directly under it and expects one error on the `<Tab>` line ([test](explain:packages/contract/src/parse-page/parse-page.test.ts:168-172)).
 
@@ -207,7 +207,7 @@ These cite code, so each funnels its citation attributes through `citation()`.
 </AnnotatedSource>
 ```
 
-[`annotatedSource`](explain:packages/contract/src/parse-page/source-components.ts:12-45) requires `file` to cite exactly one range. Each `Note` needs `lines="N"` or `lines="N-M"` and one paragraph of inline text, and must fall inside that range; `lines="9-12"` against `5-10` is reported at the note ([test](explain:packages/contract/src/parse-page/parse-page.test.ts:162-166)). A rejected note is dropped; the block survives.
+[`annotatedSource`](explain:packages/contract/src/parse-page/source-components.ts:11-44) requires `file` to cite exactly one range. Each `Note` needs `lines="N"` or `lines="N-M"` and one paragraph of inline text, and must fall inside that range; `lines="9-12"` against `5-10` is reported at the note ([test](explain:packages/contract/src/parse-page/parse-page.test.ts:162-166)). A rejected note is dropped; the block survives.
 
 </Tab>
 
@@ -219,21 +219,7 @@ These cite code, so each funnels its citation attributes through `citation()`.
 <Diff before="base:src/c.ts:3" />
 ```
 
-[`diff`](explain:packages/contract/src/parse-page/source-components.ts:47-73) takes no children and two optional attributes, each a citation of at most one range. Which sides are present decides the `DiffChange` kind: both is `modified`, only `after` is `added`, only `before` is `deleted`, neither is an error. Both sides land in `refs`, so a diff counts as citing two files ([test](explain:packages/contract/src/parse-page/parse-page.test.ts:195-236)).
-
-</Tab>
-
-<Tab label="Widget">
-
-```md
-<Widget name="fold-play" title="Play" source="fold:fold.ts fold:t.ts:1-5" preset="a">
-
-What it shows.
-
-</Widget>
-```
-
-[`widget`](explain:packages/contract/src/parse-page/source-components.ts:75-95) requires `name`, `title` and `source`, and passes every other attribute through as a string prop (`{ preset: "a" }` in the [test](explain:packages/contract/src/parse-page/parse-page.test.ts:174-193)). `source` is a whitespace-separated list of citations; one bad citation drops the widget. The name goes into `ctx.widgets` so the loader can check that `widgets/<name>.js` exists. See [Widgets](./widgets.md).
+[`diff`](explain:packages/contract/src/parse-page/source-components.ts:46-72) takes no children and two optional attributes, each a citation of at most one range. Which sides are present decides the `DiffChange` kind: both is `modified`, only `after` is `added`, only `before` is `deleted`, neither is an error. Both sides land in `refs`, so a diff counts as citing two files ([test](explain:packages/contract/src/parse-page/parse-page.test.ts:174-215)).
 
 </Tab>
 

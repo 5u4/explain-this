@@ -4,18 +4,18 @@ CLI 把每个页面解析成一个 `Page`，正文是由 `Block` 和 `Inline` �
 
 ## 每种节点一个分支
 
-[`BlockView`](explain:packages/viewer/src/blocks/blocks.tsx:30-160) 是对 `block.type` 的一个 `switch`，`default` 分支写的是 [`block satisfies never`](explain:packages/viewer/src/blocks/blocks.tsx:157-158)：往 [`Block` 联合类型](explain:packages/contract/src/page.ts:60-107)里加一个新成员却忘了写渲染分支，类型检查就会失败。[`Inlines`](explain:packages/viewer/src/blocks/inlines.tsx:11-64) 对 [`Inline` 联合类型](explain:packages/contract/src/page.ts:12-26)用的是同一套写法。
+[`BlockView`](explain:packages/viewer/src/blocks/blocks.tsx:29-157) 是对 `block.type` 的一个 `switch`，`default` 分支写的是 [`block satisfies never`](explain:packages/viewer/src/blocks/blocks.tsx:154-155)：往 [`Block` 联合类型](explain:packages/contract/src/page.ts:60-98)里加一个新成员却忘了写渲染分支，类型检查就会失败。[`Inlines`](explain:packages/viewer/src/blocks/inlines.tsx:11-64) 对 [`Inline` 联合类型](explain:packages/contract/src/page.ts:12-26)用的是同一套写法。
 
-[`Blocks`](explain:packages/viewer/src/blocks/blocks.tsx:17-28) 负责渲染一串块；传入 `lede` 时，第一个段落会加上 `lede` 类名。只有页面路由在渲染正文时传了它（[page-route.tsx](explain:packages/viewer/src/routes/page-route.tsx:135)），所以嵌套在提示框、标签页里的段落不会被当成导语。需要某个具体变体的组件用 [`BlockOf<"tree">`](explain:packages/viewer/src/blocks/blocks.tsx:15) 这样的类型取出它，不必重复声明字段。
+[`Blocks`](explain:packages/viewer/src/blocks/blocks.tsx:16-27) 负责渲染一串块；传入 `lede` 时，第一个段落会加上 `lede` 类名。只有页面路由在渲染正文时传了它（[page-route.tsx](explain:packages/viewer/src/routes/page-route.tsx:135)），所以嵌套在提示框、标签页里的段落不会被当成导语。需要某个具体变体的组件用 [`BlockOf<"tree">`](explain:packages/viewer/src/blocks/blocks.tsx:14) 这样的类型取出它，不必重复声明字段。
 
 | `Block` 类型 | 渲染者 | 画出来的样子 |
 |---|---|---|
-| `heading` | [`BlockView` 内联分支](explain:packages/viewer/src/blocks/blocks.tsx:39-49) | `h2`–`h4`，带解析出的 `id` 和 `#` 锚点 |
-| `paragraph` | [内联分支](explain:packages/viewer/src/blocks/blocks.tsx:50-55) | `p`，正文首段带 `lede` |
-| `list` | [内联分支](explain:packages/viewer/src/blocks/blocks.tsx:56-84) | `ol`/`ul`；只要有一项带 `checked`，整张列表都画成禁用的复选框 |
-| `table` | [内联分支](explain:packages/viewer/src/blocks/blocks.tsx:85-111) | 外面包一层可聚焦的滚动区域，列对齐来自 `align` |
-| `alert` | [内联分支](explain:packages/viewer/src/blocks/blocks.tsx:112-121) | `aside.alert-<kind>`，带图标和本地化标签 |
-| `quote`、`thematicBreak`、`details` | [内联分支](explain:packages/viewer/src/blocks/blocks.tsx:122-144) | `blockquote`、`hr`、原生 `details`/`summary` |
+| `heading` | [`BlockView` 内联分支](explain:packages/viewer/src/blocks/blocks.tsx:38-48) | `h2`–`h4`，带解析出的 `id` 和 `#` 锚点 |
+| `paragraph` | [内联分支](explain:packages/viewer/src/blocks/blocks.tsx:49-54) | `p`，正文首段带 `lede` |
+| `list` | [内联分支](explain:packages/viewer/src/blocks/blocks.tsx:55-83) | `ol`/`ul`；只要有一项带 `checked`，整张列表都画成禁用的复选框 |
+| `table` | [内联分支](explain:packages/viewer/src/blocks/blocks.tsx:84-110) | 外面包一层可聚焦的滚动区域，列对齐来自 `align` |
+| `alert` | [内联分支](explain:packages/viewer/src/blocks/blocks.tsx:111-120) | `aside.alert-<kind>`，带图标和本地化标签 |
+| `quote`、`thematicBreak`、`details` | [内联分支](explain:packages/viewer/src/blocks/blocks.tsx:121-143) | `blockquote`、`hr`、原生 `details`/`summary` |
 | `code` | [`CodeBlock`](explain:packages/viewer/src/blocks/code.tsx:79-99) | 高亮后的字面代码，带复制按钮 |
 | `excerpt` | [`Excerpt`](explain:packages/viewer/src/blocks/code.tsx:135-188) | 从仓库读出的带行号代码，标题是被引用的路径 |
 | `mermaid` | [`Mermaid`](explain:packages/viewer/src/blocks/mermaid.tsx:24-69) | 按需加载 beautiful-mermaid 生成的 SVG |
@@ -24,11 +24,10 @@ CLI 把每个页面解析成一个 `Page`，正文是由 `Block` 和 `Inline` �
 | `beforeAfter` | [`BeforeAfterView`](explain:packages/viewer/src/blocks/before-after.tsx:14-93) | 左右两栏，“之后”一侧没有的列表项被划掉 |
 | `annotatedSource` | [`AnnotatedSourceView`](explain:packages/viewer/src/blocks/annotated-source.tsx:7-41) | 一列编号注释；代码本身显示在源码面板里 |
 | `diff` | [`Diff`](explain:packages/viewer/src/blocks/diff.tsx:21-27) | 在浏览器里现算的统一格式行级 diff |
-| `widget` | [`WidgetFrame`](explain:packages/viewer/src/blocks/widget.tsx:37-131) | 一个外框，动态导入并挂载 `widgets/<name>.js` |
 
 ## 引用只是几个属性 {#citations}
 
-`citation` 内联节点渲染成一个普通链接（[inlines.tsx](explain:packages/viewer/src/blocks/inlines.tsx:44-54)）：`href` 指向该文件的源码路由并带上 `#L<首行>`（[`sourceHref`](explain:packages/viewer/src/ref.ts:40-43)），`data-ref` 是格式化后的引用字符串，没有行范围时 `data-kind` 为 `file`，否则为 `cite`。摘录、diff 行号、注释按钮、组件的来源列表输出的也是同一组属性。
+`citation` 内联节点渲染成一个普通链接（[inlines.tsx](explain:packages/viewer/src/blocks/inlines.tsx:44-54)）：`href` 指向该文件的源码路由并带上 `#L<首行>`（[`sourceHref`](explain:packages/viewer/src/ref.ts:40-43)），`data-ref` 是格式化后的引用字符串，没有行范围时 `data-kind` 为 `file`，否则为 `cite`。摘录、diff 行号、注释按钮输出的也是同一组属性。
 
 面板这一侧在页面里查询所有 `[data-ref]` 元素，把属性值重新解析成 `Ref`（[`discoverAnchors`](explain:packages/viewer/src/pane/anchors.ts:11-31)）。悬停、聚焦、点击事件都委托在页面根节点上处理；普通左键点击会 `preventDefault`，改为在面板里切换或固定这个锚点（[`onClick`](explain:packages/viewer/src/pane/input.ts:56-67)）。按住 ⌘、Ctrl 或 Shift 的点击，以及非主键的点击，会直接返回，于是 `href` 仍然有效，比如可以在新标签页里打开该文件的源码页。Alt 不在检查之列，按住 Alt 点击和普通点击一样被拦下。
 
@@ -38,7 +37,7 @@ CLI 把每个页面解析成一个 `Page`，正文是由 `Block` 和 `Inline` �
 | `data-kind` | `cite`、`file`、`excerpt`、`note` | 锚点的种类 |
 | `data-follow` | `"0"` 或不写 | 为 `"0"` 时，滚动阅读时面板不会自动跟随到这个锚点（[anchors.ts](explain:packages/viewer/src/pane/anchors.ts:27)、[controller.ts](explain:packages/viewer/src/pane/controller.ts:187-189)） |
 
-`data-follow="0"` 用在次要链接上：摘录标题、diff 的每个行号、组件里的引用。摘录外层的 `figure` 自己带 `data-kind="excerpt"` 而不带 `data-follow`（[code.tsx](explain:packages/viewer/src/blocks/code.tsx:148)），所以滚动时面板把整段摘录当作一个锚点来跟随，不会被标题链接抢走。
+`data-follow="0"` 用在次要链接上：摘录标题和 diff 的每个行号。摘录外层的 `figure` 自己带 `data-kind="excerpt"` 而不带 `data-follow`（[code.tsx](explain:packages/viewer/src/blocks/code.tsx:148)），所以滚动时面板把整段摘录当作一个锚点来跟随，不会被标题链接抢走。
 
 > [!IMPORTANT]
 > `blocks/` 下没有任何文件从 `pane/` 导入东西。两者之间只靠 DOM 约定：`data-ref`、`data-kind`、`data-follow` 三个属性，注释按钮上的 `data-index` 编号，以及面板用来收集同组注释时查询的 `note`、`annotated` 两个类名（[anchors.ts](explain:packages/viewer/src/pane/anchors.ts:33-39)、[controller.ts](explain:packages/viewer/src/pane/controller.ts:229)）。链接上的 `cite` 类名只给 CSS 用。新写的块如果要指向代码，就必须输出这些属性，面板才能接上它。
@@ -58,7 +57,7 @@ CLI 把每个页面解析成一个 `Page`，正文是由 `Block` 和 `Inline` �
 </Tab>
 <Tab label="摘录">
 
-AST 里只有一个 `Ref`。[`useSourceLines`](explain:packages/viewer/src/blocks/code.tsx:14-32) 通过 [`loadSourceLines`](explain:packages/viewer/src/data.ts:49-60) 取文件：每个 `repo:path` 只请求一次源码接口，去掉末尾换行、按行切开，再按文件扩展名高亮。同一页里引用同一个文件的摘录、diff 和组件共享这一个 Promise。
+AST 里只有一个 `Ref`。[`useSourceLines`](explain:packages/viewer/src/blocks/code.tsx:14-32) 通过 [`loadSourceLines`](explain:packages/viewer/src/data.ts:49-60) 取文件：每个 `repo:path` 只请求一次源码接口，去掉末尾换行、按行切开，再按文件扩展名高亮。同一页里引用同一个文件的摘录和 diff 共享这一个 Promise。
 
 ```tsx file=explain:packages/viewer/src/blocks/code.tsx:138-146
 ```
@@ -109,17 +108,21 @@ flowchart TD
 
 `DiffFigure` 把折叠片段画成一个按钮，按钮上写着折叠的行数；点击后把该片段的下标加入 `opened` 集合，这些行就在原地展开（[diff.tsx](explain:packages/viewer/src/blocks/diff.tsx:177-193)）。
 
-<Widget name="blocks-line-diff" title="在测试用例上运行 lineDiff 与 foldContext" source="explain:packages/viewer/src/blocks/line-diff.ts explain:packages/viewer/src/blocks/line-diff.test.ts">
+测试固定了行的形状。中间改了一行时，结果是在上下文行之间先删除、后新增；插入一行后，之后每一行的修改后行号都顺延一位。这里的行号是 `lineDiff` 返回的从 0 开始的下标，不是 diff 块里显示的文件行号。
 
-从 `line-diff.test.ts` 里选一个用例。组件用 JavaScript 移植版的 `lineDiff` 或 `foldContext` 处理该用例的输入，按 diff 块的列布局画出结果（修改前行号、修改后行号、符号、文本），并与测试里的期望值逐项比对。行号直接用 `lineDiff` 返回的从 0 开始的下标，与测试一致，而不是 diff 块里显示的文件行号。
+```ts file=explain:packages/viewer/src/blocks/line-diff.test.ts:23-40
+```
 
-</Widget>
+`foldContext` 把十行连续未改动的行折叠成两端各三行，恰好六行的则原样保留。
+
+```ts file=explain:packages/viewer/src/blocks/line-diff.test.ts:51-65
+```
 
 ## 其他组件
 
 ### Tree
 
-[`TreeNode`](explain:packages/viewer/src/blocks/tree.tsx:19-61) 拆分每一项的标签：如果第一个内联节点不是纯文本（比如行内代码或引用），它就是节点名称，其余部分是说明；说明开头的空白或 `·` 由 [`trimStart`](explain:packages/viewer/src/blocks/blocks.tsx:175-180) 去掉。分支用原生 `details`，`depth < open` 时默认展开，`open` 缺省为 1（[tree.tsx](explain:packages/viewer/src/blocks/tree.tsx:12)）。树节点里的引用就是普通的引用内联节点，照样能连到源码面板。
+[`TreeNode`](explain:packages/viewer/src/blocks/tree.tsx:19-61) 拆分每一项的标签：如果第一个内联节点不是纯文本（比如行内代码或引用），它就是节点名称，其余部分是说明；说明开头的空白或 `·` 由 [`trimStart`](explain:packages/viewer/src/blocks/blocks.tsx:172-177) 去掉。分支用原生 `details`，`depth < open` 时默认展开，`open` 缺省为 1（[tree.tsx](explain:packages/viewer/src/blocks/tree.tsx:12)）。树节点里的引用就是普通的引用内联节点，照样能连到源码面板。
 
 ### Tabs
 
@@ -136,7 +139,3 @@ flowchart TD
 ### Mermaid
 
 [`Mermaid`](explain:packages/viewer/src/blocks/mermaid.tsx:24-47) 第一次用到时才导入 `beautiful-mermaid`，渲染用的[主题](explain:packages/viewer/src/blocks/mermaid.tsx:9-22)颜色全部是查看器的 CSS 变量，所以图表跟随页面配色，而不是写死的颜色。它还会删掉 SVG 里的 `@import url(…)` 规则，并在字体栈里加上中文字体。渲染失败时显示错误信息，并在 `details` 里附上图表源码（[mermaid.tsx](explain:packages/viewer/src/blocks/mermaid.tsx:58-66)）。
-
-### Widget
-
-[`WidgetFrame`](explain:packages/viewer/src/blocks/widget.tsx:37-131) 画出标题、说明和来源引用，然后同时导入 `/@explain/widgets/<name>.js` 与共享的组件样式表，调用模块的 `mount`；传入的上下文里，`cite` 生成的也是上文那种 `a.cite` 元素。名称不在站点的组件列表里，或者模块没有导出 `mount`，外框里会显示错误。模块约定以及 CLI 如何提供组件，见[组件](./widgets.md)一页。

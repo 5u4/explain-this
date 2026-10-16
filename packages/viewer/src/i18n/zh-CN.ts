@@ -67,8 +67,6 @@ export const zhCN: Strings = {
   diffFold: (count) => `展开 ${count} 行未改动的代码`,
   diagramFailed: "这张图无法渲染",
   diagramSource: "查看源码",
-  widgetSources: "来源",
-  widgetFailed: (name) => `组件 ${name} 无法加载`,
   fileGone: (path) => `${path} 已不在仓库中`,
   fileGoneDetail: "本页依据的版本之后，这个文件被删除或移动了。",
   fileUnreadable: (ref) => `无法载入 ${ref}`,

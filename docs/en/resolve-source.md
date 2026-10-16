@@ -1,6 +1,6 @@
 # Resolving a source
 
-A citation names a file as a repo key plus a path, `explain:packages/cli/src/main.ts`. `resolveSource` is the one function that turns that pair into bytes. Page checking, freshness hashing and the source endpoint of the dev server all go through it, and `explain build` writes its source files by calling that same endpoint for every cited or recorded file ([build.ts](explain:packages/cli/src/site/build.ts:61-69)), so every consumer agrees on what a citation points at.
+A citation names a file as a repo key plus a path, `explain:packages/cli/src/main.ts`. `resolveSource` is the one function that turns that pair into bytes. Page checking, freshness hashing and the source endpoint of the dev server all go through it, and `explain build` writes its source files by calling that same endpoint for every cited or recorded file ([build.ts](explain:packages/cli/src/site/build.ts:55-63)), so every consumer agrees on what a citation points at.
 
 ## Two steps: repos, then files
 

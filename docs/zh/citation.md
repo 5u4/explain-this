@@ -8,7 +8,7 @@ explain 页面里的每一条论断都要指向代码，指向的方式是一个
 谁在调用它：
 
 - 页面解析器遇到既不是页面链接、也不是网页地址的链接目标时，就交给 `parseRef`
-  （[context.ts](explain:packages/contract/src/parse-page/context.ts:21-26)）。
+  （[context.ts](explain:packages/contract/src/parse-page/context.ts:20-25)）。
 - CLI 的 API 处理函数 `handleExplainRequest`（`explain dev` 和 `explain build` 共用）在响应源码请求前，用它检查请求里的 `repo/path` 是否合法
   （[api.ts](explain:packages/cli/src/site/api.ts:64-65)）。
 
@@ -38,7 +38,7 @@ explain 页面里的每一条论断都要指向代码，指向的方式是一个
 </AnnotatedSource>
 
 失败时它不抛异常，而是返回 Effect 的 `Result`，失败值就是一条给人看的消息。页面解析器把这条消息原样变成
-链接位置上的诊断（[context.ts](explain:packages/contract/src/parse-page/context.ts:16-25)）。这也是为什么
+链接位置上的诊断（[context.ts](explain:packages/contract/src/parse-page/context.ts:15-24)）。这也是为什么
 `repoKeyProblem`、`pathProblem` 都返回 `string | undefined`：错误本身就是那句消息。
 
 ## 行区间的规则
@@ -84,14 +84,12 @@ explain 页面里的每一条论断都要指向代码，指向的方式是一个
 （推断：contract 的 [package.json](explain:packages/contract/package.json:13-21) 里没有文件系统相关依赖，
 真正读文件的 `FileSystem` 只出现在 CLI 里）。
 
-## 在测试用例上试一试
+## 测试用例
 
-<Widget name="citation-parse-ref" title="parseRef 跑测试用例" source="explain:packages/contract/src/citation.ts:14-72 explain:packages/contract/src/citation.test.ts:5-49">
+两个测试规定了能解析的形式：整文件引用得到空的 `ranges`，单行和跨行区间混排时按原顺序返回。
 
-从 `citation.test.ts` 里选一个用例。组件用 `parseRef` 的 JavaScript 移植版解析输入，显示得到的 `Ref`
-或失败消息，并和测试的期望对比。
-
-</Widget>
+```ts file=explain:packages/contract/src/citation.test.ts:6-24
+```
 
 测试里那张拒绝表是这套语法最直接的说明，每一行都写明了它违反的规则：
 
@@ -111,11 +109,10 @@ explain 页面里的每一条论断都要指向代码，指向的方式是一个
 
 viewer 在 [ref.ts](explain:packages/viewer/src/ref.ts:5-30) 里另写了 `formatRef` 和一个更宽松的
 `parseRef`，从 contract 只导入类型（[ref.ts](explain:packages/viewer/src/ref.ts:1)）。viewer 只把
-`@explain/contract` 列为 devDependency（[package.json](explain:packages/viewer/package.json:11-21)），
+`@explain/contract` 列为 devDependency（[package.json](explain:packages/viewer/package.json:10-20)），
 这样浏览器端不会打包进 `effect`（推断）。
 
-它的 `parseRef` 失败时返回 `undefined`，也不检查 repo、路径和区间顺序。它读的字符串有两种来源：
-一是 viewer 自己从 CLI 校验过的 ref 写进 `data-ref` 属性的值（[anchors.ts](explain:packages/viewer/src/pane/anchors.ts:19-21)），
-二是组件传给 `cite` / `readSource` 的引用（[widget.tsx](explain:packages/viewer/src/blocks/widget.tsx:55-68)）。
+它的 `parseRef` 失败时返回 `undefined`，也不检查 repo、路径和区间顺序。它只读回
+viewer 自己从 CLI 校验过的 ref 写进 `data-ref` 属性的值（[anchors.ts](explain:packages/viewer/src/pane/anchors.ts:19-21)）。
 
 </details>
