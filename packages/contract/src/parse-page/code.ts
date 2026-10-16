@@ -2,24 +2,7 @@ import type { Code } from "mdast";
 import type { Block } from "../page.ts";
 import { citation, type ParseContext, report } from "./context.ts";
 import { positionOf } from "./markdown.ts";
-
-const mermaidProblems = (ctx: ParseContext, node: Code): void => {
-  const lines = node.value.split("\n");
-  const header = lines.find((line) => line.trim() !== "" && !line.trim().startsWith("%%"));
-  const diagram = header?.trim().split(/\s+/)[0] ?? "";
-  const at = positionOf(node);
-  if (diagram === "gantt" || diagram === "architecture-beta") {
-    report(ctx, at, `mermaid ${diagram} diagrams are not supported`);
-  }
-  lines.forEach((line, index) => {
-    const lineAt = { line: at.line + index + 1, column: 1 };
-    if (/^\s*click\s/.test(line)) report(ctx, lineAt, "mermaid click is not supported");
-    if (line.includes("@{")) report(ctx, lineAt, "mermaid @{} shapes are not supported");
-    if (diagram.startsWith("stateDiagram") && /^\s*note\s/.test(line)) {
-      report(ctx, lineAt, "mermaid state diagram notes are not supported");
-    }
-  });
-};
+import { mermaidProblems } from "./mermaid.ts";
 
 export const code = (ctx: ParseContext, node: Code): Block | undefined => {
   const at = positionOf(node);
@@ -31,7 +14,7 @@ export const code = (ctx: ParseContext, node: Code): Block | undefined => {
   if (extra.length > 0) return report(ctx, at, `unsupported code fence info "${extra.join(" ")}"`);
   if (fileWord === undefined) {
     if (lang === "mermaid") {
-      mermaidProblems(ctx, node);
+      mermaidProblems(ctx, node.value, at);
       return { type: "mermaid", value: node.value };
     }
     return { type: "code", lang, value: node.value };

@@ -35,11 +35,11 @@ explain-this 把一个装着 Markdown 页面的目录变成文档站点，页面
 
 | 包 | 职责 | 依赖 |
 |---|---|---|
-| `@explain/contract` | 定义所有部分共用的词汇：引用、配置、页面 AST、页面解析、来源记录 | 只有 `effect`、`github-slugger` 和 mdast/micromark 系列（[package.json](explain:packages/contract/package.json:13-24)） |
+| `@explain/contract` | 定义所有部分共用的词汇：引用、配置、页面 AST、页面解析、来源记录 | `effect`、`github-slugger`、mdast/micromark 系列，以及检查 mermaid 用的 `beautiful-mermaid`（[package.json](explain:packages/contract/package.json:13-25)） |
 | `@explain/cli` | 唯一读写磁盘的包：加载、校验、跟踪新鲜度、提供或构建站点 | 依赖 contract 和 viewer（[package.json](explain:packages/cli/package.json:9-15)） |
 | `@explain/viewer` | 在浏览器里渲染 CLI 给出的 JSON | 运行时只有 React、highlight.js、beautiful-mermaid；contract 只是 devDependency（[package.json](explain:packages/viewer/package.json:10-20)） |
 
-contract 里的 [`parsePage`](explain:packages/contract/src/parse-page/parse-page.ts:13-60) 是纯函数：输入页面文本和页面 id，输出 [`Page`](explain:packages/contract/src/page.ts:107-117) 和诊断信息，完全不碰文件系统。引用格式由 [`parseRef`](explain:packages/contract/src/citation.ts:62-72) 定义，CLI 在解析页面时用它，在 API 里校验 source 请求时也用它（[api.ts](explain:packages/cli/src/site/api.ts:64-65)）。
+contract 里的 [`parsePage`](explain:packages/contract/src/parse-page/parse-page.ts:12-45) 是纯函数：输入页面文本和页面 id，输出 [`Page`](explain:packages/contract/src/page.ts:107-117) 和诊断信息，完全不碰文件系统。引用格式由 [`parseRef`](explain:packages/contract/src/citation.ts:62-72) 定义，CLI 在解析页面时用它，在 API 里校验 source 请求时也用它（[api.ts](explain:packages/cli/src/site/api.ts:64-65)）。
 
 CLI 依赖 viewer 有两层原因：一是 CLI 从 [`@explain/viewer/api`](explain:packages/viewer/src/api.ts:4-21) 引入 URL 与响应类型来拼装响应体（[api.ts](explain:packages/cli/src/site/api.ts:1-8)）；二是 CLI 通过 `@explain/viewer/package.json` 定位 viewer 源码目录，交给 Vite 去服务或打包（[viewer.ts](explain:packages/cli/src/site/viewer.ts:9-17)）。
 

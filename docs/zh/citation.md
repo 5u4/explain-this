@@ -81,7 +81,7 @@ explain 页面里的每一条论断都要指向代码，指向的方式是一个
 ```
 
 这一步的细节见 [resolve-source](./resolve-source.md)。把语法和磁盘检查分开，contract 包就不需要任何文件系统能力
-（推断：contract 的 [package.json](explain:packages/contract/package.json:13-21) 里没有文件系统相关依赖，
+（推断：contract 的 [package.json](explain:packages/contract/package.json:13-22) 里没有文件系统相关依赖，
 真正读文件的 `FileSystem` 只出现在 CLI 里）。
 
 ## 测试用例

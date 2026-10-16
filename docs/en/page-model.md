@@ -32,8 +32,8 @@ walks the Markdown, so nobody downstream has to walk the tree again:
 column of the Markdown that caused it.
 
 `parsePage` returns `{ page, errors }` rather than throwing, and `page` is `undefined` only when the
-Markdown could not be parsed at all, or has frontmatter
-([parse-page.ts](explain:packages/contract/src/parse-page/parse-page.ts:8-36,58-59)). Any other
+Markdown parser throws on syntax it cannot recover from, or the page has frontmatter
+([parse-page.ts](explain:packages/contract/src/parse-page/parse-page.ts:7-10,13-21,43-44)). Any other
 problem becomes a `Diagnostic` while the rest of the page is still built, so the viewer renders a
 page that has errors with the list of those errors above its body
 ([page-route.tsx](explain:packages/viewer/src/routes/page-route.tsx:130-137)).

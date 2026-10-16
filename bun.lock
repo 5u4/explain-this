@@ -35,6 +35,7 @@
       "name": "@explain/contract",
       "version": "0.1.0",
       "dependencies": {
+        "beautiful-mermaid": "catalog:",
         "effect": "catalog:",
         "github-slugger": "catalog:",
         "mdast-util-from-markdown": "catalog:",

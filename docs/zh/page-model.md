@@ -28,8 +28,8 @@ flowchart TD
 
 `refs`、`pageLinks` 每一项都带 `Position`，出了问题可以报到对应 Markdown 的行和列上。
 
-`parsePage` 不抛异常，而是返回 `{ page, errors }`。只有两种情况 `page` 是 `undefined`：Markdown 根本解析不了，
-或者页面带 frontmatter（[parse-page.ts](explain:packages/contract/src/parse-page/parse-page.ts:8-36,58-59)）。
+`parsePage` 不抛异常，而是返回 `{ page, errors }`。只有两种情况 `page` 是 `undefined`：Markdown 解析器抛出了无法恢复的异常，
+或者页面带 frontmatter（[parse-page.ts](explain:packages/contract/src/parse-page/parse-page.ts:7-10,13-21,43-44)）。
 其他问题都只记成一条 `Diagnostic`，页面其余部分照常构建。所以有错误的页面在 viewer 里仍能显示，错误列表放在正文上方
 （[page-route.tsx](explain:packages/viewer/src/routes/page-route.tsx:130-137)）。
 

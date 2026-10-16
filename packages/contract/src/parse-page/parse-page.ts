@@ -1,4 +1,3 @@
-import type { Root } from "mdast";
 import type { Diagnostic, Page } from "../page.ts";
 import { blocks } from "./block.ts";
 import { type ParseContext, report } from "./context.ts";
@@ -18,27 +17,13 @@ export const parsePage = (source: string, pageId: string): ParseResult => {
     };
   }
 
-  let root: Root;
-  try {
-    root = parseMarkdown(source);
-  } catch (error) {
-    const place = error as { line?: number | null; column?: number | null; reason?: string };
-    return {
-      page: undefined,
-      errors: [
-        {
-          line: place.line ?? 1,
-          column: place.column ?? 1,
-          message: place.reason ?? String(error),
-        },
-      ],
-    };
-  }
+  const { root, errors } = parseMarkdown(source);
+  if (root === undefined) return { page: undefined, errors };
 
   const ctx: ParseContext = {
     source,
     pageId,
-    errors: [],
+    errors: [...errors],
     toc: [],
     usedIds: new Set(),
     refs: [],

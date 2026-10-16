@@ -72,7 +72,7 @@ A fence with `file=<citation>` is an excerpt: its body stays empty and the viewe
 the repo. A fence without `file=` is literal code. A `mermaid` fence is a diagram, rendered with
 beautiful-mermaid:
 
-- Keep ASCII `]` out of node labels; beautiful-mermaid silently drops the rest of the graph.
+- `explain validate` reports a mermaid header beautiful-mermaid rejects and each line it would drop.
 - Prefer `TD` over wide `LR` graphs.
 - A state diagram with self-loops or parallel edges, or a branch-only decision tree, reads better as a
   table.

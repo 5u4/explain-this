@@ -85,7 +85,7 @@ An unknown repo key, a path that does not exist, a path that escapes the repo th
 range past the last line are all reported there; [resolve-source](./resolve-source.md) covers that
 step. The split keeps the contract package free of file system access, so it can be shared with
 code that has none (inference: the contract package lists no file system dependency in
-[package.json](explain:packages/contract/package.json:13-21)).
+[package.json](explain:packages/contract/package.json:13-22)).
 
 ## The test cases
 

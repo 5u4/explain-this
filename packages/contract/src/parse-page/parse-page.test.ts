@@ -108,14 +108,6 @@ describe("parsePage", () => {
     ]);
   });
 
-  it("rejects HTML comments", () => {
-    expect(errorsAt("# T\n\ntext <!-- hidden --> more\n")).toEqual([{ line: 3, column: 7 }]);
-  });
-
-  it("rejects raw HTML other than details and summary", () => {
-    expect(errorsAt("# T\n\n<div>\n\nx\n\n</div>\n")).toEqual([{ line: 3, column: 1 }]);
-  });
-
   it("rejects unknown tags", () => {
     expect(errorsAt("# T\n\n<Callout>\n\nx\n\n</Callout>\n")).toEqual([{ line: 3, column: 1 }]);
   });
@@ -252,10 +244,218 @@ describe("parsePage", () => {
     ]);
   });
 
-  it("rejects images and reference definitions instead of dropping them", () => {
-    expect(errorsAt("# T\n\n![alt](x.png)\n\n[a]: https://x\n")).toEqual([
-      { line: 3, column: 1 },
-      { line: 5, column: 1 },
+  it("rejects images, reference definitions, and footnotes instead of dropping them", () => {
+    expect(
+      parsePage("# T\n\n![alt](x.png)\n\n[a]: https://x\n\nn[^1]\n\n[^1]: x\n", "t").errors,
+    ).toEqual([
+      { line: 3, column: 1, message: "image is not supported" },
+      { line: 5, column: 1, message: "definition is not supported" },
+      { line: 7, column: 2, message: "footnoteReference is not supported" },
+      { line: 9, column: 1, message: "footnoteDefinition is not supported" },
+    ]);
+  });
+});
+
+describe("parsePage reports the cause of Markdown it cannot render", () => {
+  const html =
+    "HTML is not supported; only <details>, <summary>, and the component tags are allowed";
+
+  it("rejects indented code", () => {
+    expect(parsePage("# T\n\ntext\n\n    const x = 1\n", "t").errors).toEqual([
+      { line: 5, column: 1, message: "indented code is not supported; use a fenced block" },
+    ]);
+  });
+
+  it("keeps indented children of a component as text", () => {
+    const { page, errors } = parsePage(
+      "# T\n\n<details>\n<summary>S</summary>\n\n    folded text\n\n</details>\n",
+      "t",
+    );
+    expect(errors).toEqual([]);
+    expect(page?.blocks).toEqual([
+      {
+        type: "details",
+        summary: [{ type: "text", value: "S" }],
+        children: [{ type: "paragraph", children: [{ type: "text", value: "folded text" }] }],
+      },
+    ]);
+  });
+
+  it("rejects autolinks at their position and parses the rest of the page", () => {
+    const { page, errors } = parsePage(
+      "# T\n\n<https://c.d> first\n\nsee <a@b.co> and [b](./b.md)\n",
+      "t",
+    );
+    expect(errors).toEqual([
+      { line: 3, column: 1, message: "autolinks are not supported; write [text](url)" },
+      { line: 5, column: 5, message: "autolinks are not supported; write [text](url)" },
+    ]);
+    expect(page?.pageLinks).toEqual([{ page: "b", anchor: null, at: { line: 5, column: 18 } }]);
+  });
+
+  it("rejects HTML comments without suggesting an MDX comment", () => {
+    expect(parsePage("<!-- top -->\n# T\n\ntext <!-- hidden --> more\n", "t").errors).toEqual([
+      { line: 1, column: 1, message: "HTML comments are not supported" },
+      { line: 4, column: 6, message: "HTML comments are not supported" },
+    ]);
+  });
+
+  it("rejects HTML elements other than details and summary, inline or as blocks", () => {
+    expect(
+      parsePage("# T\n\n<div>x</div>\n\na <span>y</span> b\n\n<div>\n\nx\n\n</div>\n", "t").errors,
+    ).toEqual([
+      { line: 3, column: 1, message: html },
+      { line: 5, column: 3, message: html },
+      { line: 7, column: 1, message: html },
+    ]);
+  });
+
+  it("returns no page when the parser throws on something it cannot recover from", () => {
+    expect(parsePage("# T\n\n<!-- a -->\n\n<Tree open=2>\n", "t")).toEqual({
+      page: undefined,
+      errors: [
+        { line: 3, column: 1, message: "HTML comments are not supported" },
+        {
+          line: 5,
+          column: 12,
+          message:
+            "Unexpected character `2` (U+0032) before attribute value, expected a character that can start an attribute value, such as `\"`, `'`, or `{`",
+        },
+      ],
+    });
+  });
+});
+
+describe("parsePage checks mermaid against the viewer's renderer", () => {
+  const mermaid = (...lines: ReadonlyArray<string>) =>
+    parsePage(`# T\n\n\`\`\`mermaid\n${lines.join("\n")}\n\`\`\`\n`, "t").errors;
+  const dropped = (line: number) => ({
+    line,
+    column: 1,
+    message: "mermaid line would be dropped by the renderer",
+  });
+
+  it("accepts diagrams of every type the renderer draws in full", () => {
+    expect(
+      mermaid(
+        "%% comment",
+        "graph TD",
+        "  A[Start] --> B{ok?};",
+        "  B -->|yes| C & D",
+        "  B -. maybe .-> E",
+        "  Q &amp; R --> S",
+        "  classDef hot fill:#f00,",
+        "  class A hot",
+        "  style B fill:#0f0",
+        "  linkStyle 0 stroke:#00f",
+        "  subgraph S1 [Group]",
+        "    direction LR",
+        "    F --> G",
+        "  end",
+      ),
+    ).toEqual([]);
+    expect(
+      mermaid(
+        "stateDiagram-v2",
+        "  direction TB",
+        "  Idle : Waiting",
+        "  [*] --> Idle",
+        "  Idle --> Busy : go",
+        "  state Busy {",
+        "    a --> b",
+        "  }",
+        "  Busy --> [*]",
+      ),
+    ).toEqual([]);
+    expect(
+      mermaid(
+        "sequenceDiagram",
+        "  participant A",
+        "  participant B as Bob",
+        "  A->>+B: Hello",
+        "  Note over A,B: shared",
+        "  alt ok",
+        "    B-->>-A: fine",
+        "  else",
+        "    B--)A: later",
+        "  end",
+      ),
+    ).toEqual([]);
+    expect(
+      mermaid(
+        "classDiagram",
+        "  class Animal {",
+        "    <<interface>>",
+        "    +String name",
+        "  }",
+        "  Animal <|-- Dog : extends",
+        "  Dog : +bark()",
+      ),
+    ).toEqual([]);
+    expect(
+      mermaid(
+        "erDiagram",
+        "  CUSTOMER ||--o{ ORDER : places",
+        "  CUSTOMER {",
+        '    string name PK "the name"',
+        "    int age",
+        "  }",
+      ),
+    ).toEqual([]);
+    expect(
+      mermaid(
+        "xychart-beta",
+        '  title "Sales"',
+        "  x-axis [a, b, c]",
+        '  y-axis "Revenue" 0 --> 100',
+        "  bar [1, 2, 3]",
+        "  line [3, 2, 1]",
+      ),
+    ).toEqual([]);
+  });
+
+  it("reports the renderer's error for a header it rejects", () => {
+    expect(mermaid("flowchartt TD", "  A --> B")).toEqual([
+      {
+        line: 3,
+        column: 1,
+        message:
+          'Invalid mermaid header: "flowchartt TD". Expected "graph TD", "flowchart LR", "stateDiagram-v2", etc.',
+      },
+    ]);
+    expect(mermaid("gantt", "  title Plan")[0]?.message).toMatch(
+      /^Invalid mermaid header: "gantt"/,
+    );
+  });
+
+  it("reports flowchart lines the renderer would drop", () => {
+    expect(mermaid("graph TD", "  A -.label.-> B")).toEqual([dropped(5)]);
+    expect(mermaid("graph TD", "  A -> B")).toEqual([dropped(5)]);
+    expect(mermaid("graph TD", "  A -->", "  this is garbage")).toEqual([dropped(5), dropped(6)]);
+    expect(mermaid("graph TD", "  A[a ] b] --> B", "  B --> C")).toEqual([dropped(5)]);
+    expect(mermaid("graph TD", "  A --> B; B --> C")).toEqual([dropped(5)]);
+  });
+
+  it("reports lines the renderer drops in the other diagram types", () => {
+    expect(mermaid("stateDiagram-v2", "  A --> B", "  A : described too late")).toEqual([
+      dropped(6),
+    ]);
+    expect(mermaid("sequenceDiagram", "  A->>B: hi", "  activate B", "  A->>B")).toEqual([
+      dropped(6),
+      dropped(7),
+    ]);
+    expect(mermaid("classDiagram", "  A <|-- B", '  note for B "hi"')).toEqual([dropped(6)]);
+    expect(mermaid("erDiagram", "  A ||--o{ B : has", "  A")).toEqual([dropped(6)]);
+    expect(mermaid("xychart-beta", "  bar [1, 2]", "  pie [1]")).toEqual([dropped(6)]);
+  });
+
+  it("names known unsupported syntax once instead of reporting it as dropped", () => {
+    expect(mermaid("graph TD", "  A --> B", "  click A call", "  C@{ shape: rect }")).toEqual([
+      { line: 6, column: 1, message: "mermaid click is not supported" },
+      { line: 7, column: 1, message: "mermaid @{} shapes are not supported" },
+    ]);
+    expect(mermaid("stateDiagram-v2", "  A --> B", "  note right of A : hi")).toEqual([
+      { line: 6, column: 1, message: "mermaid state diagram notes are not supported" },
     ]);
   });
 });

@@ -31,7 +31,7 @@ The repo is a Bun workspace: every folder under `packages/` is a package ([packa
 
 </Tree>
 
-- **contract** defines the vocabulary every other part agrees on: what a citation is ([`parseRef`](explain:packages/contract/src/citation.ts:62-72)), what `explain.json` may contain, what a parsed page looks like ([`Page`](explain:packages/contract/src/page.ts:107-117)), and what a recorded source file looks like ([`SourceFile`](explain:packages/contract/src/sources.ts:7-11)). [`parsePage`](explain:packages/contract/src/parse-page/parse-page.ts:13-60) is a pure function from Markdown text to a `Page` plus diagnostics; it never touches the file system.
+- **contract** defines the vocabulary every other part agrees on: what a citation is ([`parseRef`](explain:packages/contract/src/citation.ts:62-72)), what `explain.json` may contain, what a parsed page looks like ([`Page`](explain:packages/contract/src/page.ts:107-117)), and what a recorded source file looks like ([`SourceFile`](explain:packages/contract/src/sources.ts:7-11)). [`parsePage`](explain:packages/contract/src/parse-page/parse-page.ts:12-45) is a pure function from Markdown text to a `Page` plus diagnostics; it never touches the file system.
 - **cli** is the only package that reads disk. It depends on both other packages ([package.json](explain:packages/cli/package.json:9-15)): on contract for parsing and schemas, on viewer for its API types and its source tree, which Vite serves or bundles.
 - **viewer** is a React app with only browser dependencies ([package.json](explain:packages/viewer/package.json:10-20)). It lists contract as a dev dependency because it shares contract's *types* (the `Page` AST, `Freshness`) and nothing else.
 

@@ -2,7 +2,7 @@ import type { PhrasingContent } from "mdast";
 import { pageIdPattern } from "../config.ts";
 import type { Inline, Position } from "../page.ts";
 import { citation, type ParseContext, report } from "./context.ts";
-import { describeNode, positionOf } from "./markdown.ts";
+import { describeNode, htmlNotSupported, isHtmlTag, positionOf } from "./markdown.ts";
 
 const pageLinkPattern = /^\.\/([^/#]+)\.md(?:#(.*))?$/;
 const schemePattern = /^([a-zA-Z][a-zA-Z0-9+.-]*):/;
@@ -66,7 +66,13 @@ const inline = (ctx: ParseContext, node: PhrasingContent): Inline | undefined =>
     case "link":
       return link(ctx, node.url, inlines(ctx, node.children), at);
     case "mdxJsxTextElement":
-      return report(ctx, at, `<${node.name ?? ""}> must stand on its own lines, not inside text`);
+      return report(
+        ctx,
+        at,
+        isHtmlTag(node.name ?? "")
+          ? htmlNotSupported
+          : `<${node.name ?? ""}> must stand on its own lines, not inside text`,
+      );
     default:
       return report(ctx, at, `${describeNode(node)} is not supported`);
   }

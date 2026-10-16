@@ -2,7 +2,7 @@ import type { MdxJsxFlowElement } from "mdast-util-mdx-jsx";
 import type { Block } from "../page.ts";
 import { type ParseContext, report } from "./context.ts";
 import { beforeAfter, details, tabs, tree } from "./layout-components.ts";
-import { positionOf } from "./markdown.ts";
+import { htmlNotSupported, isHtmlTag, positionOf } from "./markdown.ts";
 import { annotatedSource, diff } from "./source-components.ts";
 
 const nestedOnlyTags: Readonly<Record<string, string>> = {
@@ -31,6 +31,7 @@ export const jsxBlock = (ctx: ParseContext, element: MdxJsxFlowElement): Block |
     case "Diff":
       return diff(ctx, element);
   }
+  if (isHtmlTag(name)) return report(ctx, at, htmlNotSupported);
   const parent = nestedOnlyTags[name];
   return report(
     ctx,
