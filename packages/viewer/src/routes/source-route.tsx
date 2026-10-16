@@ -1,7 +1,7 @@
-import { type ReactNode, use, useEffect, useRef } from "react";
-import { CopyButton, LinedRows, MissingFile, useSourceLines } from "../blocks/code.tsx";
+import { type ReactNode, Suspense, use } from "react";
+import { CopyButton, LinedRows, MissingFile } from "../blocks/code.tsx";
 import { type Site, useViewer } from "../context.ts";
-import { loadSource } from "../data.ts";
+import { loadSource, loadSourceLines } from "../data.ts";
 import { stringsFor } from "../i18n/strings.ts";
 import { pageHref } from "../router.ts";
 import { Shell } from "../shell/shell.tsx";
@@ -68,32 +68,44 @@ export function SourceRoute({
 }
 
 function SourceFile({ repo, path }: { readonly repo: string; readonly path: string }): ReactNode {
-  const { strings } = useViewer();
-  const lines = useSourceLines(repo, path);
-  const figure = useRef<HTMLElement>(null);
-  useEffect(() => {
-    const match = /^#L(\d+)$/.exec(location.hash);
-    if (lines.status !== "file" || match === null || figure.current === null) return;
-    const row = figure.current.querySelector<HTMLElement>(`.ln[data-n="${match[1]}"]`);
-    row?.classList.add("target");
-    row?.scrollIntoView({ block: "center" });
-  }, [lines.status]);
   return (
-    <figure className="excerpt source-file" ref={figure}>
+    <figure className="excerpt source-file">
       <div className="code-head">
         <span className="excerpt-path">{path}</span>
-        {lines.status === "file" && (
-          <CopyButton text={() => lines.raw.join("\n")} label={strings.copyCode} />
-        )}
+        <Suspense fallback={null}>
+          <SourceCopy repo={repo} path={path} />
+        </Suspense>
       </div>
-      {lines.status === "loading" && <div className="code-skel" aria-hidden="true" />}
-      {lines.status === "missing" && <MissingFile path={path} />}
-      {lines.status === "error" && <p className="err">{lines.message}</p>}
-      {lines.status === "file" && (
-        <pre className="lined">
-          <LinedRows html={lines.html} from={1} to={lines.raw.length} />
-        </pre>
-      )}
+      <Suspense fallback={<div className="code-skel" aria-hidden="true" />}>
+        <SourceBody repo={repo} path={path} />
+      </Suspense>
     </figure>
   );
 }
+
+function SourceCopy({ repo, path }: { readonly repo: string; readonly path: string }): ReactNode {
+  const { strings } = useViewer();
+  const lines = use(loadSourceLines(repo, path));
+  return lines.status === "file" ? (
+    <CopyButton text={() => lines.raw.join("\n")} label={strings.copyCode} />
+  ) : null;
+}
+
+function SourceBody({ repo, path }: { readonly repo: string; readonly path: string }): ReactNode {
+  const lines = use(loadSourceLines(repo, path));
+  if (lines.status === "missing") return <MissingFile path={path} />;
+  if (lines.status === "error") return <p className="err">{lines.message}</p>;
+  return (
+    <pre className="lined" ref={revealHashLine}>
+      <LinedRows html={lines.html} from={1} to={lines.raw.length} />
+    </pre>
+  );
+}
+
+const revealHashLine = (pre: HTMLPreElement | null) => {
+  const match = /^#L(\d+)$/.exec(location.hash);
+  if (pre === null || match === null) return;
+  const row = pre.querySelector<HTMLElement>(`.ln[data-n="${match[1]}"]`);
+  row?.classList.add("target");
+  row?.scrollIntoView({ block: "center" });
+};

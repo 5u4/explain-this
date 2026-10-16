@@ -1,4 +1,13 @@
-import { type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  type ReactNode,
+  Suspense,
+  use,
+  useCallback,
+  useDeferredValue,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { CopyButton } from "../blocks/code.tsx";
 import { useViewer } from "../context.ts";
 import { loadSourceLines } from "../data.ts";
@@ -6,53 +15,30 @@ import { icons } from "../icons.tsx";
 import { citedLines, fileKey, rangeLabel } from "../ref.ts";
 import type { PaneController } from "./controller.ts";
 import { splitQuery } from "./geometry.ts";
-import type { NoteMarker } from "./model.ts";
+import type { Anchor, NoteMarker } from "./model.ts";
 import { SourceView } from "./source-view.tsx";
-
-interface Peek {
-  readonly key: string;
-  readonly line: number;
-  readonly text: string;
-}
 
 export function SourcePane({ controller }: { readonly controller: PaneController }): ReactNode {
   const { strings, sources } = useViewer();
   const state = useSyncExternalStore(controller.subscribe, controller.getState);
   const pane = useRef<HTMLElement>(null);
-  const leader = useRef<SVGSVGElement>(null);
   const [files, setFiles] = useState<ReadonlyArray<{ repo: string; path: string }>>([]);
-  const [peek, setPeek] = useState<Peek | null>(null);
   const shown = state.shown;
+  const [lastShown, setLastShown] = useState(shown);
+  if (shown !== null && shown !== lastShown) setLastShown(shown);
+  const peek = useDeferredValue(lastShown);
   const shownKey = shown === null ? null : fileKey(shown.ref);
   if (shown !== null && !files.some((file) => fileKey(file) === shownKey)) {
     setFiles([...files, { repo: shown.ref.repo, path: shown.ref.path }]);
   }
 
-  useEffect(() => {
-    if (pane.current === null || leader.current === null) return;
-    return controller.attach(pane.current, leader.current);
-  }, [controller]);
-
-  useEffect(() => {
-    if (shown === null) return;
-    const { repo, path } = shown.ref;
-    const line = shown.ref.ranges[0]?.from ?? 1;
-    let live = true;
-    loadSourceLines(repo, path).then(
-      (lines) => {
-        if (!live) return;
-        setPeek({
-          key: shown.key,
-          line,
-          text: lines.status === "file" ? lines.raw[line - 1]?.trim() || "…" : strings.paneGone,
-        });
-      },
-      () => live && setPeek({ key: shown.key, line, text: shown.key }),
-    );
-    return () => {
-      live = false;
-    };
-  }, [shown, strings]);
+  const attach = useCallback(
+    (leader: SVGSVGElement | null) => {
+      if (leader === null || pane.current === null) return;
+      return controller.attach(pane.current, leader);
+    },
+    [controller],
+  );
 
   const entry =
     shown === null
@@ -122,9 +108,10 @@ export function SourcePane({ controller }: { readonly controller: PaneController
               <CopyButton
                 label={strings.copyCited}
                 text={() =>
-                  loadSourceLines(shown.ref.repo, shown.ref.path).then((lines) =>
-                    lines.status === "file" ? citedLines(shown.ref, lines.raw) : "",
-                  )
+                  loadSourceLines(shown.ref.repo, shown.ref.path).then((lines) => {
+                    if (lines.status === "error") throw new Error(lines.message);
+                    return lines.status === "file" ? citedLines(shown.ref, lines.raw) : "";
+                  })
                 }
               />
             )}
@@ -140,12 +127,7 @@ export function SourcePane({ controller }: { readonly controller: PaneController
         </div>
         <div className="pane-peek" onClick={() => controller.setSheet(true)}>
           <code className={peek !== null && peek.key === shown?.key ? "peek-line in" : "peek-line"}>
-            {peek !== null && (
-              <>
-                <span className="peek-n">{peek.line}</span>
-                {peek.text}
-              </>
-            )}
+            <Suspense fallback={null}>{peek !== null && <PeekLine anchor={peek} />}</Suspense>
           </code>
         </div>
         <div className="pane-body">
@@ -194,11 +176,27 @@ export function SourcePane({ controller }: { readonly controller: PaneController
         </div>
       </aside>
       <div className="sheet-scrim" aria-hidden="true" onClick={() => controller.setSheet(false)} />
-      <svg className="leader" aria-hidden="true" ref={leader}>
+      <svg className="leader" aria-hidden="true" ref={attach}>
         <path className="leader-path" />
         <circle className="leader-a" r="3" />
         <circle className="leader-b" r="3" />
       </svg>
+    </>
+  );
+}
+
+function PeekLine({ anchor }: { readonly anchor: Anchor }): ReactNode {
+  const { strings } = useViewer();
+  const lines = use(loadSourceLines(anchor.ref.repo, anchor.ref.path));
+  const line = anchor.ref.ranges[0]?.from ?? 1;
+  return (
+    <>
+      <span className="peek-n">{line}</span>
+      {lines.status === "file"
+        ? lines.raw[line - 1]?.trim() || "…"
+        : lines.status === "missing"
+          ? strings.paneGone
+          : anchor.key}
     </>
   );
 }

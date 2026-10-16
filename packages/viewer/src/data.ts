@@ -42,7 +42,8 @@ export type SourceLines =
       readonly raw: ReadonlyArray<string>;
       readonly html: ReadonlyArray<string>;
     }
-  | { readonly status: "missing" };
+  | { readonly status: "missing" }
+  | { readonly status: "error"; readonly message: string };
 
 const sourceLines = new Map<string, Promise<SourceLines>>();
 
@@ -50,11 +51,13 @@ export const loadSourceLines = (repo: string, path: string): Promise<SourceLines
   const key = fileKey({ repo, path });
   const cached = sourceLines.get(key);
   if (cached !== undefined) return cached;
-  const loading = loadSource(repo, path).then(async (source): Promise<SourceLines> => {
-    if (source.status === "missing") return { status: "missing" };
-    const raw = source.text.replace(/\n$/, "").split("\n");
-    return { status: "file", raw, html: await highlightLines(raw, languageOf(path)) };
-  });
+  const loading = loadSource(repo, path)
+    .then(async (source): Promise<SourceLines> => {
+      if (source.status === "missing") return { status: "missing" };
+      const raw = source.text.replace(/\n$/, "").split("\n");
+      return { status: "file", raw, html: await highlightLines(raw, languageOf(path)) };
+    })
+    .catch((error: unknown): SourceLines => ({ status: "error", message: String(error) }));
   sourceLines.set(key, loading);
   return loading;
 };

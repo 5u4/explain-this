@@ -1,24 +1,19 @@
-import {
-  type KeyboardEvent,
-  type ReactNode,
-  useId,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { type KeyboardEvent, type ReactNode, useCallback, useId, useRef, useState } from "react";
 import { type BlockOf, Blocks } from "./blocks.tsx";
 
 export function TabsView({ block }: { readonly block: BlockOf<"tabs"> }): ReactNode {
   const id = useId();
   const [selected, setSelected] = useState(0);
   const buttons = useRef<Array<HTMLButtonElement | null>>([]);
-  const ink = useRef<HTMLSpanElement>(null);
-  useLayoutEffect(() => {
-    const button = buttons.current[selected];
-    if (button === null || button === undefined || ink.current === null) return;
-    ink.current.style.transform = `translateX(${button.offsetLeft}px)`;
-    ink.current.style.width = `${button.offsetWidth}px`;
-  }, [selected]);
+  const placeInk = useCallback(
+    (ink: HTMLSpanElement | null) => {
+      const button = buttons.current[selected];
+      if (ink === null || button === null || button === undefined) return;
+      ink.style.transform = `translateX(${button.offsetLeft}px)`;
+      ink.style.width = `${button.offsetWidth}px`;
+    },
+    [selected],
+  );
   const onKeyDown = (event: KeyboardEvent) => {
     const count = block.tabs.length;
     const active = document.activeElement;
@@ -59,7 +54,7 @@ export function TabsView({ block }: { readonly block: BlockOf<"tabs"> }): ReactN
             {tab.label}
           </button>
         ))}
-        <span className="tab-ink" ref={ink} aria-hidden="true" />
+        <span className="tab-ink" ref={placeInk} aria-hidden="true" />
       </div>
       {block.tabs.map((tab, index) => (
         <section

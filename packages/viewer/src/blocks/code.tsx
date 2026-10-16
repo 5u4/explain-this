@@ -1,35 +1,10 @@
 import type { Ref } from "@explain/contract/citation";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, Suspense, use, useRef, useState } from "react";
 import { useViewer } from "../context.ts";
-import { loadSourceLines, type SourceLines } from "../data.ts";
+import { loadSourceLines } from "../data.ts";
 import { highlightLines, languageOf, plainLines } from "../highlight.ts";
 import { icons } from "../icons.tsx";
-import { citedLines, fileKey, formatRef, rangeLabel, sourceHref } from "../ref.ts";
-
-export type SourceLinesState =
-  | SourceLines
-  | { readonly status: "loading" }
-  | { readonly status: "error"; readonly message: string };
-
-export const useSourceLines = (repo: string, path: string): SourceLinesState => {
-  const key = fileKey({ repo, path });
-  const [state, setState] = useState<{ key: string; lines: SourceLinesState }>({
-    key,
-    lines: { status: "loading" },
-  });
-  useEffect(() => {
-    let live = true;
-    loadSourceLines(repo, path).then(
-      (lines) => live && setState({ key, lines }),
-      (error: unknown) =>
-        live && setState({ key, lines: { status: "error", message: String(error) } }),
-    );
-    return () => {
-      live = false;
-    };
-  }, [key, repo, path]);
-  return state.key === key ? state.lines : { status: "loading" };
-};
+import { citedLines, formatRef, rangeLabel, sourceHref } from "../ref.ts";
 
 export function CopyButton({
   text,
@@ -41,7 +16,6 @@ export function CopyButton({
   const { strings, status } = useViewer();
   const [result, setResult] = useState<"idle" | "done" | "failed">("idle");
   const timer = useRef<number | undefined>(undefined);
-  useEffect(() => () => clearTimeout(timer.current), []);
   const copy = async () => {
     const ok = await Promise.resolve(text())
       .then((value) => navigator.clipboard.writeText(value))
@@ -76,6 +50,21 @@ export function CopyButton({
   );
 }
 
+const highlighted = new Map<string, Promise<string>>();
+
+const highlightCode = (lang: string | null, value: string): Promise<string> => {
+  const key = `${lang ?? ""}\n${value}`;
+  const cached = highlighted.get(key);
+  if (cached !== undefined) return cached;
+  const lines = value.split("\n");
+  const loading = highlightLines(lines, languageOf(lang)).then(
+    (html) => html.join("\n"),
+    () => plainLines(lines).join("\n"),
+  );
+  highlighted.set(key, loading);
+  return loading;
+};
+
 export function CodeBlock({
   lang,
   value,
@@ -84,19 +73,6 @@ export function CodeBlock({
   readonly value: string;
 }): ReactNode {
   const { strings } = useViewer();
-  const key = `${lang ?? ""}\n${value}`;
-  const [highlighted, setHighlighted] = useState<{ key: string; html: string }>();
-  useEffect(() => {
-    let live = true;
-    void highlightLines(value.split("\n"), languageOf(lang)).then((lines) => {
-      if (live) setHighlighted({ key, html: lines.join("\n") });
-    });
-    return () => {
-      live = false;
-    };
-  }, [key, lang, value]);
-  const html =
-    highlighted?.key === key ? highlighted.html : plainLines(value.split("\n")).join("\n");
   return (
     <figure className="codeblock" data-lang={lang ?? "text"}>
       <div className="code-head">
@@ -104,10 +80,26 @@ export function CodeBlock({
         <CopyButton text={() => value} label={strings.copyCode} />
       </div>
       <pre>
-        <code dangerouslySetInnerHTML={{ __html: html }} />
+        <Suspense
+          fallback={
+            <code dangerouslySetInnerHTML={{ __html: plainLines(value.split("\n")).join("\n") }} />
+          }
+        >
+          <HighlightedCode lang={lang} value={value} />
+        </Suspense>
       </pre>
     </figure>
   );
+}
+
+function HighlightedCode({
+  lang,
+  value,
+}: {
+  readonly lang: string | null;
+  readonly value: string;
+}): ReactNode {
+  return <code dangerouslySetInnerHTML={{ __html: use(highlightCode(lang, value)) }} />;
 }
 
 export function LinedRows({
@@ -146,16 +138,7 @@ export function MissingFile({ path }: { readonly path: string }): ReactNode {
 
 export function Excerpt({ refValue }: { readonly refValue: Ref }): ReactNode {
   const { locale, strings } = useViewer();
-  const lines = useSourceLines(refValue.repo, refValue.path);
   const key = formatRef(refValue);
-  const ranges =
-    lines.status === "file"
-      ? refValue.ranges.length === 0
-        ? [{ from: 1, to: lines.raw.length }]
-        : refValue.ranges
-            .filter((range) => range.from <= lines.raw.length)
-            .map((range) => ({ from: range.from, to: Math.min(range.to, lines.raw.length) }))
-      : [];
   return (
     <figure className="excerpt" data-ref={key} data-kind="excerpt">
       <div className="code-head">
@@ -169,32 +152,54 @@ export function Excerpt({ refValue }: { readonly refValue: Ref }): ReactNode {
           {refValue.path}
           <span className="excerpt-range">{rangeLabel(refValue, strings)}</span>
         </a>
-        {lines.status === "file" && (
-          <CopyButton text={() => citedLines(refValue, lines.raw)} label={strings.copyCode} />
-        )}
+        <Suspense fallback={null}>
+          <ExcerptCopy refValue={refValue} />
+        </Suspense>
       </div>
-      {lines.status === "loading" && <div className="code-skel" aria-hidden="true" />}
-      {lines.status === "missing" && <MissingFile path={refValue.path} />}
-      {lines.status === "error" && (
-        <p className="err">
-          {strings.fileUnreadable(key)}: {lines.message}
-        </p>
-      )}
-      {lines.status === "file" && (
-        <pre className="lined">
-          {ranges.map((range, index) => (
-            <div key={range.from} className="lined-range">
-              {index > 0 && (
-                <div className="ln gap" aria-hidden="true">
-                  <span className="n">⋮</span>
-                  <span className="t" />
-                </div>
-              )}
-              <LinedRows html={lines.html} from={range.from} to={range.to} />
-            </div>
-          ))}
-        </pre>
-      )}
+      <Suspense fallback={<div className="code-skel" aria-hidden="true" />}>
+        <ExcerptBody refValue={refValue} />
+      </Suspense>
     </figure>
+  );
+}
+
+function ExcerptCopy({ refValue }: { readonly refValue: Ref }): ReactNode {
+  const { strings } = useViewer();
+  const lines = use(loadSourceLines(refValue.repo, refValue.path));
+  return lines.status === "file" ? (
+    <CopyButton text={() => citedLines(refValue, lines.raw)} label={strings.copyCode} />
+  ) : null;
+}
+
+function ExcerptBody({ refValue }: { readonly refValue: Ref }): ReactNode {
+  const { strings } = useViewer();
+  const lines = use(loadSourceLines(refValue.repo, refValue.path));
+  if (lines.status === "missing") return <MissingFile path={refValue.path} />;
+  if (lines.status === "error")
+    return (
+      <p className="err">
+        {strings.fileUnreadable(formatRef(refValue))}: {lines.message}
+      </p>
+    );
+  const ranges =
+    refValue.ranges.length === 0
+      ? [{ from: 1, to: lines.raw.length }]
+      : refValue.ranges
+          .filter((range) => range.from <= lines.raw.length)
+          .map((range) => ({ from: range.from, to: Math.min(range.to, lines.raw.length) }));
+  return (
+    <pre className="lined">
+      {ranges.map((range, index) => (
+        <div key={range.from} className="lined-range">
+          {index > 0 && (
+            <div className="ln gap" aria-hidden="true">
+              <span className="n">⋮</span>
+              <span className="t" />
+            </div>
+          )}
+          <LinedRows html={lines.html} from={range.from} to={range.to} />
+        </div>
+      ))}
+    </pre>
   );
 }

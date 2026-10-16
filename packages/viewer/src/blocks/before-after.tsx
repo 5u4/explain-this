@@ -1,5 +1,5 @@
 import type { Block, Inline, ListItem } from "@explain/contract/page";
-import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from "react";
+import { type CSSProperties, type ReactNode, useCallback, useState } from "react";
 import { useViewer } from "../context.ts";
 import { type BlockOf, BlockView, trimStart } from "./blocks.tsx";
 import { Inlines, inlineText } from "./inlines.tsx";
@@ -13,10 +13,8 @@ const sideItems = (blocks: ReadonlyArray<Block>): ReadonlyArray<ListItem> =>
   blocks.flatMap((block) => (block.type === "list" ? block.items : []));
 export function BeforeAfterView({ block }: { readonly block: BlockOf<"beforeAfter"> }): ReactNode {
   const { strings } = useViewer();
-  const root = useRef<HTMLDivElement>(null);
   const [drawn, setDrawn] = useState(false);
-  useEffect(() => {
-    if (root.current === null) return;
+  const observe = useCallback((root: HTMLDivElement) => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (!entries.some((entry) => entry.isIntersecting)) return;
@@ -25,7 +23,7 @@ export function BeforeAfterView({ block }: { readonly block: BlockOf<"beforeAfte
       },
       { rootMargin: "0px 0px -30% 0px" },
     );
-    observer.observe(root.current);
+    observer.observe(root);
     return () => observer.disconnect();
   }, []);
   const normalize = (item: ListItem) => inlineText(itemInlines(item)).replace(/\s+/g, " ").trim();
@@ -85,7 +83,7 @@ export function BeforeAfterView({ block }: { readonly block: BlockOf<"beforeAfte
   const afterCount = sideItems(block.after.children).length;
   const counted = beforeCount + afterCount > 0;
   return (
-    <div className={drawn ? "ba drawn" : "ba"} ref={root}>
+    <div className={drawn ? "ba drawn" : "ba"} ref={observe}>
       {side("before", counted ? strings.itemCount(beforeCount) : null)}
       {side("after", counted ? strings.itemsRemoved(afterCount, struck.size) : null)}
     </div>

@@ -1,8 +1,7 @@
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, Suspense, use } from "react";
 import { useViewer } from "../context.ts";
 
 type Diagram =
-  | { readonly status: "loading" }
   | { readonly status: "ready"; readonly svg: string; readonly kind: string }
   | { readonly status: "failed"; readonly message: string };
 
@@ -21,30 +20,41 @@ const theme = {
   layerSpacing: 44,
 };
 
-export function Mermaid({ source }: { readonly source: string }): ReactNode {
-  const { strings } = useViewer();
-  const [diagram, setDiagram] = useState<Diagram>({ status: "loading" });
-  useEffect(() => {
-    let live = true;
-    import("beautiful-mermaid")
-      .then((mermaid) => {
-        const svg = mermaid
+const diagrams = new Map<string, Promise<Diagram>>();
+
+const renderDiagram = (source: string): Promise<Diagram> => {
+  const cached = diagrams.get(source);
+  if (cached !== undefined) return cached;
+  const rendering = import("beautiful-mermaid")
+    .then(
+      (mermaid): Diagram => ({
+        status: "ready",
+        svg: mermaid
           .renderMermaidSVG(source, theme)
           .replace(/@import url\([^)]*\);/g, "")
           .replace(
             /'Inter', system-ui, sans-serif/g,
             "Inter, 'PingFang SC', 'Noto Sans SC', system-ui, sans-serif",
-          );
-        if (live)
-          setDiagram({ status: "ready", svg, kind: /^\s*([\w-]+)/.exec(source)?.[1] ?? "" });
-      })
-      .catch((error: unknown) => {
-        if (live) setDiagram({ status: "failed", message: String(error) });
-      });
-    return () => {
-      live = false;
-    };
-  }, [source]);
+          ),
+        kind: /^\s*([\w-]+)/.exec(source)?.[1] ?? "",
+      }),
+    )
+    .catch((error: unknown): Diagram => ({ status: "failed", message: String(error) }));
+  diagrams.set(source, rendering);
+  return rendering;
+};
+
+export function Mermaid({ source }: { readonly source: string }): ReactNode {
+  return (
+    <Suspense fallback={<figure className="diagram" />}>
+      <RenderedMermaid source={source} />
+    </Suspense>
+  );
+}
+
+function RenderedMermaid({ source }: { readonly source: string }): ReactNode {
+  const { strings } = useViewer();
+  const diagram = use(renderDiagram(source));
   return (
     <figure className="diagram" data-kind={diagram.status === "ready" ? diagram.kind : undefined}>
       {diagram.status === "ready" && (
