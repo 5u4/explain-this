@@ -14,6 +14,7 @@
       "!packages/viewer/src/styles/widgets.css"
     ]
   },
+  "plugins": ["./lint/no-react-effect.grit"],
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
@@ -133,6 +134,12 @@
             "noRestrictedImports": {
               "level": "error",
               "options": {
+                "paths": {
+                  "react": {
+                    "importNames": ["useEffect", "useLayoutEffect", "useInsertionEffect"],
+                    "message": "No effects. See lint/no-react-effect.grit for the replacements."
+                  }
+                },
                 "patterns": [
                   {
                     "group": ["effect", "effect/*", "@effect/*", "bun", "bun:*"],

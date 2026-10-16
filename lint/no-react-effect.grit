@@ -1,0 +1,13 @@
+language js
+
+`$callee($...)` where {
+  $callee <: or {
+    `useEffect`,
+    `useLayoutEffect`,
+    `useInsertionEffect`,
+    `$_.useEffect`,
+    `$_.useLayoutEffect`,
+    `$_.useInsertionEffect`
+  },
+  register_diagnostic(span=$callee, message="No effects. Derive the value during render or adjust state during render (packages/viewer/src/pane/source-pane.tsx), read async data with use() over a cached promise, tie element work to a ref callback cleanup, read external sources with useSyncExternalStore, and run user-triggered work in the event handler.", severity="error")
+}
