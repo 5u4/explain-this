@@ -29,8 +29,8 @@ flowchart TD
 
 | 路由 | 返回 | 实现 |
 |---|---|---|
-| `/@explain/api/site.json` | `SiteResponse`：标题、语言列表、默认语言、根级诊断，以及每种语言的导航和每页状态。`explain.json` 无效时返回 `{ status: "invalid", errors }`，状态码仍是 200 | [siteResponse](explain:packages/cli/src/site/api-bodies.ts:28-52) |
-| `/@explain/api/page/<locale>/<id>.json` | `PageResponse`：解析后的页面、诊断、新鲜度，以及每个源文件一条带状态的记录 | [pageResponse](explain:packages/cli/src/site/api-bodies.ts:84-102) |
+| `/@explain/api/site.json` | `SiteResponse`：标题、语言列表、默认语言、根级诊断，以及每种语言的导航和每页状态。`explain.json` 无效时返回 `{ status: "invalid", errors }`，状态码仍是 200 | [siteResponse](explain:packages/cli/src/site/api-bodies.ts:29-53) |
+| `/@explain/api/page/<locale>/<id>.json` | `PageResponse`：解析后的页面、一份带种类标签的 `diagnostics`、新鲜度，以及每个源文件一条带状态的记录 | [pageResponse](explain:packages/cli/src/site/api-bodies.ts:87-104) |
 | `/@explain/api/source/<repo>/<path…>.json` | `SourceResponse`：文件文本、行数、引用它的页面；或 `status: "missing"` | [sourceResponse](explain:packages/cli/src/site/api.ts:56-93) |
 | `/@explain/api/search/<locale>.json` | `SearchIndex`：每个页面小节一条 | [searchEntries](explain:packages/cli/src/site/search.ts:43-66) |
 
@@ -57,13 +57,27 @@ flowchart TD
 
 响应里的 `citedBy` 每次请求都现算：扫描所有解析成功的页面，找引用了同一仓库同一路径的（[api.ts](explain:packages/cli/src/site/api.ts:67-73)）。源码查看器用它列出"哪些页面引用了这个文件"。
 
+### 页面诊断与状态 {#page-diagnostics}
+
+页面响应里只有一份 `diagnostics` 列表，每条都是 [`PageDiagnostic`](explain:packages/viewer/src/api.ts:23-35)：位置信息（文件、行、列、消息）加一个 `_tag`，取值是 `MissingPage`、`Parse`、`CitationRepo`、`CitationFile`、`PageLink`、`SourcesRecord` 六种之一。这个类型定义在查看器包里，CLI 用 `Data.taggedEnum` 为它生成构造函数，并配一张策略表，逐种决定它是否拒绝 `freshness sync`、是否跳过新鲜度检查：
+
+```ts file=explain:packages/cli/src/doc-root/page-diagnostic.ts:13-20
+```
+
+处理函数从这张表推出两处响应内容：
+
+- **导航里的页面状态**。[`navPage`](explain:packages/cli/src/site/api-bodies.ts:18-27) 在页面文件缺失时给 `missing`；页面解析失败，或带有任何一条"跳过检查"的诊断（`MissingPage`、`Parse`、`CitationRepo`）时给 `invalid`；否则就是页面的新鲜度 `fresh` 或 `stale`。所以一个能解析、但引用了未知仓库的页面，在导航里也是 `invalid`；只是文件找不到（`CitationFile`）或页面链接断了（`PageLink`）则不会。
+- **来源表的状态**。[`sourceEntries`](explain:packages/cli/src/site/api-bodies.ts:55-85) 把页面引用的文件与 `.sources.json` 里记录的文件合并、排序。过期原因是 `sources-missing`（还没有记录文件）或 `sources-malformed`（记录文件解析不了）时，每一行都标为 `not-recorded`；否则按逐文件的过期原因标 `changed`、`missing`、`not-recorded`、`not-cited`，其余为 `fresh`。
+
+记录文件格式有误时，页面会同时得到两样东西：一条 `SourcesRecord` 诊断，它的 `file` 是那个 `.sources.json` 而不是页面本身；以及唯一的过期原因 `sources-malformed`，此时不再逐个比对文件（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:89-112)）。查看器如何展示这些诊断，见 [viewer-shell](./viewer-shell.md)；策略对 `sync` 和 `check` 命令的影响，见 [freshness](./freshness.md)。
+
 ## 开发服务器
 
-[`serveDocRoot`](explain:packages/cli/src/site/dev.ts:18-142) 起一个 Vite 开发服务器，根目录是查看器包本身（[viewerRoot](explain:packages/cli/src/site/viewer.ts:9-16)），查看器源码由 Vite 直接即时编译。explain 相关的逻辑是一个 Vite 插件，负责两件事。
+[`serveDocRoot`](explain:packages/cli/src/site/dev.ts:17-144) 起一个 Vite 开发服务器，根目录是查看器包本身（[viewerRoot](explain:packages/cli/src/site/viewer.ts:9-16)），查看器源码由 Vite 直接即时编译。它接收三个参数：启动时加载好的文档根、监听设置 `{ port, strictPort }`（见[两个命令](#commands)），以及命令传进来的诊断打印函数。explain 相关的逻辑是一个 Vite 插件，负责两件事。
 
 ### 响应请求
 
-```ts file=explain:packages/cli/src/site/dev.ts:80-106
+```ts file=explain:packages/cli/src/site/dev.ts:79-105
 ```
 
 `/@explain/` 开头的请求交给处理函数，读取当前状态时持有锁。其余请求中，接受 HTML 的 `GET`，只要路径第一段为空或是某个语言，就改写成 `/index.html`，这样 `/zh/site` 这类深链接也能打开单页应用。
@@ -72,15 +86,15 @@ flowchart TD
 
 Vite 的文件监视器同时盯着文档根和 `explain.json` 里的每个仓库。这些目录下的新增、修改、删除都进入一个队列，队列防抖 100 毫秒，每一批变化触发一次重新加载：
 
-```ts file=explain:packages/cli/src/site/dev.ts:135-140
+```ts file=explain:packages/cli/src/site/dev.ts:134-139
 ```
 
-[重新加载](explain:packages/cli/src/site/dev.ts:29-64)是完整地再跑一遍 `loadDocRoot`，不做增量：重新解析页面、重新解析引用、重新计算新鲜度。新结果在中间件使用的同一把锁下替换 `state`，所以任何请求看到的要么是旧的文档根，要么是新的，不会是做到一半的。之后：
+[重新加载](explain:packages/cli/src/site/dev.ts:34-63)是完整地再跑一遍 `loadDocRoot`，不做增量：重新解析页面、重新解析引用、重新计算新鲜度。新结果在中间件使用的同一把锁下替换 `state`，所以任何请求看到的要么是旧的文档根，要么是新的，不会是做到一半的。之后：
 
 | 加载结果 | 服务器的处理 |
 |---|---|
 | 成功 | 按新的 `repos` 更新监视列表：移除的仓库取消监视，新增的开始监视。所以往 `explain.json` 加一个仓库，保存后它就被监视了 |
-| 失败（`explain.json` 无效或文件系统错误） | 把错误打印到 stderr，状态变为 `invalid`；服务器不退出，下次保存正确后自动恢复 |
+| 失败（`explain.json` 无效或文件系统错误） | 用命令传入的 `printDiagnostics` 把错误打印到 stderr，文件路径和命令启动时一样相对当前目录显示（[open-doc-root.ts](explain:packages/cli/src/commands/open-doc-root.ts:9-18,29-35)）；状态变为 `invalid`，服务器不退出，下次保存正确后自动恢复 |
 | 两种情况都会 | 通过 Vite 的 HMR WebSocket 发送 `{ type: "full-reload" }`，浏览器整页刷新 |
 
 > [!NOTE]
@@ -142,15 +156,24 @@ Vite 的文件监视器同时盯着文档根和 `explain.json` 里的每个仓�
 > [!IMPORTANT]
 > 构建不计算任何开发服务器不会计算的东西：写出的每个文件都正好是开发服务器对那个 URL 的响应。`explain dev` 与构建产物之间如果有差异，只可能来自托管方式（比如怎样把 `/zh/site` 映射到 `zh/site/index.html`），不会来自数据。
 
-## 两个命令
+## 两个命令 {#commands}
 
 <Tabs>
 <Tab label="explain dev">
 
-```ts file=explain:packages/cli/src/commands/dev.ts:9-23
+```ts file=explain:packages/cli/src/commands/dev.ts:9-28
 ```
 
-`--port` 默认 4321，并且是严格的：端口被占用时 Vite 启动失败，打印错误，退出码 2。启动时文档根必须能加载，因为 [`openDocRoot`](explain:packages/cli/src/commands/open-doc-root.ts:35-43) 遇到找不到或无效的 `explain.json` 会直接退出；只有启动之后的损坏才走 `invalid` 状态。有诊断的页面照样提供，错误放在页面响应里。命令随后永久等待，退出时作用域负责关闭 Vite 服务器。
+端口有两种模式，由是否传了 `--port` 决定：
+
+| 调用 | 交给 Vite 的设置 | 端口被占用时 |
+|---|---|---|
+| `explain dev` | `{ port: 4321, strictPort: false }` | 换一个更大的空闲端口继续启动 |
+| `explain dev --port N` | `{ port: N, strictPort: true }` | 启动失败，stderr 打印 `explain dev: Port N is already in use`，退出码 2 |
+
+无论哪种，服务器都在加上 `host: "127.0.0.1"` 之后交给 Vite，只监听 IPv4 回环地址（[dev.ts](explain:packages/cli/src/site/dev.ts:112-119)）。固定地址是为了让"端口被占用"的判断可靠：若用 Vite 默认的 `localhost`，一个进程可能绑在 `::1`、另一个绑在 `127.0.0.1`，两者共用同一个端口号却互不冲突。启动成功后打印的地址取自 Vite 解析出的第一个本地 URL，也就是实际绑定的端口，形如 `http://127.0.0.1:<port>/`；Vite 报不出本地 URL 时按启动失败处理（[dev.ts](explain:packages/cli/src/site/dev.ts:140-143)）。dev 测试在 `127.0.0.1` 上占住端口，把两种模式都跑了一遍：占住 4321 后不带参数启动，打印的端口必须大于 4321 且 `site.json` 可访问；占住一个端口后用 `--port` 指定它，必须以 2 退出并输出上面那行错误（[dev.test.ts](explain:packages/cli/test/dev.test.ts:103-152)）。
+
+启动时文档根必须能加载，因为 [`openDocRoot`](explain:packages/cli/src/commands/open-doc-root.ts:25-41) 遇到找不到或无效的 `explain.json` 会打印诊断并以 2 退出；只有启动之后的损坏才走 `invalid` 状态。有诊断的页面照样提供，诊断放在页面响应里。命令随后永久等待，退出时作用域负责关闭 Vite 服务器。
 
 </Tab>
 <Tab label="explain build">
@@ -158,7 +181,7 @@ Vite 的文件监视器同时盯着文档根和 `explain.json` 里的每个仓�
 ```ts file=explain:packages/cli/src/commands/build.ts:15-33
 ```
 
-和 `dev` 不同，`build` 只要有任何诊断就拒绝构建，包括根级诊断（仓库）和页面诊断（含引用问题）。`--out` 相对当前目录解析，默认是文档根下的 `dist/`。成功后打印输出目录以及页面和源文件的数量。
+和 `dev` 不同，`build` 只要有任何诊断就拒绝构建：根级诊断（仓库）加上每个页面的全部 `diagnostics`，不分种类，连 `PageLink` 和 `SourcesRecord` 这类不影响 `sync` 的也算。`--out` 相对当前目录解析，默认是文档根下的 `dist/`。成功后打印输出目录以及页面和源文件的数量。
 
 </Tab>
 </Tabs>

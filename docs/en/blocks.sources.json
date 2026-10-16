@@ -67,6 +67,11 @@
     },
     {
       "repo": "explain",
+      "path": "packages/viewer/src/highlight.ts",
+      "hash": "87cf41a32e82997dc3e5d99e7c3f0697da509e4c"
+    },
+    {
+      "repo": "explain",
       "path": "packages/viewer/src/pane/anchors.ts",
       "hash": "48202680619ed2bd20ef1bac9809b7e734228178"
     },
@@ -93,7 +98,7 @@
     {
       "repo": "explain",
       "path": "packages/viewer/src/routes/page-route.tsx",
-      "hash": "0766e6af7659c8e636ee6a6cc524d39a74fa6272"
+      "hash": "047fda4b39301bfaf847eb23cf93dc1a1489d577"
     }
   ]
 }

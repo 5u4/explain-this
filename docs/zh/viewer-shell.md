@@ -18,7 +18,7 @@
     - 数据
       - [`api.ts`](explain:packages/viewer/src/api.ts) 接口路径与响应类型，CLI 也引用同一份
       - [`data.ts`](explain:packages/viewer/src/data.ts) 按路径缓存的 `fetch`
-      - [`highlight.ts`](explain:packages/viewer/src/highlight.ts) 高亮并按行切分
+      - [`highlight.ts`](explain:packages/viewer/src/highlight.ts) 语言表、按需加载语言、高亮并按行切分
       - [`ref.ts`](explain:packages/viewer/src/ref.ts) 引用的格式化、解析与链接
     - [`context.ts`](explain:packages/viewer/src/context.ts) `ViewerContext`
     - `routes/` 两种路由及页面附属组件
@@ -37,7 +37,7 @@
 
 ## 从 index.html 到第一屏 {#boot}
 
-[`index.html`](explain:packages/viewer/index.html:15-21) 只做三件事：按顺序引入 `tokens.css`、`base.css`、`viewer.css`，以模块方式加载 `/src/main.tsx`，留一个 `#root`。它能直接写 `.tsx` 路径，是因为 CLI 以查看器包为根目录启动 Vite（[dev.ts](explain:packages/cli/src/site/dev.ts:113-119)）。
+[`index.html`](explain:packages/viewer/index.html:15-21) 只做三件事：按顺序引入 `tokens.css`、`base.css`、`viewer.css`，以模块方式加载 `/src/main.tsx`，留一个 `#root`。它能直接写 `.tsx` 路径，是因为 CLI 以查看器包为根目录启动 Vite（[dev.ts](explain:packages/cli/src/site/dev.ts:112-119)）。
 
 ```tsx file=explain:packages/viewer/src/main.tsx:5-14
 ```
@@ -109,9 +109,33 @@ graph TD
 ```ts file=explain:packages/viewer/src/data.ts:15-29
 ```
 
-缓存的是 **Promise** 而不是结果。React 的 `use` 要求挂起期间每次渲染拿到同一个 Promise，按路径缓存正好满足这一点；请求失败时删掉缓存项，下次可以重试。缓存从不主动失效：开发模式下文档根目录一有改动，CLI 就让 Vite 整页刷新（[dev.ts](explain:packages/cli/src/site/dev.ts:63)），模块状态随之清空。
+缓存的是 **Promise** 而不是结果。React 的 `use` 要求挂起期间每次渲染拿到同一个 Promise，按路径缓存正好满足这一点；请求失败时删掉缓存项，下次可以重试。缓存从不主动失效：开发模式下文档根目录一有改动，CLI 就让 Vite 整页刷新（[dev.ts](explain:packages/cli/src/site/dev.ts:62)），模块状态随之清空。
 
-源码文本还有第二层缓存 [`loadSourceLines`](explain:packages/viewer/src/data.ts:49-60)：拆行后交给 [`highlightLines`](explain:packages/viewer/src/highlight.ts:74-84)。highlight.js 输出的是一整段 HTML，`<span>` 可能跨行；[`splitHighlighted`](explain:packages/viewer/src/highlight.ts:54-72) 在每个换行处补齐未闭合的 `</span>`，下一行开头再把它们重新打开。这样每一行都是独立合法的 HTML，摘录和源码页可以只渲染任意一段行。只注册了 bash、css、diff、javascript、json、markdown、typescript、xml、yaml 九种语言，按扩展名或代码块语言名选择；其余按纯文本转义（[highlight.ts](explain:packages/viewer/src/highlight.ts:12-52)）。
+### 代码高亮按需加载 {#highlight}
+
+高亮用的是 `highlight.js/lib/core`，初始包里不带任何语言。[`languages`](explain:packages/viewer/src/highlight.ts:12-164) 一张表列出 30 种语言，每种给一个 `load`（动态 `import("highlight.js/lib/languages/…")`），以及用来识别它的文件名、扩展名、代码块别名，还有它内嵌的其他语言：
+
+```ts file=explain:packages/viewer/src/highlight.ts:104-109
+```
+
+[`languageOf`](explain:packages/viewer/src/highlight.ts:180-189) 依次按完整文件名（`Dockerfile`、`CMakeLists.txt`）、小写扩展名、整串小写后的别名或语言 id 查表，查不到就是 `undefined`。所以同一个函数既能识别源文件路径，也能识别代码块的语言名；`notes.txt`、`mermaid` 都不认（[highlight.test.ts](explain:packages/viewer/src/highlight.test.ts:4-25)）。
+
+真正加载发生在第一次需要某种语言时：
+
+<AnnotatedSource file="explain:packages/viewer/src/highlight.ts:191-220">
+<Note lines="191-205">每种语言的加载 Promise 按 id 缓存，只 `import` 一次；成功后 `registerLanguage`，失败则得到 `false`，不抛错。</Note>
+<Note lines="207-213">从目标语言出发，沿 `embeds` 收集它内嵌的语言，例如 markdown 带上 xml，xml 又带上 css 和 javascript。</Note>
+<Note lines="215-220">并行注册全部所需语言；结果取目标语言自己的那一项。不在表里的 id 收集不到任何语言，结果为 `false`。</Note>
+</AnnotatedSource>
+
+因为加载是异步的，[`highlightLines`](explain:packages/viewer/src/highlight.ts:249-255) 返回 Promise：语言可用时高亮整段文本再交给 `splitHighlighted`，否则走 [`plainLines`](explain:packages/viewer/src/highlight.ts:242-247) 只做 HTML 转义。[`splitHighlighted`](explain:packages/viewer/src/highlight.ts:222-240) 处理的是 highlight.js 输出里跨行的 `<span>`：在每个换行处补齐未闭合的 `</span>`，下一行开头再把它们重新打开，于是每一行都是独立合法的 HTML，摘录和源码页可以只渲染任意一段行。测试用 python 的三引号字符串和 markdown 里的内联标签分别验证了这两点（[highlight.test.ts](explain:packages/viewer/src/highlight.test.ts:27-43)）。
+
+两处调用方对等待的处理不同：
+
+- 源码文本经 [`loadSourceLines`](explain:packages/viewer/src/data.ts:49-60) 拆行后 `await highlightLines`，高亮结果和文本一起按文件缓存。摘录和源码页的代码行不靠它挂起：[`useSourceLines`](explain:packages/viewer/src/blocks/code.tsx:14-32) 在 effect 里等待，行到达之前显示骨架占位（[source-route.tsx](explain:packages/viewer/src/routes/source-route.tsx:72,89)）。语言加载只是在同一个 Promise 里多等一步。只有路由数据（site、page、source 的 JSON）用 `use` 读取。
+- 字面代码块 [`CodeBlock`](explain:packages/viewer/src/blocks/code.tsx:85-99) 不挂起：先渲染转义后的纯文本，高亮完成后再换成带颜色的 HTML；以语言名加内容为键，键变了旧结果就作废。
+
+每种语言是一个单独的 `import()`，打包时会各自拆成独立的块，只有用到的语言才会被下载（推断：拆块由 Vite 对动态导入的默认处理完成，本仓库没有相关配置）。
 
 ## 外壳 {#shell}
 
@@ -134,17 +158,29 @@ graph TD
 <Tabs>
 <Tab label="页面路由">
 
-[`PageRoute`](explain:packages/viewer/src/routes/page-route.tsx:32-57) 加载页面 JSON，并在拉平后的导航里求出本页的[位置](explain:packages/viewer/src/routes/page-route.tsx:21-30)：所属分组、序号，以及上一页/下一页所依据的完整顺序。`PageContent` 按响应状态渲染：
+[`PageRoute`](explain:packages/viewer/src/routes/page-route.tsx:32-57) 加载页面 JSON，并在拉平后的导航里求出本页的[位置](explain:packages/viewer/src/routes/page-route.tsx:21-30)：所属分组、序号，以及上一页/下一页所依据的完整顺序。`PageContent` 按响应状态渲染（[page-route.tsx](explain:packages/viewer/src/routes/page-route.tsx:59-148)）：
 
 | 状态 | 内容 |
 |---|---|
 | `missing` | 导航里的标题，提示本语言还没写这页及预期的文件路径，返回首页，上一页/下一页 |
-| `invalid` | 导航里的标题，页面解析错误和站点错误，不渲染正文 |
-| `parsed` | 页面自己的标题、新鲜度徽标、错误（如有）、正文块、来源表、上一页/下一页 |
+| `invalid` | 导航里的标题，"本页无法解析"的说明，全部页面诊断，站点错误；不渲染正文 |
+| `parsed` | 页面自己的标题、新鲜度徽标、非引用类诊断（如有）、站点错误（如有）、正文块、来源表（附引用问题）、上一页/下一页 |
 
-站点级错误（`site.errors`）只出现在解析成功和解析失败的页面上；当前语言下缺失的页面只显示缺失提示和翻页，源码页也不显示它（[page-route.tsx](explain:packages/viewer/src/routes/page-route.tsx:80-140)）。
+站点级错误（`site.errors`）只出现在解析成功和解析失败的页面上；当前语言下缺失的页面只显示缺失提示和翻页，源码页也不显示它。
 
-[新鲜度徽标](explain:packages/viewer/src/routes/freshness.tsx:10-46)和[来源表](explain:packages/viewer/src/routes/sources.tsx:32-69)读的是同一份由 CLI 算好的 `sources` 列表（判定规则见 [freshness](./freshness.md)）。徽标只看 `freshness.status`；过期时列出不一致的文件，若全部只是 `changed` 就省掉逐个文件的状态词、统一补一句说明；若原因是 `sources-missing`（从未同步过），则提示运行 `explain freshness sync`。来源表每行显示文件、记录哈希的前 12 位（没有记录时用当前哈希）和状态，文件名链接到源码页。
+页面响应里的 `diagnostics` 每条都带 `_tag`（种类见 [site](./site.md)），解析成功的页面按种类分两处显示：
+
+```tsx file=explain:packages/viewer/src/routes/page-route.tsx:124-129
+```
+
+| 种类 | 显示位置 |
+|---|---|
+| `CitationRepo`、`CitationFile` | 来源表下方，标题"引用问题"（[sources.tsx](explain:packages/viewer/src/routes/sources.tsx:72)） |
+| `Parse`、`PageLink`、`SourcesRecord` | 页面标题下方的错误列表，标题是"本页有 N 处错误" |
+
+两处都用 [`DevErrors`](explain:packages/viewer/src/routes/dev-errors.tsx:4-26) 渲染：每条一行 `文件:行:列` 加消息，所以 `SourcesRecord` 显示的文件是 `.sources.json` 而不是页面。左侧导航的标记只看导航里的页面状态：服务端把带 `CitationRepo` 诊断的页面也算作 `invalid`，它在导航里会带错误标记；只有 `PageLink` 问题的页面则不会因此带错误标记。
+
+[新鲜度徽标](explain:packages/viewer/src/routes/freshness.tsx:5-53)和[来源表](explain:packages/viewer/src/routes/sources.tsx:7-75)读的是同一份由 CLI 算好的 `sources` 列表（判定规则见 [freshness](./freshness.md)）。徽标只看 `freshness.status`。过期时，先看过期原因里有没有关于记录文件本身的：`sources-missing`（从未同步）显示 `unhashedNote`，`sources-malformed`（记录文件格式有误）显示 `malformedSourcesNote`，两句都提示运行 `explain freshness sync`，此时不再逐个列文件。否则列出不一致的文件，若全部只是 `changed` 就省掉逐个文件的状态词、统一补一句说明。来源表每行显示文件、记录哈希的前 12 位（没有记录时用当前哈希）和状态，文件名链接到源码页；记录文件缺失或格式有误时，服务端把每一行都标为 `not-recorded`，表里显示"未哈希"。
 
 </Tab>
 <Tab label="源码路由">
@@ -160,7 +196,7 @@ graph TD
 
 文档的语言是 `explain.json` 里的任意字符串，界面文案却只有两份。两者之间只靠这一个函数衔接：
 
-```ts file=explain:packages/viewer/src/i18n/strings.ts:104-107
+```ts file=explain:packages/viewer/src/i18n/strings.ts:105-108
 ```
 
 它取语言代码第一个 `-` 之前的部分、转小写，再到以**语种**为键的表里查找，查不到就回落到英文：
@@ -177,22 +213,43 @@ graph TD
 `App`、`Shell`、`SourceRoute` 直接调用 `stringsFor(locale)`，外壳以下的组件从 `ViewerContext` 取 `strings`。唯一的例外是 `site.json` 无效时：此时没有站点，也就没有语言，只能用浏览器的 `navigator.language`（[app.tsx](explain:packages/viewer/src/app.tsx:14-15)）。其余情况下界面语言和内容语言是同一个值：URL 里的语言段同时决定读哪个页面文件、用哪份文案，并被写进 `<html lang>`。
 
 > [!IMPORTANT]
-> 两份文案都声明为 [`Strings`](explain:packages/viewer/src/i18n/strings.ts:6-102) 类型。新增一条界面文案必须同时改接口、`en.ts` 和 `zh-CN.ts`，否则类型检查不通过。与数量或参数有关的句子写成函数（如 `freshNote(count)`、`pageOf(index, total)`），让每种语言自己组织语序，例如中文的[`pageOf`](explain:packages/viewer/src/i18n/zh-CN.ts:16) 是"第 N 页，共 M 页"。
+> 两份文案都声明为 [`Strings`](explain:packages/viewer/src/i18n/strings.ts:6-103) 类型。新增一条界面文案必须同时改接口、`en.ts` 和 `zh-CN.ts`，否则类型检查不通过。与数量或参数有关的句子写成函数（如 `freshNote(count)`、`pageOf(index, total)`），让每种语言自己组织语序，例如中文的[`pageOf`](explain:packages/viewer/src/i18n/zh-CN.ts:16) 是"第 N 页，共 M 页"。
 
 ## 样式 {#styles}
 
 `index.html` 按顺序引入三层样式：
 
-- [`tokens.css`](explain:packages/viewer/src/styles/tokens.css) 只定义自定义属性：一组 `oklch` 墨色灰阶和朱红强调色（`--ink-*`、`--zhu-*`），语义色（`--fresh`、`--stale`、`--added`、`--removed`、各类提示色），字体（标题用 Noto Serif SC，代码用 JetBrains Mono），字号、间距、圆角、动效，以及三个布局宽度 `--rail-w`、`--prose-w`、`--pane-min`（[tokens.css](explain:packages/viewer/src/styles/tokens.css:131-133)）。只有深色主题（`index.html` 声明 `color-scheme: dark`）。
+- [`tokens.css`](explain:packages/viewer/src/styles/tokens.css) 只定义自定义属性：一组 `oklch` 墨色灰阶和朱红强调色（`--ink-*`、`--zhu-*`），语义色（`--fresh`、`--stale`、`--added`、`--removed`、各类提示色），字体（标题用 Noto Serif SC，代码用 JetBrains Mono），字号、间距、圆角、动效，以及布局宽度。只有深色主题（`index.html` 声明 `color-scheme: dark`）。
 - [`base.css`](explain:packages/viewer/src/styles/base.css) 定义少量 `ui-*` 基础组件：按钮、下拉、分段控件、表格、代码、标签。
 - [`viewer.css`](explain:packages/viewer/src/styles/viewer.css) 本身只有 `@import`，按区域拆到 `viewer/` 下：外壳、导航、页面、各种正文块、面板、搜索、抽屉、底部抽屉、源码页等，一个区域一个文件。
+
+### 随视口变化的字号与列宽 {#fluid}
+
+正文字号和三列宽度都从两个随视口变化的变量推出：
+
+```css file=explain:packages/viewer/src/styles/tokens.css:58-59
+```
+
+```css file=explain:packages/viewer/src/styles/tokens.css:133-136
+```
+
+`html` 的字号是 `--step-0`，即 `1.0625em`（[globals.css](explain:packages/viewer/src/styles/viewer/globals.css:6-9)），在浏览器默认 16px 下就是 17px，于是 `1rem` 等于 17px（推断：依赖用户没改浏览器默认字号）。按这个换算，`--size-prose` 在视口 1440px 及以下是 17px，到 2560px 线性增至约 20px，之后不再变大。它由正文列 `.prose-col` 使用（[shell.css](explain:packages/viewer/src/styles/viewer/shell.css:22-28)）；`--size-code` 是它的 0.796875 倍，源码面板的代码用它（[pane-view.css](explain:packages/viewer/src/styles/viewer/pane-view.css:29)）。
+
+| 变量 | 公式 | 17px 时 | 20px 时 |
+|---|---|---|---|
+| `--prose-w` | 34 × 正文字号 + 126px | 704px | 806px |
+| `--pane-max` | 60 × 代码字号 + 100px | 约 913px | 约 1056px |
+
+所以正文列始终保持约 34 个字号宽的行长，只是随字号一起变宽；面板上限大致是 100 列等宽代码（每列按 0.6 个字号估算）加 100px（推断：0.6 是对等宽字符宽度的近似，代码里只写了算式）。
+
+### 断点 {#breakpoints}
 
 整体布局是一个 CSS Grid，在两个断点处收拢：
 
 | 视口宽度 | 布局 |
 |---|---|
-| ≥ 1360px | 导航 · 正文 · 面板 三列（[shell.css](explain:packages/viewer/src/styles/viewer/shell.css:1-6)） |
-| ≤ 1359px | 导航移出网格变成左侧抽屉，出现吸顶顶栏（[drawer.css](explain:packages/viewer/src/styles/viewer/drawer.css:1-43)） |
+| ≥ 1360px | 导航 · 正文 · 面板 三列：导航 `--rail-w`，正文 `--prose-w`，面板在 `--pane-min` 与 `--pane-max` 之间；三列都到上限后，多出的宽度由 `justify-content: safe center` 平分到两侧，整个布局居中（[shell.css](explain:packages/viewer/src/styles/viewer/shell.css:1-7)） |
+| ≤ 1359px | 导航移出网格变成左侧抽屉，出现吸顶顶栏；面板列为 `minmax(--pane-min, 1fr)`，不设上限（[drawer.css](explain:packages/viewer/src/styles/viewer/drawer.css:1-43)） |
 | ≤ 1079px | 单列，源码面板变成底部抽屉（[bottom-sheet.css](explain:packages/viewer/src/styles/viewer/bottom-sheet.css:1-9)） |
 
-没有面板的路由给外壳加 `no-pane`，去掉面板列并放宽正文列（[source-page.css](explain:packages/viewer/src/styles/viewer/source-page.css:1-15)）。
+`safe` 的作用是：网格比视口宽时不居中，改为从起始边对齐，避免左侧内容被推出屏幕。没有面板的路由给外壳加 `no-pane`，去掉面板列，正文列最宽到 `--prose-w` 加 320px（[source-page.css](explain:packages/viewer/src/styles/viewer/source-page.css:1-15)）。

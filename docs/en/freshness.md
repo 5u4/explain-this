@@ -4,7 +4,7 @@ A page is a set of claims about code that keeps changing. Freshness is how `expl
 
 ## The data
 
-`explain freshness sync` writes one `<locale>/<id>.sources.json` next to each page. After syncing a page that cites one file, it looks like this:
+`explain freshness sync` writes one `<locale>/<id>.sources.json` next to each page. After syncing a page that cites one file, it looks like this (an illustrative example; the hash stands for whatever blob id `f.ts` has):
 
 ```json
 {

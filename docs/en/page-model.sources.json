@@ -3,12 +3,12 @@
     {
       "repo": "explain",
       "path": "packages/cli/src/doc-root/check-page.ts",
-      "hash": "cf0aab598bd243ed3439d51725e221b57c4dfa3c"
+      "hash": "9f9e5d290dfe9d9d8af165588fd4500fb19a5fa4"
     },
     {
       "repo": "explain",
       "path": "packages/cli/src/site/api-bodies.ts",
-      "hash": "0c53b625570bd1864c2ff932c2bdb2a85f383450"
+      "hash": "ac04003fbb30e733ddc15d5c94eab97b951523ab"
     },
     {
       "repo": "explain",
@@ -38,17 +38,22 @@
     {
       "repo": "explain",
       "path": "packages/contract/src/parse-page/inline.ts",
-      "hash": "33903b11dcdbada25ee1185fa7333ea179ec6bfe"
+      "hash": "d5654acefcc9b6ef872d8140bfa1727d19701aa4"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/parse-page/markdown.ts",
+      "hash": "215e6c597731a22b9825ec6d231074ff0b26c078"
     },
     {
       "repo": "explain",
       "path": "packages/contract/src/parse-page/parse-page.ts",
-      "hash": "12390c55d25abbd104e22dd168a13ba1c363c482"
+      "hash": "0cf05eb9d24f0b408658f2c8f76222fcfa6904bf"
     },
     {
       "repo": "explain",
       "path": "packages/viewer/src/api.ts",
-      "hash": "59df972e2f5bf2983441363f04f9a08f2de5c3ba"
+      "hash": "841af40a4c15116598032451a0482f4f6a1fa695"
     },
     {
       "repo": "explain",
@@ -68,7 +73,7 @@
     {
       "repo": "explain",
       "path": "packages/viewer/src/routes/page-route.tsx",
-      "hash": "0766e6af7659c8e636ee6a6cc524d39a74fa6272"
+      "hash": "047fda4b39301bfaf847eb23cf93dc1a1489d577"
     }
   ]
 }

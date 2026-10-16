@@ -7,8 +7,9 @@ explain 页面里的每一条论断都要指向代码，指向的方式是一个
 
 谁在调用它：
 
-- 页面解析器遇到既不是页面链接、也不是网页地址的链接目标时，就交给 `parseRef`
-  （[context.ts](explain:packages/contract/src/parse-page/context.ts:20-25)）。
+- 页面解析器遇到带 `scheme:` 前缀、且 scheme 不是 `http`、`https`、`mailto` 的链接目标时，就交给 `parseRef`；
+  没有 scheme 又不是页面链接的目标在这之前就已报错
+  （[inline.ts](explain:packages/contract/src/parse-page/inline.ts:34-43)、[context.ts](explain:packages/contract/src/parse-page/context.ts:20-25)）。
 - CLI 的 API 处理函数 `handleExplainRequest`（`explain dev` 和 `explain build` 共用）在响应源码请求前，用它检查请求里的 `repo/path` 是否合法
   （[api.ts](explain:packages/cli/src/site/api.ts:64-65)）。
 
@@ -99,7 +100,7 @@ explain 页面里的每一条论断都要指向代码，指向的方式是一个
 ## 写回字符串
 
 `formatRef` 是 `parseRef` 的逆操作：单行区间写成 `N`，跨行写成 `N-M`，整文件引用没有第三段。CLI 打印过期来源时就用它
-（[check.ts](explain:packages/cli/src/commands/freshness/check.ts:12)）。
+（[check.ts](explain:packages/cli/src/commands/freshness/check.ts:15)）。
 
 ```ts file=explain:packages/contract/src/citation.ts:74-80
 ```

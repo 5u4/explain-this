@@ -4,8 +4,10 @@ Every claim on an explain page points at code through a citation string such as
 `explain:packages/contract/src/citation.ts:62-72`. One small module in the contract package owns
 that string: it defines the [`Ref`](explain:packages/contract/src/citation.ts:3-12) value, parses
 text into it with `parseRef`, and writes it back with `formatRef`. The page parser calls `parseRef`
-for every link target that is not a page link or a web URL
-([context.ts](explain:packages/contract/src/parse-page/context.ts:20-25)), and the CLI's shared API
+for every link target that has a `scheme:` prefix other than `http`, `https`, or `mailto`; a target
+with no scheme that is not a page link is reported before that
+([inline.ts](explain:packages/contract/src/parse-page/inline.ts:34-43),
+[context.ts](explain:packages/contract/src/parse-page/context.ts:20-25)), and the CLI's shared API
 handler, which serves both `explain dev` and `explain build`, calls it to vet the `repo/path` of a
 source request ([api.ts](explain:packages/cli/src/site/api.ts:64-65)).
 
@@ -110,7 +112,7 @@ whole-file ref has no third part.
 ```
 
 The CLI uses it to print stale sources
-([check.ts](explain:packages/cli/src/commands/freshness/check.ts:12)).
+([check.ts](explain:packages/cli/src/commands/freshness/check.ts:15)).
 
 <details>
 <summary>The viewer has its own copy</summary>

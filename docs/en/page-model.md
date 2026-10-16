@@ -25,18 +25,22 @@ walks the Markdown, so nobody downstream has to walk the tree again:
 | Field | Filled by | Read by |
 |---|---|---|
 | `toc` | each `##`–`####` heading ([heading.ts](explain:packages/contract/src/parse-page/heading.ts:49)) | the viewer's table of contents ([page-route.tsx](explain:packages/viewer/src/routes/page-route.tsx:50)) |
-| `refs` | every citation, excerpt, annotated source, and diff side, through one `citation` helper ([context.ts](explain:packages/contract/src/parse-page/context.ts:20-25)) | the CLI, to resolve each file and hash it for freshness ([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:46-53,60-66)) |
-| `pageLinks` | `./<id>.md` and `#anchor` links ([inline.ts](explain:packages/contract/src/parse-page/inline.ts:17-33)) | the CLI, to check that the target page exists ([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:54-56)) |
+| `refs` | every citation, excerpt, annotated source, and diff side, through one `citation` helper ([context.ts](explain:packages/contract/src/parse-page/context.ts:20-25)) | the CLI, to resolve each file and hash it for freshness ([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:57-70,81-87)) |
+| `pageLinks` | `./<id>.md` and `#anchor` links ([inline.ts](explain:packages/contract/src/parse-page/inline.ts:17-33)) | the CLI, to check that the target page exists ([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:71-79)) |
 
 `refs` and `pageLinks` carry a `Position` so each problem can be reported at the line and
 column of the Markdown that caused it.
 
 `parsePage` returns `{ page, errors }` rather than throwing, and `page` is `undefined` only when the
-Markdown parser throws on syntax it cannot recover from, or the page has frontmatter
-([parse-page.ts](explain:packages/contract/src/parse-page/parse-page.ts:7-10,13-21,43-44)). Any other
-problem becomes a `Diagnostic` while the rest of the page is still built, so the viewer renders a
-page that has errors with the list of those errors above its body
-([page-route.tsx](explain:packages/viewer/src/routes/page-route.tsx:130-137)).
+page has frontmatter or the Markdown parser throws on syntax it cannot recover from
+([parse-page.ts](explain:packages/contract/src/parse-page/parse-page.ts:7-21)). HTML comments,
+autolinks and `<!…>` or `<?…>` constructs also make the parser throw, but those are reported, blanked out and
+parsed again, so they do not lose the page
+([markdown.ts](explain:packages/contract/src/parse-page/markdown.ts:88-125)). Any other problem
+becomes a `Diagnostic` while the rest of the page is still built
+([parse-page.ts](explain:packages/contract/src/parse-page/parse-page.ts:43-44)). The viewer renders
+such a page with its citation problems in the sources panel and every other diagnostic listed above
+its body ([page-route.tsx](explain:packages/viewer/src/routes/page-route.tsx:124-144)).
 
 ## Positions and diagnostics
 
@@ -44,9 +48,10 @@ page that has errors with the list of those errors above its body
 ```
 
 A contract `Diagnostic` knows only its place in the page source, not which file it came from. The
-CLI adds the file name when it collects them
-([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:28-32)), and the viewer's API type
-is the contract type plus `file` ([api.ts](explain:packages/viewer/src/api.ts:23)).
+CLI adds the file name and a `_tag` naming the kind of problem when it collects them
+([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:37-41,51)). The viewer's API types
+spell that out: `Diagnostic` is the contract type plus `file`, and `PageDiagnostic` adds one of six
+tags ([api.ts](explain:packages/viewer/src/api.ts:23-35)).
 
 ## Inlines
 
@@ -105,7 +110,7 @@ unrepresentable, and every consumer narrows on `kind` before touching a side
 
 A `TocEntry` stores its heading as plain text, already flattened with `plainText`, so the table of
 contents does not need to render inlines. The CLI uses the same helper for nav titles and the search
-index ([api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:14-15),
+index ([api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:15-16),
 [search.ts](explain:packages/cli/src/site/search.ts:6-13)).
 
 ## Who depends on the shape

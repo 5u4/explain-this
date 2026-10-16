@@ -24,8 +24,8 @@ The path shapes are typed in the viewer package as [`ApiPath`](explain:packages/
 
 | Route | Answer | Source |
 |---|---|---|
-| `/@explain/api/site.json` | `SiteResponse`: title, locales, default locale, root diagnostics, and per-locale nav with each page's status. When `explain.json` is invalid, `{ status: "invalid", errors }` with status 200. | [siteResponse](explain:packages/cli/src/site/api-bodies.ts:28-52) |
-| `/@explain/api/page/<locale>/<id>.json` | `PageResponse`: the parsed page, its diagnostics, freshness, and one entry per source file with its state | [pageResponse](explain:packages/cli/src/site/api-bodies.ts:84-102) |
+| `/@explain/api/site.json` | `SiteResponse`: title, locales, default locale, root diagnostics, and per-locale nav with each page's status. When `explain.json` is invalid, `{ status: "invalid", errors }` with status 200. | [siteResponse](explain:packages/cli/src/site/api-bodies.ts:29-53) |
+| `/@explain/api/page/<locale>/<id>.json` | `PageResponse`: the parsed page, one list of tagged `diagnostics`, freshness, and one entry per source file with its state | [pageResponse](explain:packages/cli/src/site/api-bodies.ts:87-104) |
 | `/@explain/api/source/<repo>/<path…>.json` | `SourceResponse`: the file text, line count, and the pages that cite it; or `status: "missing"` | [sourceResponse](explain:packages/cli/src/site/api.ts:56-93) |
 | `/@explain/api/search/<locale>.json` | `SearchIndex`: one entry per page section | [searchEntries](explain:packages/cli/src/site/search.ts:43-66) |
 
@@ -51,21 +51,35 @@ The repo must be a key of `explain.json` `repos` (404 otherwise). `repo:path` mu
 
 `citedBy` is computed on every request by scanning all parsed pages for a ref to the same repo and path ([api.ts](explain:packages/cli/src/site/api.ts:67-73)); the source viewer uses it to list the pages that cite a file.
 
+### Page diagnostics and status {#page-diagnostics}
+
+A page response carries a single `diagnostics` list. Each entry is a [`PageDiagnostic`](explain:packages/viewer/src/api.ts:23-35): a located message (file, line, column, message) plus a `_tag` naming its kind, one of `MissingPage`, `Parse`, `CitationRepo`, `CitationFile`, `PageLink` or `SourcesRecord`. The type lives in the viewer package; the CLI derives constructors from it with `Data.taggedEnum` and keeps one policy table that says, per kind, whether it refuses `freshness sync` and whether it skips the freshness check:
+
+```ts file=explain:packages/cli/src/doc-root/page-diagnostic.ts:13-20
+```
+
+Two parts of the responses follow from it:
+
+- **Nav status.** [`navPage`](explain:packages/cli/src/site/api-bodies.ts:18-27) reports `missing` when the page file is absent, `invalid` when the page failed to parse or has any diagnostic whose kind skips the check (`MissingPage`, `Parse`, `CitationRepo`), and otherwise the page's freshness, `fresh` or `stale`. A page that parses but cites an unknown repo is therefore `invalid` in the nav; a missing cited file (`CitationFile`) or a broken page link (`PageLink`) is not.
+- **Source states.** [`sourceEntries`](explain:packages/cli/src/site/api-bodies.ts:55-85) merges the files the page cites with the files its `.sources.json` recorded, sorted. When the stale reason is `sources-missing` (no record yet) or `sources-malformed` (the record does not decode), every row is `not-recorded`. Otherwise each row takes its per-file stale reason (`changed`, `missing`, `not-recorded`, `not-cited`) or `fresh`.
+
+A malformed record gives the page two things at once: a `SourcesRecord` diagnostic whose `file` is the `.sources.json`, not the page, and `sources-malformed` as the only stale reason, with no per-file comparison ([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:89-112)). How the viewer shows these is on [viewer-shell](./viewer-shell.md); what the policy means for `sync` and `check` is on [freshness](./freshness.md).
+
 ## The dev server
 
-[`serveDocRoot`](explain:packages/cli/src/site/dev.ts:18-142) runs a Vite dev server whose root is the viewer package ([viewer.ts](explain:packages/cli/src/site/viewer.ts:9-16)), so the viewer's own source is served and hot-compiled straight from `node_modules` or the workspace. The explain part is a Vite plugin with two jobs.
+[`serveDocRoot`](explain:packages/cli/src/site/dev.ts:17-144) runs a Vite dev server whose root is the viewer package ([viewer.ts](explain:packages/cli/src/site/viewer.ts:9-16)), so the viewer's own source is served and hot-compiled straight from `node_modules` or the workspace. It takes the doc root loaded at startup, the listen settings `{ port, strictPort }` (see [the commands](#commands)), and the command's diagnostic printer. The explain part is a Vite plugin with two jobs.
 
-**Serving.** A middleware sends every `/@explain/` request to the handler, reading the current state under a lock ([dev.ts](explain:packages/cli/src/site/dev.ts:80-96)). Any other `GET` that accepts HTML and whose first segment is empty or a locale is rewritten to `/index.html` ([dev.ts](explain:packages/cli/src/site/dev.ts:97-105)), so a deep link like `/en/site` loads the single-page app.
+**Serving.** A middleware sends every `/@explain/` request to the handler, reading the current state under a lock ([dev.ts](explain:packages/cli/src/site/dev.ts:79-95)). Any other `GET` that accepts HTML and whose first segment is empty or a locale is rewritten to `/index.html` ([dev.ts](explain:packages/cli/src/site/dev.ts:96-104)), so a deep link like `/en/site` loads the single-page app.
 
 **Reloading.** Vite's file watcher is pointed at the doc root and every repo in `explain.json`. Any add, change or unlink under those directories goes into a queue; the queue is debounced by 100 ms and each settled burst triggers one reload:
 
-```ts file=explain:packages/cli/src/site/dev.ts:135-140
+```ts file=explain:packages/cli/src/site/dev.ts:134-139
 ```
 
-A [reload](explain:packages/cli/src/site/dev.ts:29-64) is a full `loadDocRoot`, not an incremental update: pages are reparsed, citations re-resolved, and freshness recomputed. The result replaces `state` while holding the same lock the middleware uses, so a request sees either the old doc root or the new one, never a half-built one. Then:
+A [reload](explain:packages/cli/src/site/dev.ts:34-63) is a full `loadDocRoot`, not an incremental update: pages are reparsed, citations re-resolved, and freshness recomputed. The result replaces `state` while holding the same lock the middleware uses, so a request sees either the old doc root or the new one, never a half-built one. Then:
 
 - If the load succeeded, the watched set is updated to match the new `repos`: removed repos are unwatched, new ones added. Editing `explain.json` to add a repo is enough to start watching it.
-- If it failed (invalid `explain.json`, or a filesystem error), the errors are printed to stderr and the state becomes `invalid`. The server keeps running and recovers on the next good save.
+- If it failed (invalid `explain.json`, or a filesystem error), the errors go to stderr through the `printDiagnostics` the command passed in, so their paths are shown relative to the current directory just like at startup ([open-doc-root.ts](explain:packages/cli/src/commands/open-doc-root.ts:9-18,29-35)). The state becomes `invalid`; the server keeps running and recovers on the next good save.
 - Either way, the server sends `{ type: "full-reload" }` over Vite's HMR WebSocket, and the browser reloads the page.
 
 > [!NOTE]
@@ -117,15 +131,24 @@ The [expected file lists](explain:packages/cli/test/build.test.ts:71-105) in the
 > [!IMPORTANT]
 > The build never computes anything the dev server would not: each written file is exactly the dev server's response for that URL. A difference between `explain dev` and a built site can only come from the host (for example, how it maps `/en/site` to `en/site/index.html`), not from the data.
 
-## The commands
+## The commands {#commands}
 
 <Tabs>
 <Tab label="explain dev">
 
-```ts file=explain:packages/cli/src/commands/dev.ts:9-23
+```ts file=explain:packages/cli/src/commands/dev.ts:9-28
 ```
 
-`--port` defaults to 4321 and is strict: if the port is taken, Vite fails, the error is printed and the exit code is 2. The doc root must load at startup, since [`openDocRoot`](explain:packages/cli/src/commands/open-doc-root.ts:35-43) exits on a missing or invalid `explain.json`; only later breakage is handled as the `invalid` state. Pages with diagnostics are still served, with their errors in the page response. The command then waits forever; the scope closes the Vite server on exit.
+Whether `--port` was given picks one of two modes:
+
+| Invocation | Settings passed to Vite | When the port is taken |
+|---|---|---|
+| `explain dev` | `{ port: 4321, strictPort: false }` | starts on a higher free port instead |
+| `explain dev --port N` | `{ port: N, strictPort: true }` | fails: stderr shows `explain dev: Port N is already in use`, exit code 2 |
+
+Either way the server adds `host: "127.0.0.1"` before handing the settings to Vite, so it binds only the IPv4 loopback address ([dev.ts](explain:packages/cli/src/site/dev.ts:112-119)). The fixed host keeps port-in-use detection reliable: with Vite's default `localhost`, one process could bind `::1` and another `127.0.0.1` on the same port number without colliding. The printed URL is the first local URL Vite resolved, so it names the port actually bound, in the form `http://127.0.0.1:<port>/`; if Vite reports none, startup fails ([dev.ts](explain:packages/cli/src/site/dev.ts:140-143)). The dev tests hold ports on `127.0.0.1` and run both modes: with 4321 held, a bare `explain dev` must print a port above 4321 and serve `site.json`; with a held port passed as `--port`, it must exit 2 with exactly that error line ([dev.test.ts](explain:packages/cli/test/dev.test.ts:103-152)).
+
+The doc root must load at startup, since [`openDocRoot`](explain:packages/cli/src/commands/open-doc-root.ts:25-41) prints the diagnostics and exits 2 on a missing or invalid `explain.json`; only later breakage is handled as the `invalid` state. Pages with diagnostics are still served, with their diagnostics in the page response. The command then waits forever; the scope closes the Vite server on exit.
 
 </Tab>
 <Tab label="explain build">
@@ -133,7 +156,7 @@ The [expected file lists](explain:packages/cli/test/build.test.ts:71-105) in the
 ```ts file=explain:packages/cli/src/commands/build.ts:15-33
 ```
 
-Unlike `dev`, `build` refuses a doc root with any diagnostic, whether root-level (repos) or on a page, including citation problems. `--out` is resolved against the current directory and defaults to `dist/` inside the doc root. On success it prints the directory and the counts of pages and sources.
+Unlike `dev`, `build` refuses a doc root with any diagnostic: the root-level ones (repos) plus every page's whole `diagnostics` list, whatever the kind, including `PageLink` and `SourcesRecord`, which do not block `sync`. `--out` is resolved against the current directory and defaults to `dist/` inside the doc root. On success it prints the directory and the counts of pages and sources.
 
 </Tab>
 </Tabs>

@@ -59,8 +59,8 @@ follows:
 |---|---|---|
 | inline citation link with ranges | [`cite`](explain:packages/viewer/src/blocks/inlines.tsx:46-51) | yes |
 | inline citation of a whole file | [`file`](explain:packages/viewer/src/blocks/inlines.tsx:46-51) | no |
-| excerpt `<figure>` | [`excerpt`](explain:packages/viewer/src/blocks/code.tsx:148) | yes |
-| path link in an excerpt's header | [`cite`, `data-follow="0"`](explain:packages/viewer/src/blocks/code.tsx:150-156) | no |
+| excerpt `<figure>` | [`excerpt`](explain:packages/viewer/src/blocks/code.tsx:160) | yes |
+| path link in an excerpt's header | [`cite`, `data-follow="0"`](explain:packages/viewer/src/blocks/code.tsx:162-168) | no |
 | `<AnnotatedSource>` note button | [`note`](explain:packages/viewer/src/blocks/annotated-source.tsx:23-29) | yes |
 | side header link in a `<Diff>` | [`cite` (attribute absent)](explain:packages/viewer/src/blocks/diff.tsx:77-81) | yes |
 | line-number link in a `<Diff>` | [`cite`, `data-follow="0"`](explain:packages/viewer/src/blocks/diff.tsx:89-95) | no |
@@ -255,6 +255,20 @@ The pane is a grid column beside the prose. Hover previews, click toggles a pin,
 drawn. `sheetOpen` stays `false`: [`setSheet(true)`](explain:packages/viewer/src/pane/controller.ts:134-149)
 returns early when split, and a resize into the split layout closes an open sheet.
 
+From 1360px up the shell has three columns: the rail, the prose at `--prose-w`, and the pane between
+`--pane-min` (440px) and `--pane-max`; `justify-content: safe center` centers the grid when the
+window is wider than all three ([shell.css](explain:packages/viewer/src/styles/viewer/shell.css:1-7)).
+Between 1080px and 1359px the rail moves into a drawer and the pane takes the remaining `1fr`, with no
+cap ([drawer.css](explain:packages/viewer/src/styles/viewer/drawer.css:1-6)). Both widths derive
+from the font size ([tokens.css](explain:packages/viewer/src/styles/tokens.css:58-59,133-136)):
+`--size-prose` is a `clamp` that grows with the viewport width from 1rem to 1.1765rem and is applied
+to the prose column ([shell.css](explain:packages/viewer/src/styles/viewer/shell.css:22-28)), and the
+pane's code is set at `--size-code`, 0.796875 of it
+([pane-view.css](explain:packages/viewer/src/styles/viewer/pane-view.css:26-32)). `--prose-w` is
+34 times `--size-prose` plus 126px, and `--pane-max` is `60 * --size-code + 100px`, so on a wider
+screen the prose, the code and both columns grow together. Reading `60` as 100 monospace columns at
+0.6em each is an inference; the code does not name it.
+
 </Tab>
 <Tab label="Narrow (< 1080px)">
 
@@ -268,9 +282,10 @@ citation pins it and opens the sheet; tapping the peek line, the title, or the h
 `setSheet(true)` adds `body.sheet-open`, makes `<main>` and the top bar `inert`, focuses the close
 button, and remembers the element to return focus to; closing restores that focus.
 
-Dragging the head ([sheet-drag.ts](explain:packages/viewer/src/pane/sheet-drag.ts:16-22)) moves the
-sheet with the finger through the `--drag` custom property; letting go more than 80px down closes
-it, and more than 30px up from the peek opens it.
+Dragging the head ([sheet-drag.ts](explain:packages/viewer/src/pane/sheet-drag.ts:12-22)) while the
+sheet is open moves it down with the finger through the `--drag` custom property (upward movement is
+clamped to zero); letting go more than 80px down closes it. From the peek the sheet does not follow
+the finger; an upward drag of more than 30px opens it on release.
 
 </Tab>
 </Tabs>

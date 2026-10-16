@@ -76,7 +76,7 @@ flowchart TD
 | 有 frontmatter，或 micromark 抛出 `parseMarkdown` 无法恢复的异常 | `undefined` | frontmatter 那一条；或者已恢复的全部诊断加上 micromark 自己的报错 | [frontmatter](explain:packages/contract/src/parse-page/parse-page.test.ts:129-131)、[未加引号的属性值](explain:packages/contract/src/parse-page/parse-page.test.ts:313-326) |
 | 遍历阶段拒绝的任何节点，以及自动链接、HTML 注释、缩进代码 | 去掉被拒节点后的 `Page` | 全部 | [Diff 的各种错误](explain:packages/contract/src/parse-page/parse-page.test.ts:209-245)、[自动链接](explain:packages/contract/src/parse-page/parse-page.test.ts:284-294) |
 
-加载器给每条诊断补上文件名，只有 `page` 为 `undefined` 时才提前结束（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:37-55)）；否则继续解析页面里的引用和页面链接（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:57-79)）。
+加载器把这些错误逐条转成带文件名的 `Parse` 诊断，只有 `page` 为 `undefined` 时才提前结束（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:37-55)）；否则继续解析页面里的引用和页面链接（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:57-79)）。有 `Parse` 诊断的页面，`freshness sync` 拒绝写入，`freshness check` 也跳过不查（[page-diagnostic.ts](explain:packages/cli/src/doc-root/page-diagnostic.ts:15)）。
 
 ## Markdown 这一层 {#markdown}
 
@@ -172,7 +172,7 @@ JSX 切词器遇到 `<!--`、`<https://…>`、`<a@b.co>`、`<!DOCTYPE …>`、`
 
 摘录里完全不存代码，只存引用，由查看器稍后去仓库读取对应行，所以摘录不可能和仓库内容脱节。
 
-[`mermaidProblems`](explain:packages/contract/src/parse-page/mermaid.ts:80-109) 用 beautiful-mermaid 检查围栏，viewer 渲染 mermaid 用的也是这个库。它只在图头不认识时抛异常，其余读不懂的行一声不吭地丢掉，所以写错一个箭头的图渲染出来就少了边或节点。检查重现渲染器的做法，分三步：
+[`mermaidProblems`](explain:packages/contract/src/parse-page/mermaid.ts:80-109) 用 beautiful-mermaid 检查围栏，viewer 渲染 mermaid 用的也是这个库。图头不认识时整张图都会失败；而正文里很多读不懂的行会被一声不吭地丢掉，所以写错一个箭头的图渲染出来就少了边或节点。检查重现渲染器的做法，分三步：
 
 1. 按渲染器的规则选解析器（[routes](explain:packages/contract/src/parse-page/mermaid.ts:53-58)）。xychart、时序图、类图、ER 图走 `renderMermaidSVG`，其余交给 `parseMermaid`，它负责流程图和状态图。这一步抛异常时，把异常信息报在围栏位置，比如 `flowchartt TD` 或 `gantt`（[测试](explain:packages/contract/src/parse-page/parse-page.test.ts:417-429)），并跳过逐行检查。
 2. 用到渲染器不支持的特性的行，报该特性自己的信息：`click`、`@{}` 形状、状态图里的 note（[lineRules](explain:packages/contract/src/parse-page/mermaid.ts:60-70)）。这样的行不会再被重复报成"被丢弃"（[测试](explain:packages/contract/src/parse-page/parse-page.test.ts:452-460)）。

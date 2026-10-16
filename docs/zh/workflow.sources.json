@@ -88,7 +88,7 @@
     {
       "repo": "explain",
       "path": "packages/cli/src/site/dev.ts",
-      "hash": "374cc564f2d9bf5e924ec5c322e6761025eed99e"
+      "hash": "5a4911431b270d06d135bfa3527fa109298ff28d"
     },
     {
       "repo": "explain",
@@ -103,7 +103,7 @@
     {
       "repo": "explain",
       "path": "skills/explain-this/format.md",
-      "hash": "6854c7d920c398a4a9a8fc0f7a496a66d0f5a1a7"
+      "hash": "f1503a6f22648902176de83f9d2b7bf97b5b58b3"
     }
   ]
 }

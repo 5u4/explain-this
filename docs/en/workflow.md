@@ -112,7 +112,7 @@ Commands fail through [`ExitWith`](explain:packages/cli/src/commands/exit-with.t
 |---|---|---|---|
 | `init` | wrote `explain.json` | | `explain.json` exists or locales invalid |
 | `validate` | no diagnostics | | diagnostics, or an argument is not a page |
-| `freshness sync` | all named pages synced | | a page has a parse error or citation problem, or is not a page |
+| `freshness sync` | all named pages synced | | a named page is missing, did not parse, or has a citation problem, or an argument is not a page |
 | `freshness check` | every page fresh | a page is stale or not checked | |
 | `dev` | | | server failed to start, or an explicit `--port` is taken |
 | `build` | site written | | diagnostics, or the build failed |

@@ -3,22 +3,32 @@
     {
       "repo": "explain",
       "path": "packages/cli/src/commands/build.ts",
-      "hash": "48d580ca3edbc8ade916b68b4a09c0a57c15306a"
+      "hash": "d446881266fa0fd6885daf735c04e965c6bdae29"
     },
     {
       "repo": "explain",
       "path": "packages/cli/src/commands/dev.ts",
-      "hash": "81eb5ebbeac3840c85374a4439659e8a26f1fb2d"
+      "hash": "3d47c369ed79b7db8dbe86ff79d8a20b41cc6f32"
     },
     {
       "repo": "explain",
       "path": "packages/cli/src/commands/open-doc-root.ts",
-      "hash": "35f9113495a8c5c3ac96453cbca6272d03d5a6b6"
+      "hash": "607f9696a9dcbe1911741827ecb8ec3aa37be990"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/doc-root/check-page.ts",
+      "hash": "9f9e5d290dfe9d9d8af165588fd4500fb19a5fa4"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/doc-root/page-diagnostic.ts",
+      "hash": "253ddb902dc84d621f92031b9f609c590455d923"
     },
     {
       "repo": "explain",
       "path": "packages/cli/src/site/api-bodies.ts",
-      "hash": "0c53b625570bd1864c2ff932c2bdb2a85f383450"
+      "hash": "ac04003fbb30e733ddc15d5c94eab97b951523ab"
     },
     {
       "repo": "explain",
@@ -33,7 +43,7 @@
     {
       "repo": "explain",
       "path": "packages/cli/src/site/dev.ts",
-      "hash": "104d8e7fa7a41f996fde212acd49a1c3734f568d"
+      "hash": "5a4911431b270d06d135bfa3527fa109298ff28d"
     },
     {
       "repo": "explain",
@@ -48,12 +58,12 @@
     {
       "repo": "explain",
       "path": "packages/cli/test/build.test.ts",
-      "hash": "3f1929ca142fe24d21853e8d749bceecaaa5f07c"
+      "hash": "9309e18514a12d8f895c62d662beae40a257f778"
     },
     {
       "repo": "explain",
       "path": "packages/cli/test/dev.test.ts",
-      "hash": "b65e2c4c4f6c9e215ace94089818465a096f4437"
+      "hash": "19c82ebd78d6278eca17f272af5e09d7ec6aa9ab"
     },
     {
       "repo": "explain",
@@ -63,7 +73,7 @@
     {
       "repo": "explain",
       "path": "packages/viewer/src/api.ts",
-      "hash": "59df972e2f5bf2983441363f04f9a08f2de5c3ba"
+      "hash": "841af40a4c15116598032451a0482f4f6a1fa695"
     }
   ]
 }

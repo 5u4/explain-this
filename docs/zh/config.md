@@ -13,7 +13,7 @@
 
 | 字段 | 必填 | 规则 |
 |---|---|---|
-| `title` | 否 | 所有语言共用一个字符串；缺省时由 CLI 在站点响应里填入 `Document`，viewer 只是照着显示（[api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:46)） |
+| `title` | 否 | 所有语言共用一个字符串；缺省时由 CLI 在站点响应里填入 `Document`，viewer 只是照着显示（[api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:47)） |
 | `locales` | 是 | 非空、不重复，每项是 `en`、`zh-CN` 这类 BCP 47 风格的标签（[config.ts](explain:packages/contract/src/config.ts:9-13,42-47)） |
 | `defaultLocale` | 否 | 缺省为第一个语言；必须出现在 `locales` 里 |
 | `repos` | 是 | key → 绝对路径；key 的规则与引用里的 repo key 相同（[config.ts](explain:packages/contract/src/config.ts:22-35)） |
@@ -35,8 +35,8 @@
 
 加载器在每种语言下只读这些 id（[load.ts](explain:packages/cli/src/doc-root/load.ts:24-30)）。不在 nav 里的
 Markdown 文件根本不会被解析；nav 里有、磁盘上没有的页面，会变成带诊断的 "missing" 页面
-（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:33-36)）。页面链接也是对照同一个集合检查的
-（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:54-56)）。同一个页面若出现两次，就会在阅读顺序里占两个位置，
+（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:42-49)）。页面链接也是对照同一个集合检查的
+（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:71-79)）。同一个页面若出现两次，就会在阅读顺序里占两个位置，
 schema 禁止重复大概就是为此（推断）。
 
 ## `defaultLocale`：文件里可省，内存里一定有
@@ -52,7 +52,7 @@ schema 禁止重复大概就是为此（推断）。
 </AnnotatedSource>
 
 因此使用方读 `config.defaultLocale` 时不用再写兜底。站点响应把它原样交给 viewer
-（[api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:44-51)），viewer 在首页重定向和遇到未知语言时使用它
+（[api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:45-52)），viewer 在首页重定向和遇到未知语言时使用它
 （[app.tsx](explain:packages/viewer/src/app.tsx:35-55)）。
 
 测试固定了这两种行为，并为每条规则各写了一个拒绝用例：
@@ -84,7 +84,7 @@ flowchart TD
 <Note lines="39">`errors: "all"` 收集 schema 找到的全部问题，而不是遇到第一个就停。</Note>
 <Note lines="40">`onExcessProperty: "error"` 让未知字段（比如拼错的字段名）报错，而不是被悄悄忽略。</Note>
 <Note lines="45">Effect 的 Standard Schema 格式化器把嵌套的问题树压平成 `{ path, message }` 列表。</Note>
-<Note lines="47-49">这里拿不到 JSON 里的位置，所以每条诊断都指向 `explain.json:1:1`。</Note>
+<Note lines="47-49">这里拿不到 JSON 里的位置，所以每条诊断都指向 `explain.json` 的第 1 行第 1 列，文件名相对于文档根目录。</Note>
 <Note lines="50-53">问题路径用点连接后放在消息前面，得到 `repos.http: …`、`nav.1.pages.0: …` 这样的文本。</Note>
 </AnnotatedSource>
 
@@ -92,13 +92,13 @@ flowchart TD
 
 | 调用方 | `DocRootNotFound` | `InvalidConfig` |
 |---|---|---|
-| 所有需要打开文档根目录的命令（[open-doc-root.ts](explain:packages/cli/src/commands/open-doc-root.ts:35-43)） | 打印 `no explain.json in … or any parent directory`，退出码 2 | 逐条打印诊断，退出码 2（[open-doc-root.ts](explain:packages/cli/src/commands/open-doc-root.ts:9-17)） |
-| `explain init`（[init.ts](explain:packages/cli/src/commands/init.ts:22-24)） | 不适用 | 先校验将要写入的配置，失败则什么都不写 |
-| `explain dev` 重新加载（[dev.ts](explain:packages/cli/src/site/dev.ts:29-42)） | 不适用 | 继续提供服务，进入列出诊断的 `invalid` 状态 |
+| 所有需要打开文档根目录的命令（[open-doc-root.ts](explain:packages/cli/src/commands/open-doc-root.ts:34-40)） | 打印 `no explain.json in … or any parent directory`，退出码 2 | 逐条打印诊断，文件路径换算成相对当前工作目录的路径，退出码 2（[open-doc-root.ts](explain:packages/cli/src/commands/open-doc-root.ts:9-23,29-31)） |
+| `explain init`（[init.ts](explain:packages/cli/src/commands/init.ts:22-28)） | 不适用 | 先校验将要写入的配置，失败则什么都不写 |
+| `explain dev` 重新加载（[dev.ts](explain:packages/cli/src/site/dev.ts:34-47)） | 不适用 | 继续提供服务，进入列出诊断的 `invalid` 状态 |
 
 ### 问题是分层报出来的
 
-对几份有错的配置运行 `explain validate`，可以看到 schema 分阶段报错。下面这份配置里有重复的语言、相对路径的 repo、
+在文档根目录下对几份有错的配置运行 `explain validate`，可以看到 schema 分阶段报错。下面这份配置里有重复的语言、相对路径的 repo、
 被保留的页面 id、未知字段 `titel`，结果只报出了字段级的问题：
 
 ```text

@@ -50,7 +50,7 @@ down to the files that actually changed (inference). An excerpt of the file this
     {
       "repo": "explain",
       "path": "packages/cli/src/commands/init.ts",
-      "hash": "30346b589b2491ea79fff1c1ab6f43b0c9ebc60a"
+      "hash": "6fc61dfffdd4d624f4cca464d6faea9ce2d4fc12"
     },
     {
       "repo": "explain",

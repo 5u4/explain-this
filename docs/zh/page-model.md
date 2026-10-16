@@ -23,24 +23,28 @@ flowchart TD
 | 字段 | 由谁填写 | 由谁读取 |
 |---|---|---|
 | `toc` | 每个 `##`–`####` 标题（[heading.ts](explain:packages/contract/src/parse-page/heading.ts:49)） | viewer 的目录（[page-route.tsx](explain:packages/viewer/src/routes/page-route.tsx:50)） |
-| `refs` | 行内引用、摘录、`<AnnotatedSource>`、`<Diff>` 两侧，全部经过同一个 `citation` 辅助函数（[context.ts](explain:packages/contract/src/parse-page/context.ts:20-25)） | CLI：解析每个文件并为新鲜度计算哈希（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:46-53,60-66)） |
-| `pageLinks` | `./<id>.md` 和 `#anchor` 链接（[inline.ts](explain:packages/contract/src/parse-page/inline.ts:17-33)） | CLI：检查目标页面是否存在（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:54-56)） |
+| `refs` | 行内引用、摘录、`<AnnotatedSource>`、`<Diff>` 两侧，全部经过同一个 `citation` 辅助函数（[context.ts](explain:packages/contract/src/parse-page/context.ts:20-25)） | CLI：解析每个文件并为新鲜度计算哈希（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:57-70,81-87)） |
+| `pageLinks` | `./<id>.md` 和 `#anchor` 链接（[inline.ts](explain:packages/contract/src/parse-page/inline.ts:17-33)） | CLI：检查目标页面是否存在（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:71-79)） |
 
 `refs`、`pageLinks` 每一项都带 `Position`，出了问题可以报到对应 Markdown 的行和列上。
 
-`parsePage` 不抛异常，而是返回 `{ page, errors }`。只有两种情况 `page` 是 `undefined`：Markdown 解析器抛出了无法恢复的异常，
-或者页面带 frontmatter（[parse-page.ts](explain:packages/contract/src/parse-page/parse-page.ts:7-10,13-21,43-44)）。
-其他问题都只记成一条 `Diagnostic`，页面其余部分照常构建。所以有错误的页面在 viewer 里仍能显示，错误列表放在正文上方
-（[page-route.tsx](explain:packages/viewer/src/routes/page-route.tsx:130-137)）。
+`parsePage` 不抛异常，而是返回 `{ page, errors }`。只有两种情况 `page` 是 `undefined`：页面带 frontmatter，
+或者 Markdown 解析器抛出了无法恢复的异常（[parse-page.ts](explain:packages/contract/src/parse-page/parse-page.ts:7-21)）。
+HTML 注释、自动链接和 `<!…>`、`<?…>` 这类写法也会让解析器抛异常，但它们会先被记成诊断、用空白盖掉再重新解析，
+不会让整页丢失（[markdown.ts](explain:packages/contract/src/parse-page/markdown.ts:88-125)）。
+其他问题都只记成一条 `Diagnostic`，页面其余部分照常构建（[parse-page.ts](explain:packages/contract/src/parse-page/parse-page.ts:43-44)）。
+所以有错误的页面在 viewer 里仍能显示：引用问题放进来源面板，其余诊断列在正文上方
+（[page-route.tsx](explain:packages/viewer/src/routes/page-route.tsx:124-144)）。
 
 ## 位置与诊断
 
 ```ts file=explain:packages/contract/src/page.ts:3-10
 ```
 
-contract 里的 `Diagnostic` 只知道自己在页面源码里的行列，不知道来自哪个文件。CLI 收集诊断时补上文件名
-（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:28-32)）；viewer API 里的 `Diagnostic`
-就是 contract 类型再加一个 `file` 字段（[api.ts](explain:packages/viewer/src/api.ts:23)）。
+contract 里的 `Diagnostic` 只知道自己在页面源码里的行列，不知道来自哪个文件。CLI 收集诊断时补上文件名，
+再加一个表示问题种类的 `_tag`（[check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:37-41,51)）。
+viewer API 的类型把这一点写明了：`Diagnostic` 是 contract 类型加 `file` 字段，`PageDiagnostic` 再带上六种标签之一
+（[api.ts](explain:packages/viewer/src/api.ts:23-35)）。
 
 ## 行内节点
 
@@ -92,7 +96,7 @@ viewer 直接读 `ref.repo`、`ref.path`、`ref.ranges`（[inlines.tsx](explain:
 ```
 
 `TocEntry` 里的标题是已经用 `plainText` 压平的纯文本，目录不需要再渲染行内节点。CLI 生成导航标题和搜索索引时也用这个函数
-（[api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:14-15)、[search.ts](explain:packages/cli/src/site/search.ts:6-13)）。
+（[api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:15-16)、[search.ts](explain:packages/cli/src/site/search.ts:6-13)）。
 
 ## 谁依赖这个结构
 

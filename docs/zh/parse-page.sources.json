@@ -3,12 +3,17 @@
     {
       "repo": "explain",
       "path": "packages/cli/src/doc-root/check-page.ts",
-      "hash": "cf0aab598bd243ed3439d51725e221b57c4dfa3c"
+      "hash": "9f9e5d290dfe9d9d8af165588fd4500fb19a5fa4"
     },
     {
       "repo": "explain",
       "path": "packages/cli/src/doc-root/load.ts",
       "hash": "c344d80a95ad8ed946fe12671050009195a5ea97"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/doc-root/page-diagnostic.ts",
+      "hash": "253ddb902dc84d621f92031b9f609c590455d923"
     },
     {
       "repo": "explain",
@@ -33,7 +38,7 @@
     {
       "repo": "explain",
       "path": "packages/contract/src/parse-page/code.ts",
-      "hash": "77fe20aefa8534c67345d6edf2ec0d1666e1b6b9"
+      "hash": "63ec3fec14416cf0aa79ec51d817239157ed7065"
     },
     {
       "repo": "explain",
@@ -48,12 +53,12 @@
     {
       "repo": "explain",
       "path": "packages/contract/src/parse-page/inline.ts",
-      "hash": "33903b11dcdbada25ee1185fa7333ea179ec6bfe"
+      "hash": "d5654acefcc9b6ef872d8140bfa1727d19701aa4"
     },
     {
       "repo": "explain",
       "path": "packages/contract/src/parse-page/jsx-block.ts",
-      "hash": "99ca808aaeb62631ce201c40652929ea8f555cc1"
+      "hash": "8fcf8d6b12c2351866d0108c5774b88b1ce91da9"
     },
     {
       "repo": "explain",
@@ -68,17 +73,22 @@
     {
       "repo": "explain",
       "path": "packages/contract/src/parse-page/markdown.ts",
-      "hash": "b6bf4fba3764867e698883a9507d53fe25811452"
+      "hash": "215e6c597731a22b9825ec6d231074ff0b26c078"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/parse-page/mermaid.ts",
+      "hash": "17131f8c184f76dcb79138ee25f7a063de2df066"
     },
     {
       "repo": "explain",
       "path": "packages/contract/src/parse-page/parse-page.test.ts",
-      "hash": "3199ccac3a0d48a1a4548308cf263693c522e558"
+      "hash": "e0b28116334570442e23cefe98de2b839408d3d4"
     },
     {
       "repo": "explain",
       "path": "packages/contract/src/parse-page/parse-page.ts",
-      "hash": "12390c55d25abbd104e22dd168a13ba1c363c482"
+      "hash": "0cf05eb9d24f0b408658f2c8f76222fcfa6904bf"
     },
     {
       "repo": "explain",

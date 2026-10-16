@@ -40,7 +40,7 @@ The repo is a Bun workspace: every folder under `packages/` is a package ([packa
 
 ## From files to pixels
 
-Every command starts the same way: find the nearest `explain.json` upward from the current directory and load the whole doc root ([open-doc-root.ts](explain:packages/cli/src/commands/open-doc-root.ts:19-24), [findDocRoot](explain:packages/cli/src/doc-root/config.ts:25-35)). What happens after that depends on the command.
+Every command starts the same way: find the nearest `explain.json` upward from the current directory and load the whole doc root ([openDocRoot](explain:packages/cli/src/commands/open-doc-root.ts:25-40), [findDocRoot](explain:packages/cli/src/doc-root/config.ts:25-35)). Diagnostics it prints name files relative to the current directory ([open-doc-root.ts](explain:packages/cli/src/commands/open-doc-root.ts:27-33)). What happens after that depends on the command.
 
 ```mermaid
 flowchart TD
@@ -60,9 +60,9 @@ flowchart TD
 
 ### Loading: one `DocRoot` for every command
 
-[`loadDocRoot`](explain:packages/cli/src/doc-root/load.ts:13-51) decodes `explain.json`, resolves each repo path, then reads every page id listed in `nav` for every locale. Each page goes through [`checkPage`](explain:packages/cli/src/doc-root/check-page.ts:20-103): parse with contract's `parsePage`, resolve each citation against the repo, check page links, hash every cited file, read the recorded `.sources.json`, and compare the two into a `Freshness`. The result is a plain value:
+[`loadDocRoot`](explain:packages/cli/src/doc-root/load.ts:13-51) decodes `explain.json`, resolves each repo path, then reads and parses (with contract's `parsePage`) every page id listed in `nav` for every locale. Each parse result goes through [`checkPage`](explain:packages/cli/src/doc-root/check-page.ts:26-129): turn parse errors into diagnostics, resolve each citation against the repo, check page links, hash every cited file, read the recorded `.sources.json`, and compare the two into a `Freshness`. Every diagnostic is a tagged `PageDiagnostic` (`MissingPage`, `Parse`, `CitationRepo`, `CitationFile`, `PageLink`, `SourcesRecord`), and one table decides which of them refuse `freshness sync` and which make `freshness check` skip the page ([page-diagnostic.ts](explain:packages/cli/src/doc-root/page-diagnostic.ts:8-20)). The result is a plain value:
 
-```ts file=explain:packages/cli/src/doc-root/types.ts:24-55
+```ts file=explain:packages/cli/src/doc-root/types.ts:18-55
 ```
 
 A page is `missing`, `invalid` (could not be parsed at all) or `parsed`. A parsed page carries both the hashes of what it cites now (`sources`) and the hashes recorded at the last sync (`recorded`), so freshness is decided at load time rather than in each command. The details live in [load-doc-root](./load-doc-root.md), [resolve-source](./resolve-source.md) and [freshness](./freshness.md).
@@ -73,8 +73,8 @@ The site is a small read-only JSON API under `/@explain/`. The viewer owns its s
 
 | URL | Body | Built from |
 |---|---|---|
-| `/@explain/api/site.json` | title, locales, nav with each page's status | [`siteResponse`](explain:packages/cli/src/site/api-bodies.ts:28-52) |
-| `/@explain/api/page/<locale>/<id>.json` | the parsed `Page`, diagnostics, freshness, per-file source states | [`pageResponse`](explain:packages/cli/src/site/api-bodies.ts:84-102) |
+| `/@explain/api/site.json` | title, locales, nav with each page's status | [`siteResponse`](explain:packages/cli/src/site/api-bodies.ts:29-53) |
+| `/@explain/api/page/<locale>/<id>.json` | the parsed `Page`, diagnostics, freshness, per-file source states | [`pageResponse`](explain:packages/cli/src/site/api-bodies.ts:87-104) |
 | `/@explain/api/source/<repo>/<path>.json` | file text, line count, and the pages that cite it | [`sourceResponse`](explain:packages/cli/src/site/api.ts:56-93) |
 | `/@explain/api/search/<locale>.json` | search entries for a locale | [api.ts](explain:packages/cli/src/site/api.ts:128-138) |
 
@@ -83,7 +83,7 @@ All of it is answered by one function, [`handleExplainRequest`](explain:packages
 <Tabs>
 <Tab label="explain dev">
 
-[`serveDocRoot`](explain:packages/cli/src/site/dev.ts:18-142) starts Vite with the viewer package as its root and installs a middleware that sends every `/@explain/` request to `handleExplainRequest` ([dev.ts](explain:packages/cli/src/site/dev.ts:80-96)). It watches the doc root and every repo in `explain.json`; on a change it reloads the `DocRoot` and tells the browser to reload ([dev.ts](explain:packages/cli/src/site/dev.ts:29-64)). An invalid `explain.json` does not stop the server; it becomes a `DevState` of `invalid` that the viewer can show.
+[`serveDocRoot`](explain:packages/cli/src/site/dev.ts:17-144) starts Vite with the viewer package as its root and installs a middleware that sends every `/@explain/` request to `handleExplainRequest` ([dev.ts](explain:packages/cli/src/site/dev.ts:79-94)). It watches the doc root and every repo in `explain.json`; on a change it reloads the `DocRoot` and tells the browser to reload ([dev.ts](explain:packages/cli/src/site/dev.ts:29-63)). An invalid `explain.json` does not stop the server; it becomes a `DevState` of `invalid` that the viewer can show. Without `--port` the server starts at 4321 and Vite moves to a free port if that one is taken; an explicit `--port` is strict ([dev command](explain:packages/cli/src/commands/dev.ts:14-17)).
 
 </Tab>
 <Tab label="explain build">

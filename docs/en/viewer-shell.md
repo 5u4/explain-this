@@ -1,6 +1,6 @@
 # The viewer shell
 
-The viewer is the browser app that renders a doc root: the left rail, search, routing, page chrome (freshness badge, sources table, pager), and the standalone source page. It is a React 19 single-page app ([`react` and `react-dom` 19.3.0](explain:package.json:28-29), pulled in by [the viewer's `package.json`](explain:packages/viewer/package.json:10-15)) with `highlight.js` for code and `beautiful-mermaid` for diagrams. It has no router or state library: routing is about 70 lines on top of the History API, and data loading is a promise cache read with React's `use`.
+The viewer is the browser app that renders a doc root: the left rail, search, routing, page chrome (freshness badge, sources table, pager), and the standalone source page. It is a React 19 single-page app ([`react` and `react-dom` 19.3.0](explain:package.json:28-29), pulled in by [the viewer's `package.json`](explain:packages/viewer/package.json:10-15)) with `highlight.js` for code and `beautiful-mermaid` for diagrams. It has no router or state library: routing is about 70 lines on top of the History API, and data loading is a promise cache keyed by API path. Route data (site, page, source JSON) is read with React's `use` ([app.tsx](explain:packages/viewer/src/app.tsx:11), [page-route.tsx](explain:packages/viewer/src/routes/page-route.tsx:41), [source-route.tsx](explain:packages/viewer/src/routes/source-route.tsx:20)); source lines and the search index are awaited in effects ([code.tsx](explain:packages/viewer/src/blocks/code.tsx:20-29), [search-dialog.tsx](explain:packages/viewer/src/shell/search-dialog.tsx:76-77)).
 
 This page covers everything in `packages/viewer` *except* the Markdown block renderers ([blocks](./blocks.md)) and the source pane on the right ([source-pane](./source-pane.md)). The viewer never reads the doc root itself; it only talks to the `/@explain/...` HTTP API that the CLI serves in `explain dev` or writes out as static files in `explain build` (see [site](./site.md)).
 
@@ -18,7 +18,7 @@ This page covers everything in `packages/viewer` *except* the Markdown block ren
     - [`data.ts`](explain:packages/viewer/src/data.ts) cached `fetch` per API path, highlighted source lines
     - [`context.ts`](explain:packages/viewer/src/context.ts) `ViewerContext`: site, locale, strings, sources, status
     - [`ref.ts`](explain:packages/viewer/src/ref.ts) format/parse citation refs, source-route hrefs
-    - [`highlight.ts`](explain:packages/viewer/src/highlight.ts) highlight.js, split into per-line HTML
+    - [`highlight.ts`](explain:packages/viewer/src/highlight.ts) the language table, on-demand language loading, per-line HTML
     - `routes/` page and source routes plus page chrome
       - [`page-route.tsx`](explain:packages/viewer/src/routes/page-route.tsx)
       - [`source-route.tsx`](explain:packages/viewer/src/routes/source-route.tsx)
@@ -35,7 +35,7 @@ This page covers everything in `packages/viewer` *except* the Markdown block ren
 
 ## Boot {#boot}
 
-[`index.html`](explain:packages/viewer/index.html:15-18) links `tokens.css`, `base.css` and `viewer.css` as plain stylesheets and loads `/src/main.tsx` as a module; there is no bundler entry besides this file, because the CLI runs Vite with the viewer package as its root ([dev.ts](explain:packages/cli/src/site/dev.ts:113-119)). In a static build every route gets a copy of the same `index.html` ([build.ts](explain:packages/cli/src/site/build.ts:101-108)), so a deep link loads the SPA and the client decides what to show.
+[`index.html`](explain:packages/viewer/index.html:15-18) links `tokens.css`, `base.css` and `viewer.css` as plain stylesheets and loads `/src/main.tsx` as a module; there is no bundler entry besides this file, because the CLI runs Vite with the viewer package as its root ([dev.ts](explain:packages/cli/src/site/dev.ts:112-119)). In a static build every route gets a copy of the same `index.html` ([build.ts](explain:packages/cli/src/site/build.ts:101-119)), so a deep link loads the SPA and the client decides what to show.
 
 ```tsx file=explain:packages/viewer/src/main.tsx:8-14
 ```
@@ -108,9 +108,33 @@ The API surface is typed in [`api.ts`](explain:packages/viewer/src/api.ts:4-21):
 ```ts file=explain:packages/viewer/src/data.ts:15-27
 ```
 
-`getJson` memoizes the *promise* per path. That is what makes `use(loadPage(locale, id))` work: every render during suspension gets back the identical promise. A failed request is evicted so a retry can refetch. Nothing else ever invalidates the cache; in dev the CLI sends Vite a `full-reload` after any change to the doc root ([dev.ts](explain:packages/cli/src/site/dev.ts:63)), which throws away the module state anyway.
+`getJson` memoizes the *promise* per path. That is what makes `use(loadPage(locale, id))` work: every render during suspension gets back the identical promise. A failed request is evicted so a retry can refetch. Nothing else ever invalidates the cache; in dev the CLI sends Vite a `full-reload` after any change to the doc root ([dev.ts](explain:packages/cli/src/site/dev.ts:62)), which throws away the module state anyway.
 
-[`loadSourceLines`](explain:packages/viewer/src/data.ts:49-60) layers a second cache on top for highlighted files: it splits the text into lines and runs [`highlightLines`](explain:packages/viewer/src/highlight.ts:74-84). highlight.js returns one HTML string whose `<span>`s can cross newlines, so [`splitHighlighted`](explain:packages/viewer/src/highlight.ts:54-72) closes every open span at the end of a line and reopens it on the next; each line then stands alone and the line-numbered views can render any range. Only nine languages are registered, picked by file extension or fence name ([highlight.ts](explain:packages/viewer/src/highlight.ts:12-52)); anything else is HTML-escaped plain text.
+### Highlighting, loaded on demand {#highlight}
+
+The viewer imports `highlight.js/lib/core`, which registers no languages. Instead, one table, [`languages`](explain:packages/viewer/src/highlight.ts:12-164), lists 30 languages. Each entry has a `load` that dynamically imports `highlight.js/lib/languages/<name>`, the file names, extensions and fence aliases that select it, and the languages it embeds:
+
+```ts file=explain:packages/viewer/src/highlight.ts:104-109
+```
+
+[`languageOf`](explain:packages/viewer/src/highlight.ts:180-189) tries the exact file name (`Dockerfile`, `CMakeLists.txt`), then the lowercased extension, then the whole string lowercased as an alias or language id. One function therefore serves both source paths and fence names; `notes.txt` and `mermaid` map to nothing ([highlight.test.ts](explain:packages/viewer/src/highlight.test.ts:4-25)).
+
+Loading happens the first time a language is needed:
+
+<AnnotatedSource file="explain:packages/viewer/src/highlight.ts:191-220">
+<Note lines="191-205">One promise per language id, so each module is imported once. Success registers it with hljs; a failed import resolves to `false` instead of throwing.</Note>
+<Note lines="207-213">Walks `embeds` from the requested language: markdown pulls in xml, which pulls in css and javascript.</Note>
+<Note lines="215-220">Registers all of them in parallel and answers with the requested language's own result. An id outside the table collects nothing, so the answer is `false`.</Note>
+</AnnotatedSource>
+
+So [`highlightLines`](explain:packages/viewer/src/highlight.ts:249-255) is async. With the language available it highlights the joined text and splits it; otherwise [`plainLines`](explain:packages/viewer/src/highlight.ts:242-247) only HTML-escapes each line. highlight.js returns one HTML string whose `<span>`s can cross newlines, so [`splitHighlighted`](explain:packages/viewer/src/highlight.ts:222-240) closes every open span at the end of a line and reopens it on the next; each line then stands alone and the line-numbered views can render any range. The tests pin both: a Python triple-quoted string spanning two lines, and inline tags in markdown highlighted through the embedded xml ([highlight.test.ts](explain:packages/viewer/src/highlight.test.ts:27-43)).
+
+The two callers wait differently:
+
+- [`loadSourceLines`](explain:packages/viewer/src/data.ts:49-60) splits a source file into lines and awaits `highlightLines`, caching the result per file. Excerpts and the source route's code lines do not suspend on it: [`useSourceLines`](explain:packages/viewer/src/blocks/code.tsx:14-32) waits in an effect and shows a skeleton until the lines arrive ([source-route.tsx](explain:packages/viewer/src/routes/source-route.tsx:72,89)). The language load is one more step inside the same promise.
+- A literal fence, [`CodeBlock`](explain:packages/viewer/src/blocks/code.tsx:85-99), never suspends. It renders escaped plain text first and swaps in the highlighted HTML when it arrives, keyed by language and content so a stale result is dropped.
+
+Because each language is its own `import()`, a production build emits it as a separate chunk and a reader downloads only the languages their pages use (inference: the splitting is Vite's default for dynamic imports; this repo has no config for it).
 
 [`ref.ts`](explain:packages/viewer/src/ref.ts) is the viewer-side counterpart of the citation syntax: `formatRef`/`parseRef` for `repo:path:ranges`, `fileKey` for caching, and `sourceHref`, which links a citation to the source route with `#L<first line>`.
 
@@ -137,17 +161,33 @@ The rail lists nav groups for the current locale, flags pages whose status is `s
 
 ## Page route {#page-route}
 
-[`PageRoute`](explain:packages/viewer/src/routes/page-route.tsx:32-57) loads the page JSON and finds its [placement](explain:packages/viewer/src/routes/page-route.tsx:21-30) in the flattened nav: group title, position, and the whole order the pager walks. `PageContent` then handles the three `PageResponse` states:
+[`PageRoute`](explain:packages/viewer/src/routes/page-route.tsx:32-57) loads the page JSON and finds its [placement](explain:packages/viewer/src/routes/page-route.tsx:21-30) in the flattened nav: group title, position, and the whole order the pager walks. `PageContent` then handles the three `PageResponse` states ([page-route.tsx](explain:packages/viewer/src/routes/page-route.tsx:59-148)):
 
 | Status | Renders |
 |---|---|
 | `missing` | title from nav, "no page for this locale" with the expected file, back-home link, pager |
-| `invalid` | title from nav, the parse diagnostics, site diagnostics; no body |
-| `parsed` | title from the page, [`Freshness`](explain:packages/viewer/src/routes/freshness.tsx), any diagnostics, [`Blocks`](./blocks.md), [`Sources`](explain:packages/viewer/src/routes/sources.tsx), [`Pager`](explain:packages/viewer/src/routes/pager.tsx) |
+| `invalid` | title from nav, a "could not be parsed" note, every page diagnostic, site diagnostics; no body |
+| `parsed` | title from the page, [`Freshness`](explain:packages/viewer/src/routes/freshness.tsx), non-citation diagnostics if any, site diagnostics if any, [`Blocks`](./blocks.md), [`Sources`](explain:packages/viewer/src/routes/sources.tsx) with citation problems, [`Pager`](explain:packages/viewer/src/routes/pager.tsx) |
 
-Only a parsed page gets the source pane. Site-level diagnostics (`site.errors`) are shown on parsed pages and on pages that fail to parse, so a broken `explain.json` field is visible from any page that exists in the current locale; a page missing in that locale shows only its missing notice and pager ([page-route.tsx](explain:packages/viewer/src/routes/page-route.tsx:80-140)).
+Only a parsed page gets the source pane. Site-level diagnostics (`site.errors`) are shown on parsed pages and on pages that fail to parse, so a broken `explain.json` field is visible from any page that exists in the current locale; a page missing in that locale shows only its missing notice and pager.
 
-The freshness badge and the sources table both read the same `sources` list that the CLI computed for the page (see [freshness](./freshness.md)). The badge is `stale` only if the page's `freshness.status` says so. Its note lists the off files; when every off file is merely `changed` it drops the per-file state word and adds one shared sentence, and when the stale reason is `sources-missing` (never synced) it asks you to run `explain freshness sync` instead ([freshness.tsx](explain:packages/viewer/src/routes/freshness.tsx:10-46)). The table shows each file with the first 12 characters of its recorded hash (falling back to the current hash) and its state, and links the file to the source route ([sources.tsx](explain:packages/viewer/src/routes/sources.tsx:32-69)).
+### Where diagnostics show {#diagnostics}
+
+Every entry of the page's `diagnostics` carries a `_tag` (the kinds are listed on [site](./site.md)). A parsed page splits them by kind:
+
+```tsx file=explain:packages/viewer/src/routes/page-route.tsx:124-129
+```
+
+| Kind | Shown |
+|---|---|
+| `CitationRepo`, `CitationFile` | under the sources table, titled "Citation problems" ([sources.tsx](explain:packages/viewer/src/routes/sources.tsx:72)) |
+| `Parse`, `PageLink`, `SourcesRecord` | under the page title, titled "N errors on this page" |
+
+Both lists render through [`DevErrors`](explain:packages/viewer/src/routes/dev-errors.tsx:4-26) as `file:line:column` plus the message, so a `SourcesRecord` entry names the `.sources.json`, not the page. The rail flag follows only the nav status the server computed: a page with a `CitationRepo` diagnostic is `invalid` there and gets the error flag, while a page whose only problem is a `PageLink` does not get one for it.
+
+### Freshness badge and sources table {#freshness}
+
+The [badge](explain:packages/viewer/src/routes/freshness.tsx:5-53) and the [sources table](explain:packages/viewer/src/routes/sources.tsx:7-75) both read the same `sources` list that the CLI computed for the page (see [freshness](./freshness.md)). The badge is `stale` only if the page's `freshness.status` says so. When it is, the note first checks for a reason about the record itself: `sources-missing` (never synced) shows `unhashedNote` and `sources-malformed` (the `.sources.json` does not decode) shows `malformedSourcesNote`; both ask you to run `explain freshness sync` and replace the file list. Otherwise the note lists the off files, and when every off file is merely `changed` it drops the per-file state word and adds one shared sentence. The table shows each file with the first 12 characters of its recorded hash (falling back to the current hash) and its state, and links the file to the source route. With the record missing or malformed, the server marks every row `not-recorded`, shown as "Not hashed".
 
 ## Source route {#source-route}
 
@@ -157,7 +197,7 @@ The freshness badge and the sources table both read the same `sources` list that
 
 Doc locales are free-form strings from `explain.json`; UI strings exist in exactly two files. The bridge is this lookup:
 
-```ts file=explain:packages/viewer/src/i18n/strings.ts:104-107
+```ts file=explain:packages/viewer/src/i18n/strings.ts:105-108
 ```
 
 It keeps only the part of the locale before the first `-`, lowercases it, and looks it up in a table keyed by **language**, not by file name. So:
@@ -174,7 +214,7 @@ The file name `zh-CN.ts` and the export `zhCN` never take part in the lookup; th
 `Shell`, `App` and `SourceRoute` call `stringsFor(locale)` directly; components below the shell read `strings` from `ViewerContext`. The one exception is the invalid-site screen: there is no site, hence no locale, so it uses `navigator.language` ([app.tsx](explain:packages/viewer/src/app.tsx:14-15)). The UI locale and the content locale are the same value: the locale in the URL picks both the page file and the strings, and `Shell` writes it to `<html lang>`.
 
 > [!IMPORTANT]
-> Both string tables are typed as [`Strings`](explain:packages/viewer/src/i18n/strings.ts:6-102), so adding a UI string means adding it to the interface and to both `en.ts` and `zh-CN.ts`; the type check fails otherwise. Plural- or argument-dependent text is a function in the table (`freshNote(count)`, `lines(from, to)`), so each language builds its own sentence.
+> Both string tables are typed as [`Strings`](explain:packages/viewer/src/i18n/strings.ts:6-103), so adding a UI string means adding it to the interface and to both `en.ts` and `zh-CN.ts`; the type check fails otherwise. Plural- or argument-dependent text is a function in the table (`freshNote(count)`, `lines(from, to)`), so each language builds its own sentence.
 
 Note also that `brandMark` is `注` in both tables ([en.ts](explain:packages/viewer/src/i18n/en.ts:6), [zh-CN.ts](explain:packages/viewer/src/i18n/zh-CN.ts:6)): the brand glyph is intentionally not translated (inference).
 
@@ -182,16 +222,37 @@ Note also that `brandMark` is `注` in both tables ([en.ts](explain:packages/vie
 
 Three layers, loaded in this order by `index.html`:
 
-- [`tokens.css`](explain:packages/viewer/src/styles/tokens.css) holds custom properties only: an `oklch` ink scale with a vermilion accent, semantic colors (`--fresh`, `--stale`, `--added`, `--removed`, alert colors), font stacks (Noto Serif SC for display, JetBrains Mono for code), a type and spacing scale, motion, and the three layout widths ([tokens.css](explain:packages/viewer/src/styles/tokens.css:131-133)). The page is dark-only (`color-scheme: dark` in `index.html`).
+- [`tokens.css`](explain:packages/viewer/src/styles/tokens.css) holds custom properties only: an `oklch` ink scale with a vermilion accent, semantic colors (`--fresh`, `--stale`, `--added`, `--removed`, alert colors), font stacks (Noto Serif SC for display, JetBrains Mono for code), a type and spacing scale, motion, and the layout widths. The page is dark-only (`color-scheme: dark` in `index.html`).
 - [`base.css`](explain:packages/viewer/src/styles/base.css) defines the small `ui-*` primitives (button, select, segmented control, table, code, tag).
 - [`viewer.css`](explain:packages/viewer/src/styles/viewer.css) is just `@import`s of one file per area in `viewer/`: shell, rail, page, each block kind, pane, search, drawer, bottom sheet, source page, and so on.
+
+### Fluid type and column widths {#fluid}
+
+Prose size and the column widths all derive from two viewport-dependent sizes:
+
+```css file=explain:packages/viewer/src/styles/tokens.css:58-59
+```
+
+```css file=explain:packages/viewer/src/styles/tokens.css:133-136
+```
+
+The root font size is `--step-0`, `1.0625em` ([globals.css](explain:packages/viewer/src/styles/viewer/globals.css:6-9)), which is 17px over a 16px browser default, so `1rem` is 17px (inference: assumes the reader has not changed the browser's default size). With that, `--size-prose` is 17px up to a 1440px viewport, grows linearly to about 20px at 2560px, and stops there. The prose column `.prose-col` sets its font size to it ([shell.css](explain:packages/viewer/src/styles/viewer/shell.css:22-28)); `--size-code` is 0.796875 of it and sizes the code in the source pane ([pane-view.css](explain:packages/viewer/src/styles/viewer/pane-view.css:29)).
+
+| Token | Formula | at 17px | at 20px |
+|---|---|---|---|
+| `--prose-w` | 34 × prose size + 126px | 704px | 806px |
+| `--pane-max` | 60 × code size + 100px | about 913px | about 1056px |
+
+So the prose column keeps a measure of about 34 em and widens with the type instead of staying a fixed 704px, and the pane's cap is roughly 100 columns of monospace code at 0.6 em per column plus 100px (inference: 0.6 is an estimate of the monospace advance; the code only has the formula).
+
+### Breakpoints {#breakpoints}
 
 The layout is one CSS grid whose columns collapse at two breakpoints:
 
 | Width | Layout |
 |---|---|
-| ≥ 1360px | `rail · main · pane` columns ([shell.css](explain:packages/viewer/src/styles/viewer/shell.css:1-6)) |
-| ≤ 1359px | the rail leaves the grid and becomes an off-canvas drawer; a sticky top bar appears ([drawer.css](explain:packages/viewer/src/styles/viewer/drawer.css:1-43)) |
+| ≥ 1360px | `rail · main · pane` columns: the rail at `--rail-w`, prose at `--prose-w`, the pane between `--pane-min` and `--pane-max`. Once all three are at their maximum, `justify-content: safe center` splits the leftover width between both sides, centering the layout ([shell.css](explain:packages/viewer/src/styles/viewer/shell.css:1-7)) |
+| ≤ 1359px | the rail leaves the grid and becomes an off-canvas drawer; a sticky top bar appears; the pane column is `minmax(--pane-min, 1fr)` with no cap ([drawer.css](explain:packages/viewer/src/styles/viewer/drawer.css:1-43)) |
 | ≤ 1079px | single column; the pane turns into a bottom sheet ([bottom-sheet.css](explain:packages/viewer/src/styles/viewer/bottom-sheet.css:1-9)) |
 
-Routes without a pane add `no-pane` to the shell, which drops the pane column and widens the prose column ([source-page.css](explain:packages/viewer/src/styles/viewer/source-page.css:1-15)).
+`safe` means that when the grid is wider than the viewport it aligns to the start edge instead of centering, so nothing is pushed off the left of the screen. Routes without a pane add `no-pane` to the shell, which drops the pane column and lets the prose column grow to `--prose-w` plus 320px ([source-page.css](explain:packages/viewer/src/styles/viewer/source-page.css:1-15)).

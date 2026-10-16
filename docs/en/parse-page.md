@@ -76,7 +76,7 @@ There are therefore two failure modes, and callers treat them differently:
 | Frontmatter, or micromark threw on syntax `parseMarkdown` cannot recover from | `undefined` | the frontmatter error, or every recovered error plus micromark's message | [frontmatter](explain:packages/contract/src/parse-page/parse-page.test.ts:129-131), [unquoted attribute](explain:packages/contract/src/parse-page/parse-page.test.ts:313-326) |
 | Anything the walk rejects, or an autolink, HTML comment, or indented code | a `Page` without the rejected nodes | all of them | [Diff errors](explain:packages/contract/src/parse-page/parse-page.test.ts:209-245), [autolinks](explain:packages/contract/src/parse-page/parse-page.test.ts:284-294) |
 
-The loader adds the file name to each diagnostic and stops early only when `page` is `undefined` ([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:37-55)); otherwise it goes on to resolve the page's refs and page links ([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:57-79)).
+The loader turns each of these errors into a `Parse` diagnostic with the file name added, and stops early only when `page` is `undefined` ([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:37-55)); otherwise it goes on to resolve the page's refs and page links ([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:57-79)). A `Parse` diagnostic makes `freshness sync` refuse the page and `freshness check` skip it ([page-diagnostic.ts](explain:packages/cli/src/doc-root/page-diagnostic.ts:15)).
 
 ## The Markdown layer {#markdown}
 
@@ -172,7 +172,7 @@ Each accepted heading is also pushed onto `ctx.toc`, which becomes the page's ta
 
 An excerpt carries no code at all, only the citation; the viewer fetches the lines later. That is how an excerpt can never drift from the repo.
 
-[`mermaidProblems`](explain:packages/contract/src/parse-page/mermaid.ts:80-109) checks a fence with beautiful-mermaid, the library the viewer renders it with. That library throws only on a header it does not know. Any other line it cannot read is dropped without a word, so a diagram with a typo renders with edges or nodes missing. The check reproduces what the renderer would do, in three steps:
+[`mermaidProblems`](explain:packages/contract/src/parse-page/mermaid.ts:80-109) checks a fence with beautiful-mermaid, the library the viewer renders it with. A header that library does not know fails the whole diagram. Many body lines it cannot read are dropped without a word instead, so a diagram with a typo renders with edges or nodes missing. The check reproduces what the renderer would do, in three steps:
 
 1. It picks the parser the renderer picks ([routes](explain:packages/contract/src/parse-page/mermaid.ts:53-58)). xychart, sequence, class and ER diagrams go through `renderMermaidSVG`. Everything else goes to `parseMermaid`, which reads flowcharts and state diagrams. If that call throws, its message is reported at the fence, as for `flowchartt TD` or `gantt` ([test](explain:packages/contract/src/parse-page/parse-page.test.ts:417-429)), and the line checks are skipped.
 2. A line with a feature the renderer does not support gets that feature's message: `click`, `@{}` shapes, and notes in state diagrams ([lineRules](explain:packages/contract/src/parse-page/mermaid.ts:60-70)). Such a line is not reported a second time as dropped ([test](explain:packages/contract/src/parse-page/parse-page.test.ts:452-460)).

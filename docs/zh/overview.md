@@ -48,7 +48,7 @@ CLI 依赖 viewer 有两层原因：一是 CLI 从 [`@explain/viewer/api`](expla
 
 ## 数据流
 
-每个命令的开头都一样：从当前目录向上找最近的 `explain.json`，然后加载整个 doc root（[open-doc-root.ts](explain:packages/cli/src/commands/open-doc-root.ts:19-24)、[findDocRoot](explain:packages/cli/src/doc-root/config.ts:25-35)）。之后的走向取决于命令。
+每个命令的开头都一样：从当前目录向上找最近的 `explain.json`，然后加载整个 doc root（[openDocRoot](explain:packages/cli/src/commands/open-doc-root.ts:25-40)、[findDocRoot](explain:packages/cli/src/doc-root/config.ts:25-35)）。之后打印的诊断，文件路径都相对于当前目录（[open-doc-root.ts](explain:packages/cli/src/commands/open-doc-root.ts:27-33)）。之后的走向取决于命令。
 
 ```mermaid
 flowchart TD
@@ -68,9 +68,9 @@ flowchart TD
 
 ### 加载：所有命令共用一个 `DocRoot`
 
-[`loadDocRoot`](explain:packages/cli/src/doc-root/load.ts:13-51) 先解码 `explain.json`、解析各个仓库路径，然后对每个语言、每个出现在 `nav` 里的页面 id 读取页面。每个页面交给 [`checkPage`](explain:packages/cli/src/doc-root/check-page.ts:20-103)：用 contract 的 `parsePage` 解析，逐个解析引用、检查页面链接，给每个被引用文件算哈希，读出上次记录的 `.sources.json`，比较二者得到 `Freshness`。
+[`loadDocRoot`](explain:packages/cli/src/doc-root/load.ts:13-51) 先解码 `explain.json`、解析各个仓库路径，然后对每个语言、每个出现在 `nav` 里的页面 id 读取页面，并用 contract 的 `parsePage` 解析。解析结果交给 [`checkPage`](explain:packages/cli/src/doc-root/check-page.ts:26-129)：把解析错误转成诊断，逐个解析引用、检查页面链接，给每个被引用文件算哈希，读出上次记录的 `.sources.json`，比较二者得到 `Freshness`。所有诊断都是带标签的 `PageDiagnostic`（`MissingPage`、`Parse`、`CitationRepo`、`CitationFile`、`PageLink`、`SourcesRecord`），由一张表统一规定哪些会让 `freshness sync` 拒绝写入、哪些会让 `freshness check` 跳过该页（[page-diagnostic.ts](explain:packages/cli/src/doc-root/page-diagnostic.ts:8-20)）。
 
-```ts file=explain:packages/cli/src/doc-root/types.ts:24-55
+```ts file=explain:packages/cli/src/doc-root/types.ts:18-55
 ```
 
 页面有三种状态：`missing`（nav 里有但文件不存在）、`invalid`（无法解析）、`parsed`。已解析的页面同时带着“现在引用的文件哈希”（`sources`）和“上次同步时记录的哈希”（`recorded`），所以新鲜度在加载时就已算好，各命令直接读取即可。细节见 [load-doc-root](./load-doc-root.md)、[resolve-source](./resolve-source.md) 和 [freshness](./freshness.md)。
@@ -81,8 +81,8 @@ flowchart TD
 
 | URL | 内容 | 生成函数 |
 |---|---|---|
-| `/@explain/api/site.json` | 标题、语言、带页面状态的导航 | [`siteResponse`](explain:packages/cli/src/site/api-bodies.ts:28-52) |
-| `/@explain/api/page/<locale>/<id>.json` | 解析后的 `Page`、诊断、新鲜度、每个来源文件的状态 | [`pageResponse`](explain:packages/cli/src/site/api-bodies.ts:84-102) |
+| `/@explain/api/site.json` | 标题、语言、带页面状态的导航 | [`siteResponse`](explain:packages/cli/src/site/api-bodies.ts:29-53) |
+| `/@explain/api/page/<locale>/<id>.json` | 解析后的 `Page`、诊断、新鲜度、每个来源文件的状态 | [`pageResponse`](explain:packages/cli/src/site/api-bodies.ts:87-104) |
 | `/@explain/api/source/<repo>/<path>.json` | 文件文本、行数、引用它的页面 | [`sourceResponse`](explain:packages/cli/src/site/api.ts:56-93) |
 | `/@explain/api/search/<locale>.json` | 该语言的搜索条目 | [api.ts](explain:packages/cli/src/site/api.ts:128-138) |
 
@@ -91,7 +91,7 @@ flowchart TD
 <Tabs>
 <Tab label="explain dev">
 
-[`serveDocRoot`](explain:packages/cli/src/site/dev.ts:18-142) 以 viewer 包为根启动 Vite，并挂一个中间件，把所有 `/@explain/` 请求转给 `handleExplainRequest`（[dev.ts](explain:packages/cli/src/site/dev.ts:80-96)）。它监听 doc root 和 `explain.json` 里的每个仓库，文件变动后重新加载 `DocRoot` 并通知浏览器整页刷新（[dev.ts](explain:packages/cli/src/site/dev.ts:29-64)）。`explain.json` 改坏了也不会让服务器退出，而是变成 `invalid` 状态交给 viewer 显示。
+[`serveDocRoot`](explain:packages/cli/src/site/dev.ts:17-144) 以 viewer 包为根启动 Vite，并挂一个中间件，把所有 `/@explain/` 请求转给 `handleExplainRequest`（[dev.ts](explain:packages/cli/src/site/dev.ts:79-94)）。它监听 doc root 和 `explain.json` 里的每个仓库，文件变动后重新加载 `DocRoot` 并通知浏览器整页刷新（[dev.ts](explain:packages/cli/src/site/dev.ts:29-63)）。`explain.json` 改坏了也不会让服务器退出，而是变成 `invalid` 状态交给 viewer 显示。不带 `--port` 时从 4321 开始，被占用就由 Vite 换一个空闲端口；显式给出的 `--port` 则必须可用（[dev 命令](explain:packages/cli/src/commands/dev.ts:14-17)）。
 
 </Tab>
 <Tab label="explain build">

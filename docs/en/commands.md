@@ -110,7 +110,7 @@ Handlers never call `process.exit`. They fail with one tagged error:
 | Code | Meaning | Raised by |
 |---|---|---|
 | 0 | success | every command |
-| 1 | the doc root is valid but not fresh: a page is stale or not checked | `freshness check` |
+| 1 | not fresh: at least one page is stale or not checked | `freshness check` |
 | 2 | refused: no doc root, invalid `explain.json`, page diagnostics, an unknown page argument, an existing `explain.json` for `init`, or a server/build failure | every other refusal |
 
 > [!NOTE]

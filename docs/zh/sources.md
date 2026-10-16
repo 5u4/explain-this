@@ -43,7 +43,7 @@ contract 包里的 `sources.ts` 是两边共用的词汇表：一条文件记录
     {
       "repo": "explain",
       "path": "packages/cli/src/commands/init.ts",
-      "hash": "30346b589b2491ea79fff1c1ab6f43b0c9ebc60a"
+      "hash": "6fc61dfffdd4d624f4cca464d6faea9ce2d4fc12"
     },
     {
       "repo": "explain",

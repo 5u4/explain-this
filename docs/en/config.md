@@ -13,7 +13,7 @@ decodes it with that schema, and turns any failure into `file:line:column messag
 
 | Field | Required | Rule |
 |---|---|---|
-| `title` | no | one string for every locale; when it is absent the CLI sends `Document` in the site response, and the viewer shows that ([api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:46)) |
+| `title` | no | one string for every locale; when it is absent the CLI sends `Document` in the site response, and the viewer shows that ([api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:47)) |
 | `locales` | yes | non-empty, unique, each a BCP 47-like tag such as `en` or `zh-CN` ([config.ts](explain:packages/contract/src/config.ts:9-13,42-47)) |
 | `defaultLocale` | no | defaults to the first locale; must be one of `locales` |
 | `repos` | yes | key → absolute path; keys follow the citation repo-key rule ([config.ts](explain:packages/contract/src/config.ts:22-35)) |
@@ -36,8 +36,8 @@ There is no separate list of pages. `navPageIds` flattens the nav groups in orde
 The loader reads exactly those ids, in every locale
 ([load.ts](explain:packages/cli/src/doc-root/load.ts:24-30)). A Markdown file that is not in nav is
 never parsed, and a nav id without a file becomes a "missing" page with a diagnostic
-([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:33-36)). Page links are checked
-against the same set ([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:54-56)). A page
+([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:42-49)). Page links are checked
+against the same set ([check-page.ts](explain:packages/cli/src/doc-root/check-page.ts:71-79)). A page
 listed twice would have two places in the reading order, which is probably why the schema forbids it
 (inference).
 
@@ -55,7 +55,7 @@ has one:
 </AnnotatedSource>
 
 Consumers can therefore read `config.defaultLocale` without a fallback. The site response passes it
-straight to the viewer ([api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:44-51)), which
+straight to the viewer ([api-bodies.ts](explain:packages/cli/src/site/api-bodies.ts:45-52)), which
 uses it for the home redirect and for unknown locales
 ([app.tsx](explain:packages/viewer/src/app.tsx:35-55)).
 
@@ -89,7 +89,7 @@ command works from any subdirectory of a doc root:
 <Note lines="39">`errors: "all"` collects every issue the schema finds instead of stopping at the first.</Note>
 <Note lines="40">`onExcessProperty: "error"` turns an unknown key, such as a misspelled field, into an error rather than silently ignoring it.</Note>
 <Note lines="45">Effect's Standard Schema formatter flattens the issue tree into a list of `{ path, message }`.</Note>
-<Note lines="47-49">JSON has no positions here, so every diagnostic points at `explain.json:1:1`.</Note>
+<Note lines="47-49">JSON has no positions here, so every diagnostic points at line 1, column 1 of `explain.json`, named relative to the doc root.</Note>
 <Note lines="50-53">The issue path is joined with dots and prefixed to the message, giving `repos.http: …` or `nav.1.pages.0: …`.</Note>
 </AnnotatedSource>
 
@@ -97,13 +97,13 @@ Both errors are `Schema.TaggedError`s, so callers pick how to react by tag:
 
 | Caller | `DocRootNotFound` | `InvalidConfig` |
 |---|---|---|
-| Every command that opens a doc root ([open-doc-root.ts](explain:packages/cli/src/commands/open-doc-root.ts:35-43)) | prints `no explain.json in … or any parent directory`, exit 2 | prints each diagnostic, exit 2 ([open-doc-root.ts](explain:packages/cli/src/commands/open-doc-root.ts:9-17)) |
-| `explain init` ([init.ts](explain:packages/cli/src/commands/init.ts:22-24)) | n/a | validates the config it is about to write, and writes nothing on failure |
-| `explain dev` reload ([dev.ts](explain:packages/cli/src/site/dev.ts:29-42)) | n/a | keeps serving, in an `invalid` state that lists the diagnostics |
+| Every command that opens a doc root ([open-doc-root.ts](explain:packages/cli/src/commands/open-doc-root.ts:34-40)) | prints `no explain.json in … or any parent directory`, exit 2 | prints each diagnostic with the file path made relative to the working directory, exit 2 ([open-doc-root.ts](explain:packages/cli/src/commands/open-doc-root.ts:9-23,29-31)) |
+| `explain init` ([init.ts](explain:packages/cli/src/commands/init.ts:22-28)) | n/a | validates the config it is about to write, and writes nothing on failure |
+| `explain dev` reload ([dev.ts](explain:packages/cli/src/site/dev.ts:34-47)) | n/a | keeps serving, in an `invalid` state that lists the diagnostics |
 
 ### Issues arrive in layers
 
-Running `explain validate` against broken configs shows that the schema reports problems in stages,
+Running `explain validate` from the doc root against broken configs shows that the schema reports problems in stages,
 not all at once. With a duplicated locale, a relative repo path, a reserved page id, and an unknown
 key `titel`, only field-level issues appear:
 

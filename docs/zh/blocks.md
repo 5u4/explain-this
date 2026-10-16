@@ -6,7 +6,7 @@ CLI 把每个页面解析成一个 `Page`，正文是由 `Block` 和 `Inline` �
 
 [`BlockView`](explain:packages/viewer/src/blocks/blocks.tsx:29-157) 是对 `block.type` 的一个 `switch`，`default` 分支写的是 [`block satisfies never`](explain:packages/viewer/src/blocks/blocks.tsx:154-155)：往 [`Block` 联合类型](explain:packages/contract/src/page.ts:60-98)里加一个新成员却忘了写渲染分支，类型检查就会失败。[`Inlines`](explain:packages/viewer/src/blocks/inlines.tsx:11-64) 对 [`Inline` 联合类型](explain:packages/contract/src/page.ts:12-26)用的是同一套写法。
 
-[`Blocks`](explain:packages/viewer/src/blocks/blocks.tsx:16-27) 负责渲染一串块；传入 `lede` 时，第一个段落会加上 `lede` 类名。只有页面路由在渲染正文时传了它（[page-route.tsx](explain:packages/viewer/src/routes/page-route.tsx:135)），所以嵌套在提示框、标签页里的段落不会被当成导语。需要某个具体变体的组件用 [`BlockOf<"tree">`](explain:packages/viewer/src/blocks/blocks.tsx:14) 这样的类型取出它，不必重复声明字段。
+[`Blocks`](explain:packages/viewer/src/blocks/blocks.tsx:16-27) 负责渲染一串块；传入 `lede` 时，第一个段落会加上 `lede` 类名。只有页面路由在渲染正文时传了它（[page-route.tsx](explain:packages/viewer/src/routes/page-route.tsx:142)），所以嵌套在提示框、标签页里的段落不会被当成导语。需要某个具体变体的组件用 [`BlockOf<"tree">`](explain:packages/viewer/src/blocks/blocks.tsx:14) 这样的类型取出它，不必重复声明字段。
 
 | `Block` 类型 | 渲染者 | 画出来的样子 |
 |---|---|---|
@@ -16,8 +16,8 @@ CLI 把每个页面解析成一个 `Page`，正文是由 `Block` 和 `Inline` �
 | `table` | [内联分支](explain:packages/viewer/src/blocks/blocks.tsx:84-110) | 外面包一层可聚焦的滚动区域，列对齐来自 `align` |
 | `alert` | [内联分支](explain:packages/viewer/src/blocks/blocks.tsx:111-120) | `aside.alert-<kind>`，带图标和本地化标签 |
 | `quote`、`thematicBreak`、`details` | [内联分支](explain:packages/viewer/src/blocks/blocks.tsx:121-143) | `blockquote`、`hr`、原生 `details`/`summary` |
-| `code` | [`CodeBlock`](explain:packages/viewer/src/blocks/code.tsx:79-99) | 高亮后的字面代码，带复制按钮 |
-| `excerpt` | [`Excerpt`](explain:packages/viewer/src/blocks/code.tsx:135-188) | 从仓库读出的带行号代码，标题是被引用的路径 |
+| `code` | [`CodeBlock`](explain:packages/viewer/src/blocks/code.tsx:79-111) | 字面代码，先显示纯文本再换成高亮，带复制按钮 |
+| `excerpt` | [`Excerpt`](explain:packages/viewer/src/blocks/code.tsx:147-200) | 从仓库读出的带行号代码，标题是被引用的路径 |
 | `mermaid` | [`Mermaid`](explain:packages/viewer/src/blocks/mermaid.tsx:24-69) | 按需加载 beautiful-mermaid 生成的 SVG |
 | `tree` | [`TreeView`](explain:packages/viewer/src/blocks/tree.tsx:7-61) | 嵌套的 `details`，每个节点分名称和说明 |
 | `tabs` | [`TabsView`](explain:packages/viewer/src/blocks/tabs.tsx:11-79) | 支持键盘操作的 ARIA 标签页 |
@@ -37,7 +37,7 @@ CLI 把每个页面解析成一个 `Page`，正文是由 `Block` 和 `Inline` �
 | `data-kind` | `cite`、`file`、`excerpt`、`note` | 锚点的种类 |
 | `data-follow` | `"0"` 或不写 | 为 `"0"` 时，滚动阅读时面板不会自动跟随到这个锚点（[anchors.ts](explain:packages/viewer/src/pane/anchors.ts:27)、[controller.ts](explain:packages/viewer/src/pane/controller.ts:187-189)） |
 
-`data-follow="0"` 用在次要链接上：摘录标题和 diff 的每个行号。摘录外层的 `figure` 自己带 `data-kind="excerpt"` 而不带 `data-follow`（[code.tsx](explain:packages/viewer/src/blocks/code.tsx:148)），所以滚动时面板把整段摘录当作一个锚点来跟随，不会被标题链接抢走。
+`data-follow="0"` 用在次要链接上：摘录标题和 diff 的每个行号。摘录外层的 `figure` 自己带 `data-kind="excerpt"` 而不带 `data-follow`（[code.tsx](explain:packages/viewer/src/blocks/code.tsx:160)），所以滚动时面板把整段摘录当作一个锚点来跟随，不会被标题链接抢走。
 
 > [!IMPORTANT]
 > `blocks/` 下没有任何文件从 `pane/` 导入东西。两者之间只靠 DOM 约定：`data-ref`、`data-kind`、`data-follow` 三个属性，注释按钮上的 `data-index` 编号，以及面板用来收集同组注释时查询的 `note`、`annotated` 两个类名（[anchors.ts](explain:packages/viewer/src/pane/anchors.ts:33-39)、[controller.ts](explain:packages/viewer/src/pane/controller.ts:229)）。链接上的 `cite` 类名只给 CSS 用。新写的块如果要指向代码，就必须输出这些属性，面板才能接上它。
@@ -49,27 +49,29 @@ CLI 把每个页面解析成一个 `Page`，正文是由 `Block` 和 `Inline` �
 <Tabs>
 <Tab label="字面代码">
 
-代码就在 AST 里，`CodeBlock` 按围栏的语言同步高亮，复制时原样复制 `value`。
+代码就在 AST 里，`CodeBlock` 一开始就有文本。它先渲染 [`plainLines`](explain:packages/viewer/src/highlight.ts:242-247) 的结果，也就是只转义了 `&`、`<`、`>`、`"` 的纯文本；再在 effect 里调用异步的 [`highlightLines`](explain:packages/viewer/src/highlight.ts:249-255)，等它返回后换成高亮 HTML。结果按 `lang + value` 作键保存：围栏内容变了，就先退回纯文本，直到新的高亮完成；过期的 Promise 由 `live` 标志丢弃。复制时原样复制 `value`。
 
-```tsx file=explain:packages/viewer/src/blocks/code.tsx:79-99
+```tsx file=explain:packages/viewer/src/blocks/code.tsx:79-111
 ```
+
+highlight.js 的语法定义是按需加载的。[`languages`](explain:packages/viewer/src/highlight.ts:12-164) 表里每种语法对应一个动态 `import()`，以及选中它的扩展名、文件名和围栏别名；[`languageOf`](explain:packages/viewer/src/highlight.ts:180-189) 用这几张表把围栏语言或文件路径解析成语法 id。[`loadLanguage`](explain:packages/viewer/src/highlight.ts:191-220) 注册这个语法以及它 `embeds` 的其他语法（比如 TypeScript 会带上 CSS 和 XML），每个 id 只缓存一个 Promise。不认识的语言、或者 import 失败的语法，都退回 `plainLines`。
 
 </Tab>
 <Tab label="摘录">
 
-AST 里只有一个 `Ref`。[`useSourceLines`](explain:packages/viewer/src/blocks/code.tsx:14-32) 通过 [`loadSourceLines`](explain:packages/viewer/src/data.ts:49-60) 取文件：每个 `repo:path` 只请求一次源码接口，去掉末尾换行、按行切开，再按文件扩展名高亮。同一页里引用同一个文件的摘录和 diff 共享这一个 Promise。
+AST 里只有一个 `Ref`。[`useSourceLines`](explain:packages/viewer/src/blocks/code.tsx:14-32) 通过 [`loadSourceLines`](explain:packages/viewer/src/data.ts:49-60) 取文件：每个 `repo:path` 只请求一次源码接口，去掉末尾换行、按行切开，再用 `languageOf` 按路径选出语言并等待 `highlightLines` 完成，所以语法加载完之前摘录一直显示骨架。同一页里引用同一个文件的摘录和 diff 共享这一个 Promise。
 
-```tsx file=explain:packages/viewer/src/blocks/code.tsx:138-146
+```tsx file=explain:packages/viewer/src/blocks/code.tsx:150-158
 ```
 
-没有行范围就显示整个文件。起点超出文件末尾的范围被丢掉，其余的截到文件末尾，所以文件变短后摘录只会变短，不会报错。两个范围之间插入一行 `⋮` 作为间隔（[code.tsx](explain:packages/viewer/src/blocks/code.tsx:173-183)）。加载中显示骨架，文件不存在时显示 [`MissingFile`](explain:packages/viewer/src/blocks/code.tsx:122-133)；复制按钮只复制被引用的那些行（[`citedLines`](explain:packages/viewer/src/ref.ts:45-48)）。
+没有行范围就显示整个文件。起点超出文件末尾的范围被丢掉，其余的截到文件末尾，所以文件变短后摘录只会变短，不会报错。两个范围之间插入一行 `⋮` 作为间隔（[code.tsx](explain:packages/viewer/src/blocks/code.tsx:185-195)）。加载中显示骨架，文件不存在时显示 [`MissingFile`](explain:packages/viewer/src/blocks/code.tsx:134-145)；复制按钮只复制被引用的那些行（[`citedLines`](explain:packages/viewer/src/ref.ts:45-48)）。
 
 </Tab>
 </Tabs>
 
 ## Diff
 
-`<Diff before=… after=… />` 被解析成一个 `diff` 块，其 `change` 是 `modified`、`added` 或 `deleted` 三者之一（[`DiffChange`](explain:packages/contract/src/page.ts:55-58)）。解析器只保存两个引用，diff 本身每次渲染时都在浏览器里根据磁盘上的当前文件计算。
+`<Diff before=… after=… />` 被解析成一个 `diff` 块，其 `change` 是 `modified`、`added` 或 `deleted` 三者之一（[`DiffChange`](explain:packages/contract/src/page.ts:55-58)）。解析器只保存两个引用，diff 本身在浏览器里根据磁盘上的当前文件计算，并按两侧的文件内容和引用做 memo（[diff.tsx](explain:packages/viewer/src/blocks/diff.tsx:70-75)）。
 
 ```mermaid
 flowchart TD

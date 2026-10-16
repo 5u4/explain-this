@@ -4,7 +4,7 @@ The CLI parses each page into a `Page` whose body is a tree of `Block` and `Inli
 
 ## One switch per node type
 
-[`BlockView`](explain:packages/viewer/src/blocks/blocks.tsx:29-157) is a single `switch` over `block.type`; its `default` branch is [`block satisfies never`](explain:packages/viewer/src/blocks/blocks.tsx:154-155), so adding a member to the [`Block` union](explain:packages/contract/src/page.ts:60-98) without a renderer fails to type-check. [`Inlines`](explain:packages/viewer/src/blocks/inlines.tsx:11-64) does the same over the [`Inline` union](explain:packages/contract/src/page.ts:12-26). [`Blocks`](explain:packages/viewer/src/blocks/blocks.tsx:16-27) maps a list of blocks and, when `lede` is set, gives the first paragraph the `lede` class; the page route sets it only for the page body ([page-route.tsx](explain:packages/viewer/src/routes/page-route.tsx:135)).
+[`BlockView`](explain:packages/viewer/src/blocks/blocks.tsx:29-157) is a single `switch` over `block.type`; its `default` branch is [`block satisfies never`](explain:packages/viewer/src/blocks/blocks.tsx:154-155), so adding a member to the [`Block` union](explain:packages/contract/src/page.ts:60-98) without a renderer fails to type-check. [`Inlines`](explain:packages/viewer/src/blocks/inlines.tsx:11-64) does the same over the [`Inline` union](explain:packages/contract/src/page.ts:12-26). [`Blocks`](explain:packages/viewer/src/blocks/blocks.tsx:16-27) maps a list of blocks and, when `lede` is set, gives the first paragraph the `lede` class; the page route sets it only for the page body ([page-route.tsx](explain:packages/viewer/src/routes/page-route.tsx:142)).
 
 Components that need one variant take it as [`BlockOf<"tree">`](explain:packages/viewer/src/blocks/blocks.tsx:14) and so on, which keeps the narrowed type without redeclaring it.
 
@@ -16,8 +16,8 @@ Components that need one variant take it as [`BlockOf<"tree">`](explain:packages
 | `table` | [inline](explain:packages/viewer/src/blocks/blocks.tsx:84-110) | a focusable scroll region around `table`, column alignment from `align` |
 | `alert` | [inline](explain:packages/viewer/src/blocks/blocks.tsx:111-120) | `aside.alert-<kind>` with icon and localized label |
 | `quote`, `thematicBreak`, `details` | [inline](explain:packages/viewer/src/blocks/blocks.tsx:121-143) | `blockquote`, `hr`, native `details`/`summary` |
-| `code` | [`CodeBlock`](explain:packages/viewer/src/blocks/code.tsx:79-99) | highlighted literal code with a copy button |
-| `excerpt` | [`Excerpt`](explain:packages/viewer/src/blocks/code.tsx:135-188) | lines read from the repo, numbered, with the cited path as header |
+| `code` | [`CodeBlock`](explain:packages/viewer/src/blocks/code.tsx:79-111) | literal code, plain first, then highlighted; with a copy button |
+| `excerpt` | [`Excerpt`](explain:packages/viewer/src/blocks/code.tsx:147-200) | lines read from the repo, numbered, with the cited path as header |
 | `mermaid` | [`Mermaid`](explain:packages/viewer/src/blocks/mermaid.tsx:24-69) | SVG from beautiful-mermaid, loaded lazily |
 | `tree` | [`TreeView`](explain:packages/viewer/src/blocks/tree.tsx:7-61) | nested `details` with name and description per node |
 | `tabs` | [`TabsView`](explain:packages/viewer/src/blocks/tabs.tsx:11-79) | ARIA tablist with keyboard navigation |
@@ -37,7 +37,7 @@ The pane picks these elements up by querying `[data-ref]` under the page and par
 | `data-kind` | `cite`, `file`, `excerpt`, `note` | how the anchor is drawn and grouped |
 | `data-follow` | `"0"` or absent | `"0"` keeps the anchor out of the reading-line follow ([anchors.ts](explain:packages/viewer/src/pane/anchors.ts:27), [controller.ts](explain:packages/viewer/src/pane/controller.ts:187-189)) |
 
-`data-follow="0"` appears on secondary links: the header of an excerpt, and each diff line number. The excerpt `figure` itself carries `data-kind="excerpt"` without it ([code.tsx](explain:packages/viewer/src/blocks/code.tsx:148)), so while scrolling the pane follows the excerpt as one unit rather than its header link.
+`data-follow="0"` appears on secondary links: the header of an excerpt, and each diff line number. The excerpt `figure` itself carries `data-kind="excerpt"` without it ([code.tsx](explain:packages/viewer/src/blocks/code.tsx:160)), so while scrolling the pane follows the excerpt as one unit rather than its header link.
 
 > [!IMPORTANT]
 > Nothing in `blocks/` imports from `pane/`. The contract between them is DOM only: the `data-ref`, `data-kind`, and `data-follow` attributes, the `data-index` number on annotation notes, and the `note` and `annotated` class names the pane queries to collect a group's notes ([anchors.ts](explain:packages/viewer/src/pane/anchors.ts:33-39), [controller.ts](explain:packages/viewer/src/pane/controller.ts:229)). The `cite` class on links is used only by CSS. A new block that points at code must emit those attributes to take part in the pane.
@@ -49,27 +49,29 @@ Both render as a `figure` with a header and a copy button, but they get their te
 <Tabs>
 <Tab label="Literal code">
 
-The fence body is in the AST, so `CodeBlock` highlights it synchronously with the fence language and copies `value` as is.
+The fence body is in the AST, so `CodeBlock` has its text at once. It first renders [`plainLines`](explain:packages/viewer/src/highlight.ts:242-247), the lines with `&`, `<`, `>` and `"` escaped, then calls the async [`highlightLines`](explain:packages/viewer/src/highlight.ts:249-255) in an effect and swaps in the highlighted HTML when it resolves. The result is stored with a `lang + value` key, so a block whose fence changed shows plain text again until its own highlighting finishes, and a stale promise is ignored through the `live` flag. Copy takes `value` as is.
 
-```tsx file=explain:packages/viewer/src/blocks/code.tsx:79-99
+```tsx file=explain:packages/viewer/src/blocks/code.tsx:79-111
 ```
+
+`highlightLines` loads highlight.js grammars on demand. [`languages`](explain:packages/viewer/src/highlight.ts:12-164) maps each grammar id to a dynamic `import()` plus the extensions, file names and fence aliases that select it, and [`languageOf`](explain:packages/viewer/src/highlight.ts:180-189) resolves a fence language or a path through those tables. [`loadLanguage`](explain:packages/viewer/src/highlight.ts:191-220) registers the grammar and every grammar it `embeds` (TypeScript pulls in CSS and XML, for example), caching one promise per id. An unknown language, or a grammar whose import fails, falls back to `plainLines`.
 
 </Tab>
 <Tab label="Excerpt">
 
-The AST holds only a `Ref`. [`useSourceLines`](explain:packages/viewer/src/blocks/code.tsx:14-32) loads the file through [`loadSourceLines`](explain:packages/viewer/src/data.ts:49-60), which fetches the source API once per `repo:path`, drops a trailing newline, splits into lines, and highlights them by file extension. Every excerpt and diff on the page that cites the same file shares that one promise.
+The AST holds only a `Ref`. [`useSourceLines`](explain:packages/viewer/src/blocks/code.tsx:14-32) loads the file through [`loadSourceLines`](explain:packages/viewer/src/data.ts:49-60), which fetches the source API once per `repo:path`, drops a trailing newline, splits into lines, and awaits `highlightLines` with the language `languageOf` picks from the path, so an excerpt stays a skeleton until its grammar has loaded. Every excerpt and diff on the page that cites the same file shares that one promise.
 
-```tsx file=explain:packages/viewer/src/blocks/code.tsx:138-146
+```tsx file=explain:packages/viewer/src/blocks/code.tsx:150-158
 ```
 
-No ranges means the whole file. Ranges starting past the end of the file are dropped and the rest are clamped, so an excerpt of a shrunk file degrades instead of throwing. Between two ranges the renderer inserts a `⋮` gap row ([code.tsx](explain:packages/viewer/src/blocks/code.tsx:173-183)). While loading it shows a skeleton; a missing file renders [`MissingFile`](explain:packages/viewer/src/blocks/code.tsx:122-133); the copy button copies only the cited lines ([`citedLines`](explain:packages/viewer/src/ref.ts:45-48)).
+No ranges means the whole file. Ranges starting past the end of the file are dropped and the rest are clamped, so an excerpt of a shrunk file degrades instead of throwing. Between two ranges the renderer inserts a `⋮` gap row ([code.tsx](explain:packages/viewer/src/blocks/code.tsx:185-195)). While loading it shows a skeleton; a missing file renders [`MissingFile`](explain:packages/viewer/src/blocks/code.tsx:134-145); the copy button copies only the cited lines ([`citedLines`](explain:packages/viewer/src/ref.ts:45-48)).
 
 </Tab>
 </Tabs>
 
 ## Diff
 
-`<Diff before=… after=… />` parses to a `diff` block whose `change` is `modified`, `added`, or `deleted` ([`DiffChange`](explain:packages/contract/src/page.ts:55-58)). The parser stores citations only; the diff is computed in the browser on every render from the files as they are now.
+`<Diff before=… after=… />` parses to a `diff` block whose `change` is `modified`, `added`, or `deleted` ([`DiffChange`](explain:packages/contract/src/page.ts:55-58)). The parser stores citations only; the diff is computed in the browser from the files as they are now, and memoized on both sides' contents and citations ([diff.tsx](explain:packages/viewer/src/blocks/diff.tsx:70-75)).
 
 ```mermaid
 flowchart TD

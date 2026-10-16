@@ -41,8 +41,8 @@
 |---|---|---|
 | 带行号区间的行内引用链接 | [`cite`](explain:packages/viewer/src/blocks/inlines.tsx:46-51) | 是 |
 | 整文件的行内引用 | [`file`](explain:packages/viewer/src/blocks/inlines.tsx:46-51) | 否 |
-| 摘录的 `<figure>` | [`excerpt`](explain:packages/viewer/src/blocks/code.tsx:148) | 是 |
-| 摘录标题栏里的路径链接 | [`cite`，`data-follow="0"`](explain:packages/viewer/src/blocks/code.tsx:150-156) | 否 |
+| 摘录的 `<figure>` | [`excerpt`](explain:packages/viewer/src/blocks/code.tsx:160) | 是 |
+| 摘录标题栏里的路径链接 | [`cite`，`data-follow="0"`](explain:packages/viewer/src/blocks/code.tsx:162-168) | 否 |
 | `<AnnotatedSource>` 的注释按钮 | [`note`](explain:packages/viewer/src/blocks/annotated-source.tsx:23-29) | 是 |
 | `<Diff>` 两侧标题里的链接 | [`cite`（未写属性）](explain:packages/viewer/src/blocks/diff.tsx:77-81) | 是 |
 | `<Diff>` 行号链接 | [`cite`，`data-follow="0"`](explain:packages/viewer/src/blocks/diff.tsx:89-95) | 否 |
@@ -175,6 +175,8 @@
 
 面板是正文旁边的一列网格。悬停预览，点击切换固定，画引线。`sheetOpen` 始终为 `false`：分栏时 [`setSheet(true)`](explain:packages/viewer/src/pane/controller.ts:134-149) 直接返回；窗口从窄屏拉宽到分栏时，已打开的抽屉会被关掉。
 
+宽度不低于 1360px 时外壳分三列：侧栏、宽 `--prose-w` 的正文、宽度介于 `--pane-min`（440px）和 `--pane-max` 之间的面板；窗口比三列加起来还宽时，`justify-content: safe center` 让整个网格居中（[shell.css](explain:packages/viewer/src/styles/viewer/shell.css:1-7)）。1080px 到 1359px 之间侧栏收进抽屉，面板占剩下的 `1fr`，不设上限（[drawer.css](explain:packages/viewer/src/styles/viewer/drawer.css:1-6)）。两列宽度都由字号推出（[tokens.css](explain:packages/viewer/src/styles/tokens.css:58-59,133-136)）：`--size-prose` 是一个随视口宽度从 1rem 涨到 1.1765rem 的 `clamp`，作用在正文列上（[shell.css](explain:packages/viewer/src/styles/viewer/shell.css:22-28)）；面板里的代码用 `--size-code`，即它的 0.796875 倍（[pane-view.css](explain:packages/viewer/src/styles/viewer/pane-view.css:26-32)）。`--prose-w` 等于 `--size-prose` 的 34 倍加 126px，`--pane-max` 等于 `60 * --size-code + 100px`，所以屏幕越宽，正文、代码和两列一起变大。把 `60` 理解为 100 列、每列 0.6em 的等宽字符是推断，代码里没有写明。
+
 </Tab>
 <Tab label="窄屏（< 1080px）">
 
@@ -182,7 +184,7 @@
 
 滚动时跟随照常工作，所以那一行预览会随着阅读更新。点击引用会固定它并打开抽屉；点预览行、标题或把手也能打开。`setSheet(true)` 给 `body` 加 `sheet-open`，把 `<main>` 和顶栏设为 `inert`，聚焦关闭按钮，并记住稍后要还焦点的元素；关闭时把焦点还回去。
 
-拖动头部（[sheet-drag.ts](explain:packages/viewer/src/pane/sheet-drag.ts:16-22)）时，抽屉通过 `--drag` 自定义属性跟手移动；松手时向下超过 80px 就关闭，从露出状态向上超过 30px 就打开。
+拖动头部（[sheet-drag.ts](explain:packages/viewer/src/pane/sheet-drag.ts:12-22)）时，只有抽屉已打开时才通过 `--drag` 自定义属性跟手移动，而且只跟随向下的拖动（向上的位移按 0 计）；松手时向下超过 80px 就关闭。从露出状态拖动时抽屉不跟手，向上超过 30px 后松手才打开。
 
 </Tab>
 </Tabs>
