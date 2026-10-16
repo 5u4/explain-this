@@ -50,10 +50,10 @@ export const loadSourceLines = (repo: string, path: string): Promise<SourceLines
   const key = fileKey({ repo, path });
   const cached = sourceLines.get(key);
   if (cached !== undefined) return cached;
-  const loading = loadSource(repo, path).then((source): SourceLines => {
+  const loading = loadSource(repo, path).then(async (source): Promise<SourceLines> => {
     if (source.status === "missing") return { status: "missing" };
     const raw = source.text.replace(/\n$/, "").split("\n");
-    return { status: "file", raw, html: highlightLines(raw, languageOf(path)) };
+    return { status: "file", raw, html: await highlightLines(raw, languageOf(path)) };
   });
   sourceLines.set(key, loading);
   return loading;

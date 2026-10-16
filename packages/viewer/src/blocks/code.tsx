@@ -2,7 +2,7 @@ import type { Ref } from "@explain/contract/citation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useViewer } from "../context.ts";
 import { loadSourceLines, type SourceLines } from "../data.ts";
-import { highlightLines, languageOf } from "../highlight.ts";
+import { highlightLines, languageOf, plainLines } from "../highlight.ts";
 import { icons } from "../icons.tsx";
 import { citedLines, fileKey, formatRef, rangeLabel, sourceHref } from "../ref.ts";
 
@@ -84,7 +84,19 @@ export function CodeBlock({
   readonly value: string;
 }): ReactNode {
   const { strings } = useViewer();
-  const html = highlightLines(value.split("\n"), languageOf(lang)).join("\n");
+  const key = `${lang ?? ""}\n${value}`;
+  const [highlighted, setHighlighted] = useState<{ key: string; html: string }>();
+  useEffect(() => {
+    let live = true;
+    void highlightLines(value.split("\n"), languageOf(lang)).then((lines) => {
+      if (live) setHighlighted({ key, html: lines.join("\n") });
+    });
+    return () => {
+      live = false;
+    };
+  }, [key, lang, value]);
+  const html =
+    highlighted?.key === key ? highlighted.html : plainLines(value.split("\n")).join("\n");
   return (
     <figure className="codeblock" data-lang={lang ?? "text"}>
       <div className="code-head">
