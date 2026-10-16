@@ -261,8 +261,8 @@ stays zero until the window is wider than the rail, the prose and `--pane-max` t
 half the leftover width, so the rail and prose sit where a centered layout would put them and the
 pane keeps the rest ([shell.css](explain:packages/viewer/src/styles/viewer/shell.css:1-7)).
 Between 1080px and 1359px the rail moves into a drawer and the pane takes the remaining `1fr`, with no
-cap ([drawer.css](explain:packages/viewer/src/styles/viewer/drawer.css:1-6)). Both widths derive
-from the font size ([tokens.css](explain:packages/viewer/src/styles/tokens.css:58-59,133-136)):
+cap ([drawer.css](explain:packages/viewer/src/styles/viewer/drawer.css:1-6)). The prose width and the
+gutter threshold derive from the font size ([tokens.css](explain:packages/viewer/src/styles/tokens.css:58-59,133-136)):
 `--size-prose` is a `clamp` that grows with the viewport width from 1rem to 1.1765rem and is applied
 to the prose column ([shell.css](explain:packages/viewer/src/styles/viewer/shell.css:22-28)), and the
 pane's code is set at `--size-code`, 0.796875 of it

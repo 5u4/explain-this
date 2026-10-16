@@ -252,4 +252,4 @@ graph TD
 | ≤ 1359px | 导航移出网格变成左侧抽屉，出现吸顶顶栏；面板列为 `minmax(--pane-min, 1fr)`，不设上限（[drawer.css](explain:packages/viewer/src/styles/viewer/drawer.css:1-43)） |
 | ≤ 1079px | 单列，源码面板变成底部抽屉（[bottom-sheet.css](explain:packages/viewer/src/styles/viewer/bottom-sheet.css:1-9)） |
 
-没有面板的路由（以及每个页面加载完成之前）给外壳加 `no-pane`，去掉面板列，正文列最宽到 `--prose-w` 加 320px。它们沿用同一个留白列，所以面板出现时导航和正文不会移动（[source-page.css](explain:packages/viewer/src/styles/viewer/source-page.css:1-15)）。
+没有面板的路由（以及每个页面加载完成之前）给外壳加 `no-pane`，去掉面板列，正文列最宽到 `--prose-w` 加 320px。它们沿用同一个留白列，所以面板出现时导航和正文不会移动（[source-page.css](explain:packages/viewer/src/styles/viewer/source-page.css:1-15)）。根元素无论页面能否滚动都预留滚动条的宽度（[globals.css](explain:packages/viewer/src/styles/viewer/globals.css:16)），所以很短的加载态和很长的页面用同一个宽度计算留白。

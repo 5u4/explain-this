@@ -13,6 +13,7 @@ html {
   text-spacing-trim: trim-start;
   line-break: strict;
   scroll-padding-top: 24px;
+  scrollbar-gutter: stable;
   color-scheme: dark;
 }
 body {
