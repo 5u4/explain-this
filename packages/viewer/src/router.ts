@@ -34,39 +34,45 @@ export const pageHref = (locale: string, id: string, anchor?: string | null): st
 export const sourceRouteHref = (locale: string, repo: string, path: string): string =>
   `/${encodeURIComponent(locale)}/source?${encodeURIComponent(repo)}/${path.split("/").map(encodeURIComponent).join("/")}`;
 
-const routeEvent = "explain:route";
+type Redirect = (pathname: string, search: string) => string | null;
 
-const subscribe = (listener: () => void) => {
-  addEventListener("popstate", listener);
-  addEventListener(routeEvent, listener);
-  return () => {
-    removeEventListener("popstate", listener);
-    removeEventListener(routeEvent, listener);
-  };
+const listeners = new Set<() => void>();
+let redirect: Redirect = () => null;
+
+const settle = () => {
+  const to = redirect(location.pathname, location.search);
+  if (to !== null) history.replaceState(null, "", to);
+  for (const listener of listeners) listener();
+};
+
+export const subscribeLocation = (listener: () => void): (() => void) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
 };
 
 export const useLocation = (): string =>
-  useSyncExternalStore(subscribe, () => location.pathname + location.search + location.hash);
+  useSyncExternalStore(
+    subscribeLocation,
+    () => location.pathname + location.search + location.hash,
+  );
 
-export const navigate = (href: string, options?: { readonly replace?: boolean }) => {
-  if (options?.replace === true) history.replaceState(null, "", href);
-  else history.pushState(null, "", href);
-  dispatchEvent(new Event(routeEvent));
+const onClick = (event: MouseEvent) => {
+  if (event.defaultPrevented || event.button !== 0) return;
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
+  if (!(anchor instanceof HTMLAnchorElement) || anchor.target !== "") return;
+  const url = new URL(anchor.href);
+  if (url.origin !== location.origin || url.pathname.startsWith("/@")) return;
+  const here = url.pathname === location.pathname && url.search === location.search;
+  if (here && url.hash !== "") return;
+  event.preventDefault();
+  history.pushState(null, "", url.pathname + url.search + url.hash);
+  settle();
 };
 
-export const interceptLinks = (): (() => void) => {
-  const onClick = (event: MouseEvent) => {
-    if (event.defaultPrevented || event.button !== 0) return;
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
-    if (!(anchor instanceof HTMLAnchorElement) || anchor.target !== "") return;
-    const url = new URL(anchor.href);
-    if (url.origin !== location.origin || url.pathname.startsWith("/@")) return;
-    const here = url.pathname === location.pathname && url.search === location.search;
-    if (here && url.hash !== "") return;
-    event.preventDefault();
-    navigate(url.pathname + url.search + url.hash);
-  };
+export const startRouter = (resolve: Redirect) => {
+  redirect = resolve;
+  addEventListener("popstate", settle);
   document.addEventListener("click", onClick);
-  return () => document.removeEventListener("click", onClick);
+  settle();
 };

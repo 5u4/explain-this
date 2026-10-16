@@ -1,16 +1,26 @@
-import { Component, type ReactNode, Suspense, use, useEffect } from "react";
+import { Component, type ReactNode, Suspense, use } from "react";
 import type { Site } from "./context.ts";
 import { loadSite } from "./data.ts";
 import { stringsFor } from "./i18n/strings.ts";
-import { interceptLinks, navigate, parseRoute, useLocation } from "./router.ts";
+import { parseRoute, type Route, useLocation } from "./router.ts";
 import { PageRoute } from "./routes/page-route.tsx";
 import { SourceRoute } from "./routes/source-route.tsx";
 import { homeHref, Shell } from "./shell/shell.tsx";
 
+export const siteLocale = (site: Site, route: Route): string =>
+  route.kind === "unknown" || route.locale === null || !site.locales.includes(route.locale)
+    ? site.defaultLocale
+    : route.locale;
+
+export const homeRedirect = (site: Site, route: Route, pathname: string): string | null => {
+  if (route.kind !== "home") return null;
+  const home = homeHref(site, siteLocale(site, route));
+  return home === pathname ? null : home;
+};
+
 export function App(): ReactNode {
   const site = use(loadSite());
   const where = useLocation();
-  useEffect(interceptLinks, []);
   if (site.status === "invalid") {
     const strings = stringsFor(navigator.language);
     return (
@@ -32,28 +42,15 @@ export function App(): ReactNode {
     );
   }
   const route = parseRoute(location.pathname, location.search);
+  const locale = siteLocale(site, route);
   if (route.kind === "home") {
-    const locale =
-      route.locale !== null && site.locales.includes(route.locale)
-        ? route.locale
-        : site.defaultLocale;
-    const home = homeHref(site, locale);
-    return home === location.pathname ? (
+    return homeRedirect(site, route, location.pathname) === null ? (
       <EmptyHome site={site} locale={locale} />
-    ) : (
-      <Redirect to={home} />
-    );
+    ) : null;
   }
   if (route.kind === "unknown" || !site.locales.includes(route.locale)) {
-    return (
-      <NotFound
-        site={site}
-        locale={site.defaultLocale}
-        path={location.pathname + location.search}
-      />
-    );
+    return <NotFound site={site} locale={locale} path={location.pathname + location.search} />;
   }
-  const locale = route.locale;
   const key = where.split("#")[0];
   return (
     <ErrorBoundary key={key} site={site} locale={locale}>
@@ -95,11 +92,6 @@ function EmptyHome({ site, locale }: { readonly site: Site; readonly locale: str
       </article>
     </Shell>
   );
-}
-
-function Redirect({ to }: { readonly to: string }): ReactNode {
-  useEffect(() => navigate(to, { replace: true }), [to]);
-  return null;
 }
 
 function NotFound({

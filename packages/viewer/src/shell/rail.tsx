@@ -1,25 +1,33 @@
 import type { TocEntry } from "@explain/contract/page";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useSyncExternalStore } from "react";
 import { useViewer } from "../context.ts";
 import { icons } from "../icons.tsx";
 import { pageHref } from "../router.ts";
+import { openSearch } from "./search-opener.ts";
 import { homeHref } from "./shell.tsx";
 
 export function Rail({
   current,
   toc,
-  onOpenSearch,
   onNavigate,
 }: {
   readonly current: string | null;
   readonly toc: ReadonlyArray<TocEntry>;
-  readonly onOpenSearch: () => void;
   readonly onNavigate: () => void;
 }): ReactNode {
   const { site, locale, strings } = useViewer();
   const localeSite = site.byLocale[locale];
   const sections = toc.filter((entry) => entry.depth === 2);
-  const spied = useScrollSpy(sections);
+  const spied = useSyncExternalStore(subscribeScroll, () => {
+    let active = sections[0]?.id ?? null;
+    for (const entry of sections) {
+      const element = document.getElementById(entry.id);
+      if (element !== null && element.getBoundingClientRect().top < innerHeight * 0.3) {
+        active = entry.id;
+      }
+    }
+    return active;
+  });
   if (localeSite === undefined) return <nav className="rail" id="rail" />;
   const tocList = (id: string) =>
     id === current &&
@@ -38,6 +46,7 @@ export function Rail({
     <nav
       className="rail"
       id="rail"
+      tabIndex={-1}
       aria-label={strings.navLabel}
       onClick={(event) => {
         if (event.target instanceof Element && event.target.closest("a") !== null) onNavigate();
@@ -50,7 +59,7 @@ export function Rail({
           </span>
           <span>{site.title}</span>
         </a>
-        <button type="button" className="search-trigger" onClick={onOpenSearch}>
+        <button type="button" className="search-trigger" onClick={openSearch}>
           {icons.search}
           <span>{strings.searchSite}</span>
           <kbd>⌘K</kbd>
@@ -102,23 +111,7 @@ export function Rail({
   );
 }
 
-const useScrollSpy = (sections: ReadonlyArray<TocEntry>): string | null => {
-  const [active, setActive] = useState<string | null>(sections[0]?.id ?? null);
-  useEffect(() => {
-    if (sections.length === 0) return;
-    const onScroll = () => {
-      let current = sections[0]?.id ?? null;
-      for (const entry of sections) {
-        const element = document.getElementById(entry.id);
-        if (element !== null && element.getBoundingClientRect().top < innerHeight * 0.3) {
-          current = entry.id;
-        }
-      }
-      setActive(current);
-    };
-    onScroll();
-    addEventListener("scroll", onScroll, { passive: true });
-    return () => removeEventListener("scroll", onScroll);
-  }, [sections]);
-  return active;
+const subscribeScroll = (listener: () => void) => {
+  addEventListener("scroll", listener, { passive: true });
+  return () => removeEventListener("scroll", listener);
 };
