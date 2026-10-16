@@ -18,7 +18,7 @@ cite different files.
 ```json
 {
   "title": "explain-this",
-  "locales": ["zh-CN", "en"],
+  "locales": ["zh", "en"],
   "repos": { "explain": "/Users/senhung/Workspaces/explain-this" },
   "nav": [
     { "title": "contract", "pages": ["citation", "parse-page"] },
