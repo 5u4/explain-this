@@ -1,0 +1,104 @@
+{
+  "files": [
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/page.ts",
+      "hash": "ca03b4f7cdbcfb8d6741f7d75d9299a80e24cab6"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/blocks/annotated-source.tsx",
+      "hash": "d0609f7e211fd18a7be9598b9b570cf5aaf91629"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/blocks/before-after.tsx",
+      "hash": "9648dad9953520754bb04e1c4b1df63df4482d79"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/blocks/blocks.tsx",
+      "hash": "deb8ab72420848924df76fef2ce45c11339cbfd8"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/blocks/code.tsx",
+      "hash": "84f3dff0bf2eff702c45ab495a3721417ffe7bbc"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/blocks/diff.tsx",
+      "hash": "7840dd869fe20e3558320a4a48faf24018225ef2"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/blocks/inlines.tsx",
+      "hash": "ad0c04ae37ee67dd74948b9db379f39e2ff752d0"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/blocks/line-diff.test.ts",
+      "hash": "9db4bbe26d24019be23ab79815bb2127160eb4a2"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/blocks/line-diff.ts",
+      "hash": "11351bb97bfdfeded2a6fd919631d15bfff638f0"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/blocks/mermaid.tsx",
+      "hash": "e73f089a4f4ae7012f126849fc11430a379291ab"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/blocks/tabs.tsx",
+      "hash": "99a154db4bd2cad50cd5cb013c951fb9ee9ee452"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/blocks/tree.tsx",
+      "hash": "109b83f83bc164691425d4f372554e7dd7e7b47e"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/blocks/widget.tsx",
+      "hash": "8cc9544ddf58b51b9080e0c18021a1637eff14fc"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/data.ts",
+      "hash": "983992829a4f5657062ced8bcc9b1f57503d44ba"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/pane/anchors.ts",
+      "hash": "48202680619ed2bd20ef1bac9809b7e734228178"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/pane/controller.ts",
+      "hash": "82c520b517792358b060cb5ca50f56dc75eea131"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/pane/geometry.ts",
+      "hash": "d5679f83474c17ac4680cba6e73fb2a9f2c02ce1"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/pane/input.ts",
+      "hash": "aed664f4ae19911bf0f1dcd37262d6bc5316314c"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/ref.ts",
+      "hash": "6d21d9ddaa9c1c3ff07a478ebf4d6df4d897c026"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/routes/page-route.tsx",
+      "hash": "0766e6af7659c8e636ee6a6cc524d39a74fa6272"
+    }
+  ]
+}

@@ -1,0 +1,179 @@
+{
+  "files": [
+    {
+      "repo": "explain",
+      "path": "package.json",
+      "hash": "3fd68af2cc768acb9fde4ad9bf42c1ac878a00ce"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/site/build.ts",
+      "hash": "f35445bc2b029fee5735cc26b2a7f8ed2d0be611"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/site/dev.ts",
+      "hash": "104d8e7fa7a41f996fde212acd49a1c3734f568d"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/config.ts",
+      "hash": "8aaaa18005248bb7436d19b8e028bfd57517329e"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/index.html",
+      "hash": "a9b50a9e55cbe8d8273c3cb48ca9068c17133e07"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/package.json",
+      "hash": "115ed479056a5aee493798ada345b10fa9426b44"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/api.ts",
+      "hash": "2146a8b4758381504e28b8f1e9ef06d252ac7729"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/app.tsx",
+      "hash": "2d83ecee3d4a0e428e9742ec79a3fdb617c6ce05"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/context.ts",
+      "hash": "d29c967c0d05d5a009846f5f5f4009d70dd1fea6"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/data.ts",
+      "hash": "983992829a4f5657062ced8bcc9b1f57503d44ba"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/highlight.ts",
+      "hash": "ad6d1ec78b174df15073916b793523e6b68aed1d"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/i18n/en.ts",
+      "hash": "91b3655326b16c5e9d89439ab29b567fdde7f4f6"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/i18n/strings.ts",
+      "hash": "d46c6a5aa53553c4162a3fd422a42c1383c3e6cd"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/i18n/zh-CN.ts",
+      "hash": "04d53e7b2c091582d33d4a3580479dfe9cb3f3bb"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/main.tsx",
+      "hash": "d5bccf246fb54a902b1b5afd5690ac2fdf1a9801"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/ref.ts",
+      "hash": "6d21d9ddaa9c1c3ff07a478ebf4d6df4d897c026"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/router.test.ts",
+      "hash": "0048ae2cac408a8c562dd7e3e349c3e179430821"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/router.ts",
+      "hash": "589a87f95a02536c6db7ccf4804d973bf78d3fe6"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/routes/dev-errors.tsx",
+      "hash": "78ed8b0535ce3a5ca56b914bf4fef774b24b1d71"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/routes/freshness.tsx",
+      "hash": "8a2454ea566fe6083bfa95a5910111c756bd52a3"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/routes/page-route.tsx",
+      "hash": "0766e6af7659c8e636ee6a6cc524d39a74fa6272"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/routes/pager.tsx",
+      "hash": "f0428c4f4c641ea6aaa6aa678bf96b42d03b43ac"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/routes/source-route.tsx",
+      "hash": "654bf34628a1176cce0502e9c2073a022bf7463c"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/routes/sources.tsx",
+      "hash": "11603386433081f8ec914f1ffbf4fd02fd67c04c"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/shell/rail.tsx",
+      "hash": "f96a16f21ccf4de08e8ac3283a2ec07efe1768cd"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/shell/search-dialog.tsx",
+      "hash": "80b9389ef6c301f6f7af3b11fb2c690f7694e262"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/shell/shell.tsx",
+      "hash": "abf3861a803e014629fdcdf65159402fe7e31aae"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/styles/base.css",
+      "hash": "3a8c40a5df1fcdd84366457bf363cd625d19332c"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/styles/tokens.css",
+      "hash": "135e16f47f38edb54e6eeeac26b65be2816467ff"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/styles/viewer.css",
+      "hash": "f43738096d089f97a1163c30659d831b9ebb983a"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/styles/viewer/bottom-sheet.css",
+      "hash": "467039828386aa21b33cd871ca178aafef8bc1b6"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/styles/viewer/drawer.css",
+      "hash": "f61334b31846a10e13886dd924332a17c05d36ca"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/styles/viewer/shell.css",
+      "hash": "65c939370719d0d6d4acd5c50fe367dae78a6804"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/styles/viewer/source-page.css",
+      "hash": "fc83a30afac0317da0cfe060a7d1d2ae13d3180f"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/styles/widgets.css",
+      "hash": "2490c6503bf19bd838df7823566fbc3e5794ee1a"
+    }
+  ]
+}

@@ -1,0 +1,114 @@
+{
+  "files": [
+    {
+      "repo": "explain",
+      "path": "README.md",
+      "hash": "10bba4f5ea48da61143b4e2c191288eab8b3c13a"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/cli/package.json",
+      "hash": "9e07566d134eab8bda1e8c27d7c79e8541a9df3e"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/commands/build.ts",
+      "hash": "2bdaaeacf453ac1d9b946a7d507344aef9ec341d"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/commands/dev.ts",
+      "hash": "81eb5ebbeac3840c85374a4439659e8a26f1fb2d"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/commands/exit-with.ts",
+      "hash": "8a61972395be9b110391bb682bdd198f05ce2fba"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/commands/freshness/check.ts",
+      "hash": "268a923dfeea01ed3f140615dfaa8fb774d81e9d"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/commands/freshness/sync.ts",
+      "hash": "c03eb540a702249db96991ab50762a19145e7584"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/commands/init.ts",
+      "hash": "30346b589b2491ea79fff1c1ab6f43b0c9ebc60a"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/commands/open-doc-root.ts",
+      "hash": "35f9113495a8c5c3ac96453cbca6272d03d5a6b6"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/commands/validate.ts",
+      "hash": "78ce4bf1e55f9339f3ad997bb7bcfde4d49c19b4"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/doc-root/config.ts",
+      "hash": "b8a0e7633c0ed6eb06700d31aaf9e0459ff4b149"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/doc-root/freshness.ts",
+      "hash": "7501577366bd2c6e7796995149148331969ce7ba"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/doc-root/load.ts",
+      "hash": "b83bf7e8c9e865d34fac574b11786b7637f6450e"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/doc-root/resolve-source.ts",
+      "hash": "bc8413ce8a50023e527d6df929f3e0389173a71f"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/main.ts",
+      "hash": "fe89d724afdfa478d96ec6491a448fdd04bf1bc5"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/site/api-bodies.ts",
+      "hash": "b656ba602baba5229acf2fc83d7bf3fbd81c702b"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/site/build.ts",
+      "hash": "f35445bc2b029fee5735cc26b2a7f8ed2d0be611"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/site/dev.ts",
+      "hash": "104d8e7fa7a41f996fde212acd49a1c3734f568d"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/sources.ts",
+      "hash": "5e211ecec44c186e7aa4a1c531473d7f7ef7dd82"
+    },
+    {
+      "repo": "explain",
+      "path": "skills/explain-this/SKILL.md",
+      "hash": "205e726aa95ae22b65771de9d0c736a39ce0cf8a"
+    },
+    {
+      "repo": "explain",
+      "path": "skills/explain-this/format.md",
+      "hash": "44147c0186173adb656d20df75d8cbeca4a3c56c"
+    },
+    {
+      "repo": "explain",
+      "path": "skills/explain-this/widgets.md",
+      "hash": "f18a758b9aa27bf405c234c70868c90ef3062cf5"
+    }
+  ]
+}

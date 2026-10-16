@@ -1,0 +1,74 @@
+{
+  "files": [
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/doc-root/check-page.ts",
+      "hash": "4da4c36d85a907428eebac5784bbd6d773b9ed48"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/site/api-bodies.ts",
+      "hash": "b656ba602baba5229acf2fc83d7bf3fbd81c702b"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/site/search.ts",
+      "hash": "858ff0f5bb7bd4029a1a6d670b1d76ee669bee28"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/citation.ts",
+      "hash": "d6487e637a3286ff91e316568ad33cadd7916ead"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/page.ts",
+      "hash": "ca03b4f7cdbcfb8d6741f7d75d9299a80e24cab6"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/parse-page/context.ts",
+      "hash": "dc2debdfc88fc7b1542b604b84623043e46e3faa"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/parse-page/heading.ts",
+      "hash": "d3a49783b1d141664acad968275fc4183543aaa7"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/parse-page/inline.ts",
+      "hash": "33903b11dcdbada25ee1185fa7333ea179ec6bfe"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/parse-page/parse-page.ts",
+      "hash": "2884a58fcde0cd1b5771e3c4de7523c8e3287e54"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/api.ts",
+      "hash": "2146a8b4758381504e28b8f1e9ef06d252ac7729"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/blocks/blocks.tsx",
+      "hash": "deb8ab72420848924df76fef2ce45c11339cbfd8"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/blocks/diff.tsx",
+      "hash": "7840dd869fe20e3558320a4a48faf24018225ef2"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/blocks/inlines.tsx",
+      "hash": "ad0c04ae37ee67dd74948b9db379f39e2ff752d0"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/viewer/src/routes/page-route.tsx",
+      "hash": "0766e6af7659c8e636ee6a6cc524d39a74fa6272"
+    }
+  ]
+}

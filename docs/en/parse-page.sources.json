@@ -1,0 +1,89 @@
+{
+  "files": [
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/doc-root/check-page.ts",
+      "hash": "4da4c36d85a907428eebac5784bbd6d773b9ed48"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/cli/src/doc-root/load.ts",
+      "hash": "b83bf7e8c9e865d34fac574b11786b7637f6450e"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/citation.ts",
+      "hash": "d6487e637a3286ff91e316568ad33cadd7916ead"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/page.ts",
+      "hash": "ca03b4f7cdbcfb8d6741f7d75d9299a80e24cab6"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/parse-page/attributes.ts",
+      "hash": "4bd111603158dc599fa1d4c335abb07b3f17cc38"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/parse-page/block.ts",
+      "hash": "5b291df63693f37775b06514b64f43e008bad984"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/parse-page/code.ts",
+      "hash": "77fe20aefa8534c67345d6edf2ec0d1666e1b6b9"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/parse-page/context.ts",
+      "hash": "dc2debdfc88fc7b1542b604b84623043e46e3faa"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/parse-page/heading.ts",
+      "hash": "d3a49783b1d141664acad968275fc4183543aaa7"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/parse-page/inline.ts",
+      "hash": "33903b11dcdbada25ee1185fa7333ea179ec6bfe"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/parse-page/jsx-block.ts",
+      "hash": "53d354453f00d31c7b92719cd2eb5b38c6610746"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/parse-page/jsx-children.ts",
+      "hash": "1df92b4361d1216bd61c2219ec72b9c1fc52cf18"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/parse-page/layout-components.ts",
+      "hash": "ade0e81886d66c6b31700732b4cf2cd59a9aec9d"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/parse-page/markdown.ts",
+      "hash": "b6bf4fba3764867e698883a9507d53fe25811452"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/parse-page/parse-page.test.ts",
+      "hash": "6167b49618caff91baf90d427bdccd14d2272003"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/parse-page/parse-page.ts",
+      "hash": "2884a58fcde0cd1b5771e3c4de7523c8e3287e54"
+    },
+    {
+      "repo": "explain",
+      "path": "packages/contract/src/parse-page/source-components.ts",
+      "hash": "301441596b12af2969c445e8394c2ec7087992fa"
+    }
+  ]
+}
