@@ -114,7 +114,7 @@ export const serveDocRoot = Effect.fnUntraced(function* (
           root: viewer,
           appType: "spa",
           clearScreen: false,
-          server: listen,
+          server: { ...listen, host: "127.0.0.1" },
           plugins: [viewerImportGuard(viewer, path.sep), plugin],
         });
         try {

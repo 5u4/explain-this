@@ -1,6 +1,6 @@
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { createServer, type Server } from "node:net";
+import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -50,7 +50,7 @@ const startDev = async (docs: string) => {
   const probe = createServer();
   const listening = Promise.withResolvers<void>();
   probe.once("error", listening.reject);
-  probe.listen(0, "localhost", listening.resolve);
+  probe.listen(0, "127.0.0.1", listening.resolve);
   await listening.promise;
   const address = probe.address();
   if (typeof address !== "object" || address === null) throw new Error("no free port");
@@ -71,7 +71,7 @@ const startDev = async (docs: string) => {
   });
   server.once("exit", (code) => ready.reject(new Error(`explain dev exited ${code}: ${output}`)));
   await ready.promise;
-  return `http://localhost:${address.port}`;
+  return `http://127.0.0.1:${address.port}`;
 };
 
 describe("explain dev", () => {
@@ -101,26 +101,16 @@ describe("explain dev", () => {
   });
 
   const holdPort = async (wanted: number) => {
-    const holders: Array<Server> = [];
-    let port = wanted;
-    for (const host of ["127.0.0.1", "::1"]) {
-      const holder = createServer();
-      const listening = Promise.withResolvers<void>();
-      holder.once("error", listening.reject);
-      holder.listen(port, host, listening.resolve);
-      await listening.promise.catch((error: NodeJS.ErrnoException) => {
-        if (error.code !== "EADDRINUSE") throw error;
-      });
-      const address = holder.address();
-      if (typeof address === "object" && address !== null) port = address.port;
-      holders.push(holder);
-    }
+    const holder = createServer();
+    const listening = Promise.withResolvers<void>();
+    holder.once("error", listening.reject);
+    holder.listen(wanted, "127.0.0.1", listening.resolve);
+    await listening.promise;
+    const address = holder.address();
+    if (typeof address !== "object" || address === null) throw new Error("no port held");
     return {
-      port,
-      release: () =>
-        Promise.all(
-          holders.map((holder) => new Promise<void>((resolve) => holder.close(() => resolve()))),
-        ),
+      port: address.port,
+      release: () => new Promise<void>((resolve) => holder.close(() => resolve())),
     };
   };
 
