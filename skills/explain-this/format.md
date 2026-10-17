@@ -17,7 +17,7 @@ cite different files.
 {
   "title": "explain-this",
   "locales": ["zh", "en"],
-  "repos": { "explain": "/Users/senhung/Workspaces/explain-this" },
+  "repos": { "explain": ".." },
   "nav": [
     { "title": "contract", "pages": ["citation", "parse-page"] },
     { "title": "cli", "pages": ["validate", "freshness"] }
@@ -28,7 +28,8 @@ cite different files.
 - `title` and each nav `title` are single strings shared by every locale; the document `title` is
   optional and defaults to `Document`.
 - `defaultLocale` is optional and defaults to the first of `locales`.
-- `repos` maps a key to the absolute path of a work tree. Citations read the files on disk,
+- `repos` maps a key to the path of a work tree, relative to the directory holding `explain.json`
+  or absolute. Citations read the files on disk,
   including uncommitted, untracked, and ignored files.
 - `nav` lists page ids in reading order, which the pager follows. Each id is a `<locale>/<id>.md` in
   every locale.

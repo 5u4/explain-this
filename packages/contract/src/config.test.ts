@@ -19,6 +19,11 @@ describe("ExplainConfig", () => {
     expect(decode(valid)).toEqual(Exit.succeed(valid));
   });
 
+  it("accepts a relative repo path unchanged", () => {
+    const relative = { ...valid, repos: { fold: ".." } };
+    expect(decode(relative)).toEqual(Exit.succeed(relative));
+  });
+
   it("defaults defaultLocale to the first locale and leaves title optional", () => {
     expect(decode({ locales: ["zh-CN", "en"], repos: { fold: "/repos/fold" }, nav: [] })).toEqual(
       Exit.succeed({
@@ -37,7 +42,7 @@ describe("ExplainConfig", () => {
     ["a nav title given per locale", { nav: [{ title: { "zh-CN": "a" }, pages: ["fold"] }] }],
     ["a reserved repo key", { repos: { http: "/x" } }],
     ["a malformed repo key", { repos: { Fold: "/x" } }],
-    ["a relative repo path", { repos: { fold: "repos/fold" } }],
+    ["an empty repo path", { repos: { fold: "" } }],
     ["a repo given as an object", { repos: { fold: { path: "/repos/fold" } } }],
     ["a reserved page id", { nav: [{ title: "a", pages: ["source"] }] }],
     ["a malformed page id", { nav: [{ title: "a", pages: ["Fold"] }] }],

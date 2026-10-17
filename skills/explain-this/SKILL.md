@@ -23,7 +23,7 @@ Pick the branch:
 ## Write
 
 1. **Scope.** Settle with the user what to cover: which repos, which parts of them, or which PR or commit range. A follow-up question is its own scope. Done when the user has named the scope.
-2. **Survey.** Split the scope into components: parts a reader can understand one at a time. Add each repo to `explain.json` `repos` as a key and an absolute path. Done when every component has a name and the paths it covers.
+2. **Survey.** Split the scope into components: parts a reader can understand one at a time. Add each repo to `explain.json` `repos`. Done when every component has a name and the paths it covers.
 3. **Pages.** Write one or more pages per component, in every locale of `explain.json`. Pages are free form. Cite the code behind each claim as `repo:path:ranges`, reading the cited lines as you write the sentence; mark what you could not confirm in code as inference. For a follow-up, extend existing pages or add new ones. Done when every component has its pages in every locale and each page passes every check in `writing.md`.
 4. **Nav.** Edit `explain.json`: set `title` if it has none, and place every new page in `nav` where a reader would look for it. Done when every page you wrote is in `nav`.
 5. **Validate.** Run `explain validate` on the pages you wrote or changed and fix every diagnostic; it always validates `explain.json` too. Then run `explain freshness sync` on those same pages. Done when `explain validate <your pages>` exits 0 and the sync succeeded.

@@ -5,6 +5,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -222,6 +223,33 @@ describe("explain freshness and validate", () => {
       code: 2,
       stdout: "",
       stderr: "../explain.json:1:1 repos: Missing key\n../explain.json:1:1 nav: Missing key\n",
+    });
+  });
+
+  it("resolves a relative repo path against the doc root from a locale directory", () => {
+    const docRoot = makeDocRoot(citingPage);
+    const config = JSON.parse(readFileSync(join(docRoot.docs, "explain.json"), "utf8"));
+    writeFileSync(
+      join(docRoot.docs, "explain.json"),
+      JSON.stringify({ ...config, repos: { src: "../repo" } }),
+    );
+    const result = run("bun", [main, "validate"], join(docRoot.docs, "zh-CN"));
+    expect(result).toEqual({ code: 0, stdout: "1 pages valid\n", stderr: "" });
+  });
+
+  it("names both the given and the resolved path of a missing relative repo", () => {
+    const docRoot = makeDocRoot("# 折叠\n\n没有引用。\n");
+    const config = JSON.parse(readFileSync(join(docRoot.docs, "explain.json"), "utf8"));
+    writeFileSync(
+      join(docRoot.docs, "explain.json"),
+      JSON.stringify({ ...config, repos: { src: "../missing" } }),
+    );
+    const resolved = join(realpathSync(docRoot.docs), "..", "missing");
+    const result = run("bun", [main, "validate"], join(docRoot.docs, "zh-CN"));
+    expect(result).toEqual({
+      code: 2,
+      stdout: "",
+      stderr: `../explain.json:1:1 repos.src: ../missing (${resolved}) is not a directory\n`,
     });
   });
 
