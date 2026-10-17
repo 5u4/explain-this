@@ -17,7 +17,7 @@ export const loadDocRoot = Effect.fnUntraced(function* (
   const path = yield* Path.Path;
   const config = yield* loadConfig(root);
 
-  const { repos, errors: repoErrors } = yield* resolveRepos(config);
+  const { repos, errors: repoErrors } = yield* resolveRepos(root, config);
   const resolve = yield* makeResolveSource(config, repos);
   const blobId = yield* makeBlobId;
 
@@ -44,6 +44,7 @@ export const loadDocRoot = Effect.fnUntraced(function* (
   return {
     root,
     config,
+    repos,
     pages,
     errors: repoErrors,
     resolveSource: resolve,

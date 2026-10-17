@@ -46,6 +46,7 @@ export type Resolved =
 export interface DocRoot {
   readonly root: string;
   readonly config: ExplainConfig;
+  readonly repos: ReadonlyMap<string, string>;
   readonly pages: ReadonlyArray<DocPage>;
   readonly errors: ReadonlyArray<Diagnostic>;
   readonly resolveSource: (

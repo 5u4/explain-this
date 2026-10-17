@@ -19,11 +19,7 @@ const PageId = Schema.String.check(
   ),
 );
 
-const RepoPath = Schema.String.check(
-  Schema.makeFilter(
-    (path: string) => path.startsWith("/") || `repo path "${path}" must be absolute`,
-  ),
-);
+const RepoPath = Schema.String.check(Schema.isNonEmpty({ message: "repo path must not be empty" }));
 
 const Repos = Schema.Record(Schema.String, RepoPath).check(
   Schema.makeFilter((repos: Readonly<Record<string, string>>) =>

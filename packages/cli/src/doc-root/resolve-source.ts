@@ -15,19 +15,25 @@ const countLines = (bytes: Uint8Array): number => {
   return bytes.length > 0 && bytes[bytes.length - 1] !== 0x0a ? lines + 1 : lines;
 };
 
-export const resolveRepos = Effect.fnUntraced(function* (config: ExplainConfig) {
+export const resolveRepos = Effect.fnUntraced(function* (root: string, config: ExplainConfig) {
   const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const realRoot = yield* fs.realPath(root);
   const errors: Array<Diagnostic> = [];
   const repos = new Map<string, string>();
   for (const [key, repoPath] of Object.entries(config.repos)) {
-    const real = yield* fs.realPath(repoPath).pipe(Effect.orElseSucceed(() => undefined));
+    const resolved = path.resolve(realRoot, repoPath);
+    const real = yield* fs.realPath(resolved).pipe(Effect.orElseSucceed(() => undefined));
     const info = real === undefined ? undefined : yield* fs.stat(real).pipe(Effect.option);
     if (real === undefined || info?._tag !== "Some" || info.value.type !== "Directory") {
       errors.push({
         file: configFileName,
         line: 1,
         column: 1,
-        message: `repos.${key}: ${repoPath} is not a directory`,
+        message:
+          resolved === repoPath
+            ? `repos.${key}: ${repoPath} is not a directory`
+            : `repos.${key}: ${repoPath} (${resolved}) is not a directory`,
       });
       continue;
     }
