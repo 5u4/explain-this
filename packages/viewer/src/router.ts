@@ -102,7 +102,7 @@ const holdScroll = (key: string, top: number): (() => void) => {
     offsets.delete(key);
     stop();
   };
-  const timer = setTimeout(stop, 10_000);
+  const timer = setTimeout(() => observer.disconnect(), 10_000);
   for (const type of intents) addEventListener(type, cancel, { capture: true, passive: true });
   scrollTo(0, top);
   observer.observe(document.documentElement);
