@@ -81,47 +81,6 @@
   font-size: var(--size-ui-lg);
 }
 
-.hljs-keyword,
-.hljs-built_in.hljs-keyword,
-.hljs-literal {
-  color: var(--syn-keyword);
-}
-.hljs-string,
-.hljs-regexp {
-  color: var(--syn-string);
-}
-.hljs-title,
-.hljs-title.function_ {
-  color: var(--syn-func);
-}
-.hljs-type,
-.hljs-built_in,
-.hljs-attr,
-.hljs-title.class_,
-.hljs-params {
-  color: var(--syn-type);
-}
-.hljs-number {
-  color: var(--syn-number);
-}
-.hljs-comment {
-  color: var(--syn-comment);
-  font-style: italic;
-}
-.hljs-punctuation,
-.hljs-operator {
-  color: var(--syn-punct);
-}
-.hljs-section,
-.hljs-strong {
-  color: var(--text-strong);
-  font-weight: 600;
-}
-.hljs-meta,
-.hljs-variable {
-  color: var(--text-body);
-}
-
 .copy {
   display: inline-flex;
   align-items: center;
