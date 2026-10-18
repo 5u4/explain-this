@@ -150,7 +150,7 @@ export async function runTrial<S>(
   const name = `ws-${process.pid}-${crypto.randomUUID().slice(0, 8)}`;
   const root = join(tmpdir(), name);
   const profileDir = join(PROFILES_DIR, name);
-  mkdirSync(root);
+  mkdirSync(root, { mode: 0o700 });
   try {
     populateProfile(profileDir, options.skillDir);
     const workdir = join(root, "acme-docs");
