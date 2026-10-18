@@ -91,15 +91,19 @@ const remember = () => {
 
 const intents = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
 
-const holdScroll = (top: number): (() => void) => {
+const holdScroll = (key: string, top: number): (() => void) => {
   const observer = new ResizeObserver(() => scrollTo(0, top));
   const stop = () => {
     observer.disconnect();
     clearTimeout(timer);
-    for (const type of intents) removeEventListener(type, stop, true);
+    for (const type of intents) removeEventListener(type, cancel, true);
+  };
+  const cancel = () => {
+    offsets.delete(key);
+    stop();
   };
   const timer = setTimeout(stop, 10_000);
-  for (const type of intents) addEventListener(type, stop, { capture: true, passive: true });
+  for (const type of intents) addEventListener(type, cancel, { capture: true, passive: true });
   scrollTo(0, top);
   observer.observe(document.documentElement);
   return stop;
@@ -111,7 +115,7 @@ export const revealEntry = (): (() => void) => {
   const offset = offsets.get(current) ?? readEntry(history.state)?.scrollY;
   if (offset !== undefined) {
     offsets.set(current, offset);
-    release = holdScroll(offset);
+    release = holdScroll(current, offset);
   } else if (location.hash === "") scrollTo(0, 0);
   else document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView();
   return release;
