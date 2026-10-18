@@ -6,7 +6,7 @@ export type Criteria = Record<string, string>;
 
 export type JudgedStatus = Exclude<Verdict["status"], "invalid">;
 
-const JUDGE_TIMEOUT_MS = 180_000;
+export const JUDGE_TIMEOUT_MS = 180_000;
 
 const JUDGED: Record<string, JudgedStatus> = { pass: "pass", fail: "fail", "n/a": "n/a" };
 

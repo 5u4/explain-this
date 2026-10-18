@@ -1,9 +1,11 @@
 import { appendFileSync, existsSync, mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { afterAll, describe, expect, test } from "vitest";
-import { type Criteria, type JudgedStatus, judge } from "./judge.ts";
+import { type Criteria, JUDGE_TIMEOUT_MS, type JudgedStatus, judge } from "./judge.ts";
 import { candidateModel, judgeModel } from "./models.ts";
-import { runTrial } from "./run-agent.ts";
+import { runTrial, TRIAL_TIMEOUT_MS } from "./run-agent.ts";
+import { EXIT_GRACE_MS } from "./scratch.ts";
+import { settleAll } from "./settle.ts";
 import { REPO_ROOT } from "./target-repo.ts";
 import type { Grade, Run, Scenario, Verdict } from "./types.ts";
 
@@ -72,6 +74,7 @@ function defineTrials(
   trials: number,
   meta: Record<string, string>,
   gradeTrial: () => Promise<Grade>,
+  timeout?: number,
 ): void {
   const stamp = new Date().toISOString().replaceAll(":", "-");
   const resultsDir = join(REPO_ROOT, "evals", "results");
@@ -97,19 +100,25 @@ function defineTrials(
 
   describe(name, () => {
     for (let trial = 1; trial <= trials; trial++) {
-      test.concurrent(`trial ${trial}`, async () => {
-        let grade: Grade;
-        try {
-          grade = await gradeTrial();
-        } catch (error) {
-          errored++;
-          record({ trial, error: String(error) });
-          throw error;
-        }
-        grades.push(grade);
-        record({ trial, grade });
-        expect(Object.entries(grade).filter(([, verdict]) => !SETTLED[verdict.status])).toEqual([]);
-      });
+      test.concurrent(
+        `trial ${trial}`,
+        async () => {
+          let grade: Grade;
+          try {
+            grade = await gradeTrial();
+          } catch (error) {
+            errored++;
+            record({ trial, error: String(error) });
+            throw error;
+          }
+          grades.push(grade);
+          record({ trial, grade });
+          expect(Object.entries(grade).filter(([, verdict]) => !SETTLED[verdict.status])).toEqual(
+            [],
+          );
+        },
+        timeout,
+      );
     }
   });
 }
@@ -124,6 +133,7 @@ export function defineEval<S>(name: string, scenario: Scenario<S>): void {
       const { run, state } = await runTrial(scenario, config);
       return gradeRun(scenario, run, state);
     },
+    TRIAL_TIMEOUT_MS + JUDGE_TIMEOUT_MS + 2 * EXIT_GRACE_MS,
   );
 }
 
@@ -143,7 +153,7 @@ function agreement(caseId: string, { expected }: CalibrationCase, judged: Grade)
 export function defineCalibration(name: string, cases: Record<string, CalibrationCase>): void {
   const config = evalConfig();
   defineTrials(name, config.trials, { judge: config.judgeModel }, async () => {
-    const grades = await Promise.all(
+    const grades = await settleAll(
       Object.entries(cases).map(async ([caseId, calibrationCase]) =>
         agreement(
           caseId,

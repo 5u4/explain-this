@@ -3,7 +3,7 @@ import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Subprocess } from "bun";
 
-const EXIT_GRACE_MS = 10_000;
+export const EXIT_GRACE_MS = 10_000;
 const PROFILES_DIR = join(homedir(), ".omp", "profiles");
 const OWNED_NAME = /^ws-(\d+)-[0-9a-f]{8}$/;
 

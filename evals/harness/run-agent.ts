@@ -5,7 +5,7 @@ import type { Run, Scenario, SessionEntry, ToolCall, Turn } from "./types.ts";
 
 const SKILL_NAME = "explain-this";
 
-const TRIAL_TIMEOUT_MS = 280_000;
+export const TRIAL_TIMEOUT_MS = 280_000;
 const INTERACTIVE_UI_METHODS: Record<string, true> = {
   select: true,
   confirm: true,
