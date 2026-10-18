@@ -1,4 +1,4 @@
-export type Verdict = { status: "pass" | "fail" | "invalid"; evidence: string };
+export type Verdict = { status: "pass" | "fail" | "n/a" | "invalid"; evidence: string };
 
 export type Grade = Record<string, Verdict>;
 
@@ -16,5 +16,5 @@ export type Scenario<S> = {
   setup(workdir: string): Promise<S>;
   turns: string[];
   inspect?(workdir: string, state: S): Promise<S>;
-  grade(run: Run, state: S): Grade;
+  grade(run: Run, state: S): Grade | Promise<Grade>;
 };

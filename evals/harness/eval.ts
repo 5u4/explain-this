@@ -1,11 +1,28 @@
 import { appendFileSync, existsSync, mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { afterAll, describe, expect, test } from "vitest";
-import { runTrial } from "./run-agent.ts";
+import { type Criteria, JUDGE_TIMEOUT_MS, type JudgedStatus, judge } from "./judge.ts";
+import { candidateModel, judgeModel } from "./models.ts";
+import { runTrial, TRIAL_TIMEOUT_MS } from "./run-agent.ts";
+import { EXIT_GRACE_MS } from "./scratch.ts";
+import { settleAll } from "./settle.ts";
 import { REPO_ROOT } from "./target-repo.ts";
-import type { Grade, Run, Scenario } from "./types.ts";
+import type { Grade, Run, Scenario, Verdict } from "./types.ts";
 
-type EvalConfig = { model: string; trials: number; skillDir: string };
+type EvalConfig = { model: string; judgeModel: string; trials: number; skillDir: string };
+
+export type CalibrationCase = {
+  material: string;
+  criteria: Criteria;
+  expected: Record<string, JudgedStatus>;
+};
+
+const SETTLED: Record<Verdict["status"], boolean> = {
+  pass: true,
+  "n/a": true,
+  fail: false,
+  invalid: false,
+};
 
 function evalConfig(env = process.env): EvalConfig {
   const trials = Number(env.EXPLAIN_EVAL_TRIALS ?? "3");
@@ -14,7 +31,7 @@ function evalConfig(env = process.env): EvalConfig {
   const skillDir = resolve(env.EXPLAIN_EVAL_SKILL ?? join(REPO_ROOT, "skills", "explain-this"));
   if (!existsSync(join(skillDir, "SKILL.md")))
     throw new Error(`EXPLAIN_EVAL_SKILL has no SKILL.md: ${skillDir}`);
-  return { model: env.EXPLAIN_EVAL_MODEL ?? "github-copilot/gpt-6.1-sol:low", trials, skillDir };
+  return { model: candidateModel(env), judgeModel: judgeModel(env), trials, skillDir };
 }
 
 function unexpandedSkill(run: Run): string | undefined {
@@ -30,8 +47,8 @@ function unexpandedSkill(run: Run): string | undefined {
   return undefined;
 }
 
-function gradeRun<S>(scenario: Scenario<S>, run: Run, state: S): Grade {
-  const grade = scenario.grade(run, state);
+async function gradeRun<S>(scenario: Scenario<S>, run: Run, state: S): Promise<Grade> {
+  const grade = await scenario.grade(run, state);
   const evidence = unexpandedSkill(run);
   if (evidence === undefined) return grade;
   return Object.fromEntries(
@@ -39,22 +56,26 @@ function gradeRun<S>(scenario: Scenario<S>, run: Run, state: S): Grade {
   );
 }
 
-function summarize(scenario: string, grades: Grade[], errored: number): string[] {
+function summarize(name: string, grades: Grade[], errored: number): string[] {
   const checks = [...new Set(grades.flatMap((grade) => Object.keys(grade)))];
   return [
-    `${scenario}: ${grades.length} graded, ${errored} errored`,
+    `${name}: ${grades.length} graded, ${errored} errored`,
     ...checks.map((check) => {
-      const verdicts = grades.flatMap((grade) => grade[check] ?? []);
-      const valid = verdicts.filter((verdict) => verdict.status !== "invalid");
-      const passed = valid.filter((verdict) => verdict.status === "pass").length;
-      const invalid = verdicts.length - valid.length;
-      return `${scenario} / ${check}: pass ${passed}/${valid.length}, invalid ${invalid}`;
+      const count = (status: Verdict["status"]) =>
+        grades.filter((grade) => grade[check]?.status === status).length;
+      const passed = count("pass");
+      return `${name} / ${check}: pass ${passed}/${passed + count("fail")}, n/a ${count("n/a")}, invalid ${count("invalid")}`;
     }),
   ];
 }
 
-export function defineEval<S>(name: string, scenario: Scenario<S>): void {
-  const config = evalConfig();
+function defineTrials(
+  name: string,
+  trials: number,
+  meta: Record<string, string>,
+  gradeTrial: () => Promise<Grade>,
+  timeout?: number,
+): void {
   const stamp = new Date().toISOString().replaceAll(":", "-");
   const resultsDir = join(REPO_ROOT, "evals", "results");
   const resultsFile = join(resultsDir, `${stamp}-${name}.jsonl`);
@@ -62,16 +83,15 @@ export function defineEval<S>(name: string, scenario: Scenario<S>): void {
   let errored = 0;
   const record = (fields: { trial: number; grade: Grade } | { trial: number; error: string }) => {
     mkdirSync(resultsDir, { recursive: true });
-    appendFileSync(
-      resultsFile,
-      `${JSON.stringify({ model: config.model, skill: config.skillDir, scenario: name, ...fields })}\n`,
-    );
+    appendFileSync(resultsFile, `${JSON.stringify({ ...meta, eval: name, ...fields })}\n`);
   };
 
   afterAll(() => {
     process.stdout.write(
       `${[
-        `model ${config.model}, skill ${config.skillDir}`,
+        Object.entries(meta)
+          .map(([key, value]) => `${key} ${value}`)
+          .join(", "),
         ...summarize(name, grades, errored),
         `results: ${resultsFile}`,
       ].join("\n")}\n`,
@@ -79,24 +99,69 @@ export function defineEval<S>(name: string, scenario: Scenario<S>): void {
   });
 
   describe(name, () => {
-    for (let trial = 1; trial <= config.trials; trial++) {
-      test.concurrent(`trial ${trial}`, async () => {
-        let grade: Grade;
-        try {
-          const { run, state } = await runTrial(scenario, config);
-          grade = gradeRun(scenario, run, state);
-        } catch (error) {
-          errored++;
-          record({ trial, error: String(error) });
-          throw error;
-        }
-        grades.push(grade);
-        record({ trial, grade });
-        const allPass = Object.fromEntries(
-          Object.keys(grade).map((check) => [check, expect.objectContaining({ status: "pass" })]),
-        );
-        expect(grade).toEqual(allPass);
-      });
+    for (let trial = 1; trial <= trials; trial++) {
+      test.concurrent(
+        `trial ${trial}`,
+        async () => {
+          let grade: Grade;
+          try {
+            grade = await gradeTrial();
+          } catch (error) {
+            errored++;
+            record({ trial, error: String(error) });
+            throw error;
+          }
+          grades.push(grade);
+          record({ trial, grade });
+          expect(Object.entries(grade).filter(([, verdict]) => !SETTLED[verdict.status])).toEqual(
+            [],
+          );
+        },
+        timeout,
+      );
     }
+  });
+}
+
+export function defineEval<S>(name: string, scenario: Scenario<S>): void {
+  const config = evalConfig();
+  defineTrials(
+    name,
+    config.trials,
+    { model: config.model, judge: config.judgeModel, skill: config.skillDir },
+    async () => {
+      const { run, state } = await runTrial(scenario, config);
+      return gradeRun(scenario, run, state);
+    },
+    TRIAL_TIMEOUT_MS + JUDGE_TIMEOUT_MS + 2 * EXIT_GRACE_MS,
+  );
+}
+
+function agreement(caseId: string, { expected }: CalibrationCase, judged: Grade): Grade {
+  return Object.fromEntries(
+    Object.entries(expected).map(([check, want]) => {
+      const got = judged[check] ?? { status: "invalid", evidence: `no criterion ${check}` };
+      const status = got.status === "invalid" ? "invalid" : got.status === want ? "pass" : "fail";
+      return [
+        `${caseId} / ${check}`,
+        { status, evidence: `expected ${want}, judged ${got.status}: ${got.evidence}` },
+      ];
+    }),
+  );
+}
+
+export function defineCalibration(name: string, cases: Record<string, CalibrationCase>): void {
+  const config = evalConfig();
+  defineTrials(name, config.trials, { judge: config.judgeModel }, async () => {
+    const grades = await settleAll(
+      Object.entries(cases).map(async ([caseId, calibrationCase]) =>
+        agreement(
+          caseId,
+          calibrationCase,
+          await judge(calibrationCase.material, calibrationCase.criteria),
+        ),
+      ),
+    );
+    return Object.assign({}, ...grades);
   });
 }
