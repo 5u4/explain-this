@@ -72,7 +72,7 @@
   },
   "overrides": [
     {
-      "includes": ["vitest.config.ts"],
+      "includes": ["vitest.config.ts", "vitest.eval.config.ts"],
       "linter": {
         "rules": {
           "style": {

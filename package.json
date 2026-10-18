@@ -42,6 +42,7 @@
     "fmt": "biome check --write",
     "lint": "biome check",
     "test": "bun --bun run vitest run",
+    "eval": "bun --bun run vitest run --config vitest.eval.config.ts",
     "vendor:effect": "bun scripts/vendor-effect.ts"
   },
   "devDependencies": {
