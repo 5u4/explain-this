@@ -56,6 +56,18 @@ export const useLocation = (): string =>
     () => location.pathname + location.search + location.hash,
   );
 
+const stateObject = (): object =>
+  typeof history.state === "object" && history.state !== null ? history.state : {};
+
+export const savedScroll = (): number | null => {
+  const state = stateObject();
+  return "scrollY" in state && typeof state.scrollY === "number" && Number.isFinite(state.scrollY)
+    ? state.scrollY
+    : null;
+};
+
+const rememberScroll = () => history.replaceState({ ...stateObject(), scrollY }, "");
+
 const onClick = (event: MouseEvent) => {
   if (event.defaultPrevented || event.button !== 0) return;
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -66,13 +78,19 @@ const onClick = (event: MouseEvent) => {
   const here = url.pathname === location.pathname && url.search === location.search;
   if (here && url.hash !== "") return;
   event.preventDefault();
+  rememberScroll();
   history.pushState(null, "", url.pathname + url.search + url.hash);
   settle();
 };
 
 export const startRouter = (resolve: Redirect) => {
   redirect = resolve;
+  history.scrollRestoration = "manual";
   addEventListener("popstate", settle);
+  addEventListener("pagehide", rememberScroll);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") rememberScroll();
+  });
   document.addEventListener("click", onClick);
   settle();
 };
