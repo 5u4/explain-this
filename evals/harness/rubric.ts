@@ -28,11 +28,31 @@ export const INIT_REPLY_RUBRIC = {
 
 export const WRITE_REPLY_RUBRIC = {
   "reports-pages":
-    "The material holds the page files the assistant wrote, under <pages-written>, and its final reply, under <reply>. The reply names every page listed in <pages-written> (by file path or page id), includes the output its final `explain validate` run printed (for example a line such as `2 pages valid`, or the diagnostics that run reported), and gives `explain dev` as the command to view the pages. Fail if the reply misses any listed page, only says that validation passed without its output, or does not give `explain dev`.",
+    "The material holds the page files the assistant wrote, under <pages-written>; the last shell command it ran that calls `explain validate`, with everything that command printed, under <validate-run>; and its final reply, under <reply>. The reply names every page listed in <pages-written> (by file path or page id), reports the output `explain validate` printed in <validate-run> faithfully (for example a line such as `2 pages valid`, or the diagnostics that run listed), and gives `explain dev` as the command to view the pages. Fail if the reply misses any listed page, only says that validation passed without its output, reports validation output that <validate-run> does not show or that contradicts it (such as saying the pages are valid when <validate-run> lists diagnostics), or does not give `explain dev`.",
 } as const satisfies Criteria;
 
-export function replyMaterial(reply: string, pagesWritten: string[]): string {
-  return `<pages-written>\n${pagesWritten.join("\n")}\n</pages-written>\n\n<reply>\n${reply}\n</reply>`;
+export type CommandRun = { command: string; output: string };
+
+export function replyMaterial(reply: string, pagesWritten: string[], validate: CommandRun): string {
+  return `<pages-written>\n${pagesWritten.join("\n")}\n</pages-written>\n\n<validate-run>\n$ ${validate.command}\n${validate.output}\n</validate-run>\n\n<reply>\n${reply}\n</reply>`;
+}
+
+export const CITATION_REQUEST =
+  "/skill:explain-this I'd like a page on how citations get parsed in the explain-this repo (checked out at ../explain-this). Mostly the path from a `repo:path:ranges` string to what the viewer ends up showing.";
+
+export const SCOPE_RUBRIC = {
+  "covers-requested-scope":
+    "The material holds the user's request under <request> and every page written for it under <pages>. The pages may split the content between them, and a page in another language may repeat another page's content. Read together, the pages explain the subject the request asks a page about, starting from the input the request names, and cover each part of that subject the request asks for. Fail if the pages are mainly about a different subject, if they never show what happens to the input the request names, or if they leave out a part the request explicitly asks for.",
+} as const satisfies Criteria;
+
+export function scopeMaterial(
+  request: string,
+  pages: { file: string; markdown: string }[],
+): string {
+  const listed = pages
+    .map(({ file, markdown }) => `<page file="${file}">\n${markdown}\n</page>`)
+    .join("\n");
+  return `<request>\n${request}\n</request>\n\n<pages>\n${listed}\n</pages>`;
 }
 
 function citedLines(ref: Ref, repos: Record<string, string>): string {

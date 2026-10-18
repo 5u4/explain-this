@@ -19,6 +19,7 @@ type Frame = { type: string; id?: string; method?: string; success?: boolean; st
 
 type ContentBlock = {
   type: string;
+  id?: string;
   text?: string;
   name?: string;
   arguments?: Record<string, unknown>;
@@ -28,7 +29,7 @@ type SessionLine = {
   type: string;
   customType?: string;
   content?: string | ContentBlock[];
-  message?: { role: string; content: string | ContentBlock[] };
+  message?: { role: string; toolCallId?: string; content: string | ContentBlock[] };
 };
 
 function textOf(content: string | ContentBlock[] | undefined): string {
@@ -36,8 +37,7 @@ function textOf(content: string | ContentBlock[] | undefined): string {
   return (content ?? []).map((block) => (block.type === "text" ? (block.text ?? "") : "")).join("");
 }
 
-function parseEntry(line: string): SessionEntry | undefined {
-  const raw = JSON.parse(line) as SessionLine;
+function parseEntry(raw: SessionLine, outputs: Map<string, string>): SessionEntry | undefined {
   if (raw.type === "custom_message" && raw.customType === "skill-prompt") {
     const skill = /User invoked the "([^"]+)" skill/.exec(textOf(raw.content))?.[1] ?? "";
     return { type: "skill-prompt", skill };
@@ -46,18 +46,32 @@ function parseEntry(line: string): SessionEntry | undefined {
   const content = raw.message.content;
   const toolCalls: ToolCall[] = (typeof content === "string" ? [] : content).flatMap((block) =>
     block.type === "toolCall" && block.name !== undefined
-      ? [{ name: block.name, arguments: block.arguments ?? {} }]
+      ? [
+          {
+            name: block.name,
+            arguments: block.arguments ?? {},
+            output: block.id === undefined ? undefined : outputs.get(block.id),
+          },
+        ]
       : [],
   );
   return { type: "assistant", text: textOf(content), toolCalls };
 }
 
 function readSessionEntries(sessionDir: string): SessionEntry[] {
-  return readdirSync(sessionDir)
+  const lines = readdirSync(sessionDir)
     .filter((name) => name.endsWith(".jsonl"))
     .flatMap((name) => readFileSync(join(sessionDir, name), "utf8").split("\n"))
     .filter((line) => line !== "")
-    .flatMap((line) => parseEntry(line) ?? []);
+    .map((line) => JSON.parse(line) as SessionLine);
+  const outputs = new Map(
+    lines.flatMap(({ type, message }) =>
+      type === "message" && message?.role === "toolResult" && message.toolCallId !== undefined
+        ? [[message.toolCallId, textOf(message.content)] as const]
+        : [],
+    ),
+  );
+  return lines.flatMap((raw) => parseEntry(raw, outputs) ?? []);
 }
 
 async function* readFrames(stream: ReadableStream<Uint8Array>): AsyncGenerator<Frame> {

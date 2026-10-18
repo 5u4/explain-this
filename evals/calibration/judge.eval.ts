@@ -4,14 +4,19 @@ import { join } from "node:path";
 import { type CalibrationCase, defineCalibration } from "../harness/eval.ts";
 import type { JudgedStatus } from "../harness/judge.ts";
 import {
+  CITATION_REQUEST,
+  type CommandRun,
   INIT_REPLY_RUBRIC,
   PAGE_RUBRIC,
   type PageCheck,
   pageMaterial,
   replyMaterial,
+  SCOPE_RUBRIC,
+  scopeMaterial,
   WRITE_REPLY_RUBRIC,
 } from "../harness/rubric.ts";
-import { exportTargetRepo } from "../harness/target-repo.ts";
+import { settleAll } from "../harness/settle.ts";
+import { exportTargetRepo, readPinned } from "../harness/target-repo.ts";
 
 const goldEn = readFileSync(new URL("./citation.en.md", import.meta.url), "utf8");
 const goldZh = readFileSync(new URL("./citation.zh.md", import.meta.url), "utf8");
@@ -139,11 +144,40 @@ const WRITTEN = ["en/citation-parsing.md", "zh/citation-parsing.md"];
 const REAL_WRITE_REPLY =
   "Wrote:\n- `en/citation-parsing.md`\n- `zh/citation-parsing.md`\n\nCovers parsing, file resolution, pane highlighting, excerpts, and direct source navigation. Registered the repo and pages in `explain.json`.\n\nFinal validation output:\n```text\n2 pages valid\n```\n\nFreshness synced for both pages, tracking 20 source files each.\n\nView with:\n```sh\nexplain dev\n```\n";
 
-const writeReply = (text: string, status: JudgedStatus) => ({
-  material: replyMaterial(text, WRITTEN),
+const VALIDATE_COMMAND = "explain validate en/citation-parsing.md zh/citation-parsing.md";
+
+const VALID_RUN: CommandRun = { command: VALIDATE_COMMAND, output: "2 pages valid\n" };
+
+const DIAGNOSTIC =
+  "zh/citation-parsing.md:41:7 explain:packages/contract/src/citations.ts does not exist";
+
+const DIAGNOSTIC_RUN: CommandRun = {
+  command: VALIDATE_COMMAND,
+  output: `${DIAGNOSTIC}\n\n\nCommand exited with code 2`,
+};
+
+const writeReply = (text: string, status: JudgedStatus, validate = VALID_RUN) => ({
+  material: replyMaterial(text, WRITTEN, validate),
   criteria: WRITE_REPLY_RUBRIC,
   expected: { "reports-pages": status },
 });
+
+const scope = (pages: { file: string; markdown: string }[], status: JudgedStatus) => ({
+  material: scopeMaterial(CITATION_REQUEST, pages),
+  criteria: SCOPE_RUBRIC,
+  expected: { "covers-requested-scope": status },
+});
+
+const pinnedPages = (files: string[]) =>
+  settleAll(files.map(async (file) => ({ file, markdown: await readPinned(`docs/${file}`) })));
+
+const GOLD_PAGES = [
+  { file: "en/citation.md", markdown: goldEn },
+  { file: "zh/citation.md", markdown: goldZh },
+];
+
+const viewerPages = await pinnedPages(["en/resolve-source.md", "en/source-pane.md"]);
+const freshnessPages = await pinnedPages(["en/freshness.md", "zh/freshness.md"]);
 
 const cases: Record<string, CalibrationCase> = {
   "gold-en": page(goldEn, { ...PAGE_PASSES, "terms-stay-in-english": "n/a" }),
@@ -206,6 +240,15 @@ const cases: Record<string, CalibrationCase> = {
     mutate(REAL_WRITE_REPLY, "\n- `zh/citation-parsing.md`", ""),
     "fail",
   ),
+  "fabricated-validate-write-reply": writeReply(REAL_WRITE_REPLY, "fail", DIAGNOSTIC_RUN),
+  "faithful-diagnostics-write-reply": writeReply(
+    mutate(REAL_WRITE_REPLY, "2 pages valid", DIAGNOSTIC),
+    "pass",
+    DIAGNOSTIC_RUN,
+  ),
+  "full-path-scope": scope([...GOLD_PAGES, ...viewerPages], "pass"),
+  "parsing-only-scope": scope(GOLD_PAGES, "fail"),
+  "off-topic-scope": scope(freshnessPages, "fail"),
 };
 
 rmSync(root, { recursive: true, force: true });

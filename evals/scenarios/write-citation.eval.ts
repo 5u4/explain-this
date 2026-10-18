@@ -1,23 +1,46 @@
 import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve } from "node:path";
+import * as Result from "effect/Result";
+import * as Schema from "effect/Schema";
 import { parsePage } from "../../packages/contract/src/parse-page/parse-page.ts";
 import { type CliResult, explain } from "../harness/cli.ts";
 import { defineEval } from "../harness/eval.ts";
 import { judge } from "../harness/judge.ts";
-import { PAGE_RUBRIC, pageMaterial, replyMaterial, WRITE_REPLY_RUBRIC } from "../harness/rubric.ts";
+import {
+  CITATION_REQUEST,
+  type CommandRun,
+  PAGE_RUBRIC,
+  pageMaterial,
+  replyMaterial,
+  SCOPE_RUBRIC,
+  scopeMaterial,
+  WRITE_REPLY_RUBRIC,
+} from "../harness/rubric.ts";
+import { settleAll } from "../harness/settle.ts";
 import { exportTargetRepo } from "../harness/target-repo.ts";
 import type { Grade, Run, ToolCall, Verdict } from "../harness/types.ts";
 
 const LOCALES = ["zh", "en"];
 
-type Config = {
-  title?: unknown;
-  repos?: Record<string, unknown>;
-  nav?: { pages?: unknown[] }[];
-};
+const Config = Schema.Struct({
+  title: Schema.optionalKey(Schema.String),
+  locales: Schema.Array(Schema.String),
+  repos: Schema.Record(Schema.String, Schema.Unknown),
+  nav: Schema.Array(Schema.Struct({ title: Schema.String, pages: Schema.Array(Schema.String) })),
+});
 
-type Page = { file: string; material: string; cites: string[]; hasSources: boolean };
+type Config = typeof Config.Type;
+
+const decodeConfig = Schema.decodeUnknownResult(Schema.fromJsonString(Config));
+
+type Page = {
+  file: string;
+  markdown: string;
+  material: string;
+  cites: string[];
+  hasSources: boolean;
+};
 
 type Inspection = {
   workdir: string;
@@ -39,11 +62,12 @@ const verdict = (pass: boolean, evidence: string): Verdict => ({
 });
 
 function readConfig(workdir: string): Config | string {
-  try {
-    return JSON.parse(readFileSync(join(workdir, "explain.json"), "utf8")) as Config;
-  } catch (error) {
-    return `explain.json does not parse: ${error}`;
-  }
+  const file = join(workdir, "explain.json");
+  if (!existsSync(file)) return "explain.json is missing";
+  const decoded = decodeConfig(readFileSync(file, "utf8"));
+  return Result.isSuccess(decoded)
+    ? decoded.success
+    : `explain.json does not decode: ${decoded.failure.message}`;
 }
 
 const real = (path: string): string => (existsSync(path) ? realpathSync(path) : path);
@@ -51,7 +75,7 @@ const real = (path: string): string => (existsSync(path) ? realpathSync(path) : 
 function resolveRepos(workdir: string, config: Config | string): Record<string, string> {
   if (typeof config === "string") return {};
   return Object.fromEntries(
-    Object.entries(config.repos ?? {}).flatMap(([key, path]) =>
+    Object.entries(config.repos).flatMap(([key, path]) =>
       typeof path === "string" ? [[key, real(resolve(workdir, path))]] : [],
     ),
   );
@@ -110,7 +134,7 @@ function readsGuideFirst(
 const SEVERITY: Record<Verdict["status"], number> = { "n/a": 0, pass: 1, fail: 2, invalid: 3 };
 
 async function judgePages(pages: Page[]): Promise<Grade> {
-  const judged = await Promise.all(
+  const judged = await settleAll(
     pages.map(async (page) => ({
       file: page.file,
       grade: await judge(page.material, PAGE_RUBRIC),
@@ -134,6 +158,35 @@ async function judgePages(pages: Page[]): Promise<Grade> {
         return [`${locale} / ${check}`, { status, evidence }];
       });
     }),
+  );
+}
+
+function lastValidateRun(calls: ToolCall[]): CommandRun | string {
+  const call = calls.findLast(
+    ({ name, arguments: args }) =>
+      name === "bash" &&
+      typeof args.command === "string" &&
+      /\bexplain\s+validate\b/.test(args.command),
+  );
+  const command = call?.arguments.command;
+  if (call === undefined || typeof command !== "string") return "no bash call ran explain validate";
+  if (call.output === undefined) return `\`${command}\` has no recorded output`;
+  return { command, output: call.output };
+}
+
+async function judgeReply(reply: string, pages: Page[], calls: ToolCall[]): Promise<Grade> {
+  const validateRun = lastValidateRun(calls);
+  if (typeof validateRun === "string")
+    return Object.fromEntries(
+      Object.keys(WRITE_REPLY_RUBRIC).map((check) => [check, verdict(false, validateRun)]),
+    );
+  return judge(
+    replyMaterial(
+      reply,
+      pages.map((page) => page.file),
+      validateRun,
+    ),
+    WRITE_REPLY_RUBRIC,
   );
 }
 
@@ -167,8 +220,7 @@ async function grade(run: Run, inspection: Inspection): Promise<Grade> {
           `new pages ${JSON.stringify(pages.map((page) => page.file))}, missing ${JSON.stringify(missing)}`,
         );
 
-  const navIds =
-    typeof config === "string" ? [] : (config.nav ?? []).flatMap((group) => group.pages ?? []);
+  const navIds = typeof config === "string" ? [] : config.nav.flatMap((group) => group.pages);
   const title = typeof config === "string" ? undefined : config.title;
   const outOfNav = ids.filter((id) => !navIds.includes(id));
   const nav = verdict(
@@ -177,16 +229,9 @@ async function grade(run: Run, inspection: Inspection): Promise<Grade> {
   );
 
   const unsynced = pages.filter((page) => !page.hasSources).map((page) => page.file);
-  const stale = pages
-    .map((page) => page.file)
-    .filter((file) =>
-      freshness.output
-        .split("\n")
-        .some((line) => line.startsWith(`stale ${file}`) || line.startsWith(`not checked ${file}`)),
-    );
   const validated = verdict(
-    pages.length > 0 && validate.code === 0 && unsynced.length === 0 && stale.length === 0,
-    `validate exit ${validate.code}: ${validate.output.trim()}; no sources file ${JSON.stringify(unsynced)}; freshness check: ${freshness.output.trim()}`,
+    pages.length > 0 && validate.code === 0 && unsynced.length === 0 && freshness.code === 0,
+    `validate exit ${validate.code}: ${validate.output.trim()}; no sources file ${JSON.stringify(unsynced)}; freshness check exit ${freshness.code}: ${freshness.output.trim()}`,
   );
 
   const opened = new Set(
@@ -203,15 +248,10 @@ async function grade(run: Run, inspection: Inspection): Promise<Grade> {
     `${cited.length} cited files, never read ${JSON.stringify(unread)}`,
   );
 
-  const [pageGrade, replyGrade] = await Promise.all([
+  const [pageGrade, replyGrade, scopeGrade] = await settleAll<Grade>([
     judgePages(pages),
-    judge(
-      replyMaterial(
-        run.turns.at(-1)?.reply ?? "",
-        pages.map((page) => page.file),
-      ),
-      WRITE_REPLY_RUBRIC,
-    ),
+    judgeReply(run.turns.at(-1)?.reply ?? "", pages, calls),
+    judge(scopeMaterial(run.turns.map((turn) => turn.prompt).join("\n\n"), pages), SCOPE_RUBRIC),
   ]);
   return {
     survey,
@@ -223,6 +263,7 @@ async function grade(run: Run, inspection: Inspection): Promise<Grade> {
     "reads-cited-files": readsCited,
     ...pageGrade,
     ...replyGrade,
+    ...scopeGrade,
   };
 }
 
@@ -234,9 +275,7 @@ defineEval<State>("write-citation", {
     if (init.code !== 0) throw new Error(`explain init failed: ${init.output}`);
     return { before: (await readdir(workdir, { recursive: true })).sort() };
   },
-  turns: [
-    "/skill:explain-this I'd like a page on how citations get parsed in the explain-this repo (checked out at ../explain-this). Mostly the path from a `repo:path:ranges` string to what the viewer ends up showing.",
-  ],
+  turns: [CITATION_REQUEST],
   async inspect(workdir, { before }) {
     const config = readConfig(workdir);
     const repos = resolveRepos(workdir, config);
@@ -253,6 +292,7 @@ defineEval<State>("write-citation", {
       });
       return {
         file,
+        markdown,
         material: pageMaterial(markdown, repos),
         cites,
         hasSources: existsSync(join(workdir, file.replace(/\.md$/, ".sources.json"))),

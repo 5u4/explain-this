@@ -2,7 +2,11 @@ export type Verdict = { status: "pass" | "fail" | "n/a" | "invalid"; evidence: s
 
 export type Grade = Record<string, Verdict>;
 
-export type ToolCall = { name: string; arguments: Record<string, unknown> };
+export type ToolCall = {
+  name: string;
+  arguments: Record<string, unknown>;
+  output: string | undefined;
+};
 
 export type SessionEntry =
   | { type: "skill-prompt"; skill: string }
