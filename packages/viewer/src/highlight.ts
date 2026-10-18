@@ -1,163 +1,183 @@
-import type { LanguageFn } from "highlight.js";
-import hljs from "highlight.js/lib/core";
+import type {
+  HighlighterCore,
+  LanguageRegistration,
+  ThemedToken,
+  ThemeRegistration,
+} from "shiki/core";
 
 type Language = {
-  readonly load: () => Promise<{ readonly default: LanguageFn }>;
+  readonly load: () => Promise<{ readonly default: Array<LanguageRegistration> }>;
   readonly extensions?: ReadonlyArray<string>;
   readonly fileNames?: ReadonlyArray<string>;
   readonly aliases?: ReadonlyArray<string>;
-  readonly embeds?: ReadonlyArray<string>;
 };
 
 const languages: Readonly<Record<string, Language>> = {
-  bash: {
-    load: () => import("highlight.js/lib/languages/bash"),
+  shellscript: {
+    load: () => import("shiki/langs/shellscript.mjs"),
     extensions: ["sh", "bash", "zsh"],
     fileNames: [".bashrc", ".bash_profile", ".zshrc", ".profile"],
-    aliases: ["shell", "sh", "zsh", "console"],
+    aliases: ["bash", "shell", "sh", "zsh", "console"],
   },
   c: {
-    load: () => import("highlight.js/lib/languages/c"),
+    load: () => import("shiki/langs/c.mjs"),
     extensions: ["c", "h"],
   },
   cmake: {
-    load: () => import("highlight.js/lib/languages/cmake"),
+    load: () => import("shiki/langs/cmake.mjs"),
     extensions: ["cmake"],
     fileNames: ["CMakeLists.txt"],
   },
   cpp: {
-    load: () => import("highlight.js/lib/languages/cpp"),
+    load: () => import("shiki/langs/cpp.mjs"),
     extensions: ["cpp", "cc", "cxx", "hpp", "hh", "hxx"],
     aliases: ["c++"],
   },
   csharp: {
-    load: () => import("highlight.js/lib/languages/csharp"),
+    load: () => import("shiki/langs/csharp.mjs"),
     extensions: ["cs"],
     aliases: ["c#", "cs"],
   },
   css: {
-    load: () => import("highlight.js/lib/languages/css"),
+    load: () => import("shiki/langs/css.mjs"),
     extensions: ["css"],
   },
   diff: {
-    load: () => import("highlight.js/lib/languages/diff"),
+    load: () => import("shiki/langs/diff.mjs"),
     extensions: ["diff", "patch"],
     aliases: ["patch"],
   },
-  dockerfile: {
-    load: () => import("highlight.js/lib/languages/dockerfile"),
-    embeds: ["bash"],
+  docker: {
+    load: () => import("shiki/langs/docker.mjs"),
     extensions: ["dockerfile"],
     fileNames: ["Dockerfile", "Containerfile"],
-    aliases: ["docker"],
+    aliases: ["dockerfile"],
   },
   go: {
-    load: () => import("highlight.js/lib/languages/go"),
+    load: () => import("shiki/langs/go.mjs"),
     extensions: ["go"],
     aliases: ["golang"],
   },
   graphql: {
-    load: () => import("highlight.js/lib/languages/graphql"),
+    load: () => import("shiki/langs/graphql.mjs"),
     extensions: ["graphql", "gql"],
     aliases: ["gql"],
   },
+  html: {
+    load: () => import("shiki/langs/html.mjs"),
+    extensions: ["html", "htm", "xhtml"],
+  },
   ini: {
-    load: () => import("highlight.js/lib/languages/ini"),
-    extensions: ["ini", "toml", "cfg", "conf"],
+    load: () => import("shiki/langs/ini.mjs"),
+    extensions: ["ini", "cfg", "conf"],
     fileNames: [".editorconfig", ".gitconfig", ".npmrc"],
-    aliases: ["toml"],
   },
   java: {
-    load: () => import("highlight.js/lib/languages/java"),
+    load: () => import("shiki/langs/java.mjs"),
     extensions: ["java"],
   },
   javascript: {
-    load: () => import("highlight.js/lib/languages/javascript"),
-    embeds: ["css", "xml"],
-    extensions: ["js", "jsx", "mjs", "cjs"],
-    aliases: ["js", "jsx"],
+    load: () => import("shiki/langs/javascript.mjs"),
+    extensions: ["js", "mjs", "cjs"],
+    aliases: ["js"],
   },
   json: {
-    load: () => import("highlight.js/lib/languages/json"),
-    extensions: ["json", "jsonc"],
-    aliases: ["jsonc"],
+    load: () => import("shiki/langs/json.mjs"),
+    extensions: ["json"],
+  },
+  jsonc: {
+    load: () => import("shiki/langs/jsonc.mjs"),
+    extensions: ["jsonc"],
+  },
+  jsx: {
+    load: () => import("shiki/langs/jsx.mjs"),
+    extensions: ["jsx"],
   },
   kotlin: {
-    load: () => import("highlight.js/lib/languages/kotlin"),
+    load: () => import("shiki/langs/kotlin.mjs"),
     extensions: ["kt", "kts"],
     aliases: ["kt"],
   },
   less: {
-    load: () => import("highlight.js/lib/languages/less"),
+    load: () => import("shiki/langs/less.mjs"),
     extensions: ["less"],
   },
   lua: {
-    load: () => import("highlight.js/lib/languages/lua"),
+    load: () => import("shiki/langs/lua.mjs"),
     extensions: ["lua"],
   },
-  makefile: {
-    load: () => import("highlight.js/lib/languages/makefile"),
+  make: {
+    load: () => import("shiki/langs/make.mjs"),
     extensions: ["mk", "mak"],
     fileNames: ["Makefile", "makefile", "GNUmakefile"],
-    aliases: ["make", "mk"],
+    aliases: ["makefile", "mk"],
   },
   markdown: {
-    load: () => import("highlight.js/lib/languages/markdown"),
-    embeds: ["xml"],
-    extensions: ["md", "markdown", "mdx"],
+    load: () => import("shiki/langs/markdown.mjs"),
+    extensions: ["md", "markdown"],
     aliases: ["md"],
   },
+  mdx: {
+    load: () => import("shiki/langs/mdx.mjs"),
+    extensions: ["mdx"],
+  },
   php: {
-    load: () => import("highlight.js/lib/languages/php"),
+    load: () => import("shiki/langs/php.mjs"),
     extensions: ["php"],
   },
-  protobuf: {
-    load: () => import("highlight.js/lib/languages/protobuf"),
+  proto: {
+    load: () => import("shiki/langs/proto.mjs"),
     extensions: ["proto"],
-    aliases: ["proto"],
+    aliases: ["protobuf"],
   },
   python: {
-    load: () => import("highlight.js/lib/languages/python"),
+    load: () => import("shiki/langs/python.mjs"),
     extensions: ["py", "pyi"],
     aliases: ["py"],
   },
   ruby: {
-    load: () => import("highlight.js/lib/languages/ruby"),
+    load: () => import("shiki/langs/ruby.mjs"),
     extensions: ["rb", "rake", "gemspec"],
     fileNames: ["Gemfile", "Rakefile"],
     aliases: ["rb"],
   },
   rust: {
-    load: () => import("highlight.js/lib/languages/rust"),
+    load: () => import("shiki/langs/rust.mjs"),
     extensions: ["rs"],
     aliases: ["rs"],
   },
   scss: {
-    load: () => import("highlight.js/lib/languages/scss"),
+    load: () => import("shiki/langs/scss.mjs"),
     extensions: ["scss"],
   },
   sql: {
-    load: () => import("highlight.js/lib/languages/sql"),
+    load: () => import("shiki/langs/sql.mjs"),
     extensions: ["sql"],
   },
   swift: {
-    load: () => import("highlight.js/lib/languages/swift"),
+    load: () => import("shiki/langs/swift.mjs"),
     extensions: ["swift"],
   },
+  toml: {
+    load: () => import("shiki/langs/toml.mjs"),
+    extensions: ["toml"],
+  },
+  tsx: {
+    load: () => import("shiki/langs/tsx.mjs"),
+    extensions: ["tsx"],
+  },
   typescript: {
-    load: () => import("highlight.js/lib/languages/typescript"),
-    embeds: ["css", "xml"],
-    extensions: ["ts", "tsx", "mts", "cts"],
-    aliases: ["ts", "tsx"],
+    load: () => import("shiki/langs/typescript.mjs"),
+    extensions: ["ts", "mts", "cts"],
+    aliases: ["ts"],
   },
   xml: {
-    load: () => import("highlight.js/lib/languages/xml"),
-    embeds: ["css", "javascript"],
-    extensions: ["xml", "html", "htm", "svg", "xhtml", "plist"],
-    aliases: ["html", "svg"],
+    load: () => import("shiki/langs/xml.mjs"),
+    extensions: ["xml", "svg", "plist"],
+    aliases: ["svg"],
   },
   yaml: {
-    load: () => import("highlight.js/lib/languages/yaml"),
+    load: () => import("shiki/langs/yaml.mjs"),
     extensions: ["yml", "yaml"],
     aliases: ["yml"],
   },
@@ -188,68 +208,134 @@ export const languageOf = (nameOrPath: string | null): string | undefined => {
   );
 };
 
-const registered = new Map<string, Promise<boolean>>();
+const plain = "var(--text-body)";
+const themeName = "explain";
 
-const register = (id: string, language: Language): Promise<boolean> => {
-  const cached = registered.get(id);
+const role = (
+  foreground: string | undefined,
+  fontStyle: "italic" | "bold" | undefined,
+  scope: ReadonlyArray<string>,
+) => ({
+  scope: [...scope],
+  settings: {
+    ...(foreground === undefined ? {} : { foreground }),
+    ...(fontStyle === undefined ? {} : { fontStyle }),
+  },
+});
+
+const theme: ThemeRegistration = {
+  name: themeName,
+  type: "dark",
+  fg: plain,
+  bg: "transparent",
+  tokenColors: [
+    role("var(--syn-comment)", "italic", [
+      "comment",
+      "punctuation.definition.comment",
+      "markup.quote",
+    ]),
+    role("var(--syn-keyword)", undefined, [
+      "keyword",
+      "storage",
+      "constant.language",
+      "variable.language",
+      "entity.name.tag",
+      "punctuation.definition.list.begin",
+      "meta.diff.range",
+      "meta.diff.header",
+    ]),
+    role("var(--syn-punct)", undefined, ["punctuation", "keyword.operator", "meta.brace"]),
+    role("var(--syn-string)", undefined, [
+      "string",
+      "punctuation.definition.string",
+      "markup.inline.raw",
+      "punctuation.definition.raw",
+      "markup.fenced_code",
+      "markup.raw",
+    ]),
+    role("var(--syn-func)", undefined, ["entity.name.function", "support.function"]),
+    role("var(--syn-type)", undefined, [
+      "entity.name.type",
+      "entity.name.class",
+      "entity.other.inherited-class",
+      "entity.other.attribute-name",
+      "support.type",
+      "support.class",
+      "variable.parameter",
+      "markup.underline.link",
+      "string.other.link",
+    ]),
+    role("var(--syn-number)", undefined, ["constant.numeric"]),
+    role("var(--text-strong)", "bold", ["markup.heading", "entity.name.section", "markup.bold"]),
+    role(undefined, "italic", ["markup.italic"]),
+    role("var(--added)", undefined, ["markup.inserted", "punctuation.definition.inserted"]),
+    role("var(--removed)", undefined, ["markup.deleted", "punctuation.definition.deleted"]),
+  ],
+};
+
+let highlighter: Promise<HighlighterCore> | undefined;
+
+const loaded = new Map<string, Promise<HighlighterCore | undefined>>();
+
+const loadLanguage = (id: string): Promise<HighlighterCore | undefined> => {
+  const cached = loaded.get(id);
   if (cached !== undefined) return cached;
-  const loading = language.load().then(
-    (module) => {
-      hljs.registerLanguage(id, module.default);
-      return true;
-    },
-    () => false,
+  const language = languages[id];
+  highlighter ??= Promise.all([import("shiki/core"), import("shiki/engine/javascript")]).then(
+    ([{ createHighlighterCore }, { createJavaScriptRegexEngine }]) =>
+      createHighlighterCore({
+        themes: [theme],
+        langs: [],
+        engine: createJavaScriptRegexEngine(),
+      }),
   );
-  registered.set(id, loading);
+  const loading =
+    language === undefined
+      ? Promise.resolve(undefined)
+      : highlighter
+          .then(async (core) => {
+            await core.loadLanguage(language.load);
+            return core;
+          })
+          .catch(() => undefined);
+  loaded.set(id, loading);
   return loading;
 };
 
-const withEmbeds = (id: string, found = new Map<string, Language>()): Map<string, Language> => {
-  const language = languages[id];
-  if (found.has(id) || language === undefined) return found;
-  found.set(id, language);
-  for (const embed of language.embeds ?? []) withEmbeds(embed, found);
-  return found;
-};
-
-const loadLanguage = async (id: string): Promise<boolean> => {
-  const [own = false] = await Promise.all(
-    [...withEmbeds(id)].map(([each, language]) => register(each, language)),
+const escape = (text: string): string =>
+  text.replace(/[&<>"]/g, (char) =>
+    char === "&" ? "&amp;" : char === "<" ? "&lt;" : char === ">" ? "&gt;" : "&quot;",
   );
-  return own;
-};
 
-const splitHighlighted = (html: string): Array<string> => {
-  const lines: Array<string> = [];
-  const open: Array<string> = [];
-  let current = "";
-  for (const match of html.matchAll(/(<span[^>]*>)|(<\/span>)|(\n)|([^<\n]+)/g)) {
-    if (match[1] !== undefined) {
-      open.push(match[1]);
-      current += match[1];
-    } else if (match[2] !== undefined) {
-      open.pop();
-      current += match[2];
-    } else if (match[3] !== undefined) {
-      lines.push(current + "</span>".repeat(open.length));
-      current = open.join("");
-    } else current += match[4];
-  }
-  lines.push(current);
-  return lines;
+// FontStyle bits from @shikijs/vscode-textmate, whose const enum is not exported.
+const italicBit = 1;
+const boldBit = 2;
+
+const renderToken = (token: ThemedToken): string => {
+  const fontStyle = token.fontStyle ?? 0;
+  const style = [
+    token.color === undefined || token.color === plain ? [] : [`color:${token.color}`],
+    fontStyle & boldBit ? ["font-weight:600"] : [],
+    fontStyle & italicBit ? ["font-style:italic"] : [],
+  ]
+    .flat()
+    .join(";");
+  const text = escape(token.content);
+  return style === "" ? text : `<span style="${style}">${text}</span>`;
 };
 
 export const plainLines = (lines: ReadonlyArray<string>): ReadonlyArray<string> =>
-  lines.map((line) =>
-    line.replace(/[&<>"]/g, (char) =>
-      char === "&" ? "&amp;" : char === "<" ? "&lt;" : char === ">" ? "&gt;" : "&quot;",
-    ),
-  );
+  lines.map(escape);
 
 export const highlightLines = async (
   lines: ReadonlyArray<string>,
   language: string | undefined,
-): Promise<ReadonlyArray<string>> =>
-  language !== undefined && (await loadLanguage(language))
-    ? splitHighlighted(hljs.highlight(lines.join("\n"), { language, ignoreIllegals: true }).value)
-    : plainLines(lines);
+): Promise<ReadonlyArray<string>> => {
+  if (language === undefined) return plainLines(lines);
+  const core = await loadLanguage(language);
+  return core === undefined
+    ? plainLines(lines)
+    : core
+        .codeToTokensBase(lines.join("\n"), { lang: language, theme: themeName })
+        .map((line) => line.map(renderToken).join(""));
+};
