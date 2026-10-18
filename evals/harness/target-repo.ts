@@ -11,3 +11,7 @@ export async function exportTargetRepo(workdir: string): Promise<void> {
   mkdirSync(target);
   await Bun.$`git -C ${REPO_ROOT} archive ${PINNED_COMMIT} packages | tar -x -C ${target}`.quiet();
 }
+
+export async function readPinned(path: string): Promise<string> {
+  return Bun.$`git -C ${REPO_ROOT} show ${`${PINNED_COMMIT}:${path}`}`.text();
+}

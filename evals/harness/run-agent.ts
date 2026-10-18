@@ -1,5 +1,6 @@
 import { mkdirSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
+import { installExplain } from "./cli.ts";
 import { shutDown, withScratch } from "./scratch.ts";
 import type { Run, Scenario, SessionEntry, ToolCall, Turn } from "./types.ts";
 
@@ -18,6 +19,7 @@ type Frame = { type: string; id?: string; method?: string; success?: boolean; st
 
 type ContentBlock = {
   type: string;
+  id?: string;
   text?: string;
   name?: string;
   arguments?: Record<string, unknown>;
@@ -27,7 +29,7 @@ type SessionLine = {
   type: string;
   customType?: string;
   content?: string | ContentBlock[];
-  message?: { role: string; content: string | ContentBlock[] };
+  message?: { role: string; toolCallId?: string; content: string | ContentBlock[] };
 };
 
 function textOf(content: string | ContentBlock[] | undefined): string {
@@ -35,8 +37,7 @@ function textOf(content: string | ContentBlock[] | undefined): string {
   return (content ?? []).map((block) => (block.type === "text" ? (block.text ?? "") : "")).join("");
 }
 
-function parseEntry(line: string): SessionEntry | undefined {
-  const raw = JSON.parse(line) as SessionLine;
+function parseEntry(raw: SessionLine, outputs: Map<string, string>): SessionEntry | undefined {
   if (raw.type === "custom_message" && raw.customType === "skill-prompt") {
     const skill = /User invoked the "([^"]+)" skill/.exec(textOf(raw.content))?.[1] ?? "";
     return { type: "skill-prompt", skill };
@@ -45,18 +46,32 @@ function parseEntry(line: string): SessionEntry | undefined {
   const content = raw.message.content;
   const toolCalls: ToolCall[] = (typeof content === "string" ? [] : content).flatMap((block) =>
     block.type === "toolCall" && block.name !== undefined
-      ? [{ name: block.name, arguments: block.arguments ?? {} }]
+      ? [
+          {
+            name: block.name,
+            arguments: block.arguments ?? {},
+            output: block.id === undefined ? undefined : outputs.get(block.id),
+          },
+        ]
       : [],
   );
   return { type: "assistant", text: textOf(content), toolCalls };
 }
 
 function readSessionEntries(sessionDir: string): SessionEntry[] {
-  return readdirSync(sessionDir)
+  const lines = readdirSync(sessionDir)
     .filter((name) => name.endsWith(".jsonl"))
     .flatMap((name) => readFileSync(join(sessionDir, name), "utf8").split("\n"))
     .filter((line) => line !== "")
-    .flatMap((line) => parseEntry(line) ?? []);
+    .map((line) => JSON.parse(line) as SessionLine);
+  const outputs = new Map(
+    lines.flatMap(({ type, message }) =>
+      type === "message" && message?.role === "toolResult" && message.toolCallId !== undefined
+        ? [[message.toolCallId, textOf(message.content)] as const]
+        : [],
+    ),
+  );
+  return lines.flatMap((raw) => parseEntry(raw, outputs) ?? []);
 }
 
 async function* readFrames(stream: ReadableStream<Uint8Array>): AsyncGenerator<Frame> {
@@ -76,14 +91,16 @@ async function* readFrames(stream: ReadableStream<Uint8Array>): AsyncGenerator<F
 
 export async function runTrial<S>(
   scenario: Pick<Scenario<S>, "setup" | "turns" | "inspect">,
-  options: { model: string; skillDir: string },
+  options: { model: string; skillDir: string; timeoutMs: number },
 ): Promise<{ run: Run; state: S }> {
   const skill = { name: SKILL_NAME, dir: options.skillDir };
   return withScratch({ skill }, async ({ name, root }) => {
     const workdir = join(root, "acme-docs");
     const sessionDir = join(root, "sessions");
+    const binDir = join(root, "bin");
     mkdirSync(workdir);
     mkdirSync(sessionDir);
+    installExplain(binDir);
     const setupState = await scenario.setup(workdir);
 
     const agent = Bun.spawn(
@@ -100,7 +117,14 @@ export async function runTrial<S>(
         "--model",
         options.model,
       ],
-      { cwd: workdir, stdin: "pipe", stdout: "pipe", stderr: "pipe", timeout: TRIAL_TIMEOUT_MS },
+      {
+        cwd: workdir,
+        env: { ...process.env, PATH: `${binDir}${delimiter}${process.env.PATH ?? ""}` },
+        stdin: "pipe",
+        stdout: "pipe",
+        stderr: "pipe",
+        timeout: options.timeoutMs,
+      },
     );
     const stderr = new Response(agent.stderr).text();
     const frames = readFrames(agent.stdout);
