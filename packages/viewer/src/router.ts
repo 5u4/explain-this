@@ -77,9 +77,16 @@ const enter = () => {
   history.replaceState({ key: current }, "");
 };
 
+const readingOffset = () => {
+  const target = offsets.get(current);
+  const end = document.documentElement.scrollHeight - innerHeight;
+  return target !== undefined && target > end && scrollY >= end - 1 ? target : scrollY;
+};
+
 const remember = () => {
-  offsets.set(current, scrollY);
-  history.replaceState({ key: current, scrollY }, "");
+  const top = readingOffset();
+  offsets.set(current, top);
+  history.replaceState({ key: current, scrollY: top }, "");
 };
 
 const intents = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
@@ -101,10 +108,11 @@ const holdScroll = (top: number): (() => void) => {
 export const revealEntry = (): (() => void) => {
   release();
   release = () => {};
-  const entry = readEntry(history.state);
-  const offset = entry === null ? undefined : (offsets.get(entry.key) ?? entry.scrollY);
-  if (offset !== undefined) release = holdScroll(offset);
-  else if (location.hash === "") scrollTo(0, 0);
+  const offset = offsets.get(current) ?? readEntry(history.state)?.scrollY;
+  if (offset !== undefined) {
+    offsets.set(current, offset);
+    release = holdScroll(offset);
+  } else if (location.hash === "") scrollTo(0, 0);
   else document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView();
   return release;
 };
@@ -135,7 +143,7 @@ const onPopState = () => {
     settle();
     return;
   }
-  offsets.set(current, scrollY);
+  offsets.set(current, readingOffset());
   current = entry.key;
   const samePage = location.pathname + location.search === page;
   settle();
