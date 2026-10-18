@@ -39,15 +39,18 @@ function gradeRun<S>(scenario: Scenario<S>, run: Run, state: S): Grade {
   );
 }
 
-function summarize(scenario: string, grades: Grade[]): string[] {
+function summarize(scenario: string, grades: Grade[], errored: number): string[] {
   const checks = [...new Set(grades.flatMap((grade) => Object.keys(grade)))];
-  return checks.map((check) => {
-    const verdicts = grades.flatMap((grade) => grade[check] ?? []);
-    const valid = verdicts.filter((verdict) => verdict.status !== "invalid");
-    const passed = valid.filter((verdict) => verdict.status === "pass").length;
-    const invalid = verdicts.length - valid.length;
-    return `${scenario} / ${check}: pass ${passed}/${valid.length}, invalid ${invalid}`;
-  });
+  return [
+    `${scenario}: ${grades.length} graded, ${errored} errored`,
+    ...checks.map((check) => {
+      const verdicts = grades.flatMap((grade) => grade[check] ?? []);
+      const valid = verdicts.filter((verdict) => verdict.status !== "invalid");
+      const passed = valid.filter((verdict) => verdict.status === "pass").length;
+      const invalid = verdicts.length - valid.length;
+      return `${scenario} / ${check}: pass ${passed}/${valid.length}, invalid ${invalid}`;
+    }),
+  ];
 }
 
 export function defineEval<S>(name: string, scenario: Scenario<S>): void {
@@ -56,12 +59,20 @@ export function defineEval<S>(name: string, scenario: Scenario<S>): void {
   const resultsDir = join(REPO_ROOT, "evals", "results");
   const resultsFile = join(resultsDir, `${stamp}-${name}.jsonl`);
   const grades: Grade[] = [];
+  let errored = 0;
+  const record = (fields: { trial: number; grade: Grade } | { trial: number; error: string }) => {
+    mkdirSync(resultsDir, { recursive: true });
+    appendFileSync(
+      resultsFile,
+      `${JSON.stringify({ model: config.model, skill: config.skillDir, scenario: name, ...fields })}\n`,
+    );
+  };
 
   afterAll(() => {
     process.stdout.write(
       `${[
         `model ${config.model}, skill ${config.skillDir}`,
-        ...summarize(name, grades),
+        ...summarize(name, grades, errored),
         `results: ${resultsFile}`,
       ].join("\n")}\n`,
     );
@@ -70,14 +81,17 @@ export function defineEval<S>(name: string, scenario: Scenario<S>): void {
   describe(name, () => {
     for (let trial = 1; trial <= config.trials; trial++) {
       test.concurrent(`trial ${trial}`, async () => {
-        const { run, state } = await runTrial(scenario, config);
-        const grade = gradeRun(scenario, run, state);
+        let grade: Grade;
+        try {
+          const { run, state } = await runTrial(scenario, config);
+          grade = gradeRun(scenario, run, state);
+        } catch (error) {
+          errored++;
+          record({ trial, error: String(error) });
+          throw error;
+        }
         grades.push(grade);
-        mkdirSync(resultsDir, { recursive: true });
-        appendFileSync(
-          resultsFile,
-          `${JSON.stringify({ model: config.model, skill: config.skillDir, scenario: name, trial, grade })}\n`,
-        );
+        record({ trial, grade });
         const allPass = Object.fromEntries(
           Object.keys(grade).map((check) => [check, expect.objectContaining({ status: "pass" })]),
         );

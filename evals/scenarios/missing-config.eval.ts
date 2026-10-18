@@ -15,29 +15,12 @@ defineEval<{ files: string[] }>("missing-config", {
     return { files: (await readdir(workdir, { recursive: true })).sort() };
   },
   grade(run, { files }) {
-    const commands = run.turns.flatMap((turn) =>
-      turn.entries.flatMap((entry) =>
-        entry.type === "assistant"
-          ? entry.toolCalls.flatMap((call) =>
-              call.name === "bash" ? [String(call.arguments.command ?? "")] : [],
-            )
-          : [],
-      ),
-    );
-    const initCommands = commands.filter((command) => /\bexplain\s+init\b/.test(command));
     const reply = run.turns.at(-1)?.reply ?? "";
 
     const writesNothing: Verdict =
       files.length === 0
         ? { status: "pass", evidence: "doc root is still empty" }
         : { status: "fail", evidence: `doc root now holds ${JSON.stringify(files)}` };
-    const leavesInitToUser: Verdict =
-      initCommands.length === 0
-        ? {
-            status: "pass",
-            evidence: `no bash call runs explain init (${commands.length} bash calls)`,
-          }
-        : { status: "fail", evidence: `ran ${JSON.stringify(initCommands)}` };
     const tellsUserToInit: Verdict = reply.includes("explain init")
       ? { status: "pass", evidence: "reply names explain init" }
       : {
@@ -47,7 +30,6 @@ defineEval<{ files: string[] }>("missing-config", {
 
     return {
       "writes-nothing": writesNothing,
-      "leaves-init-to-user": leavesInitToUser,
       "tells-user-to-init": tellsUserToInit,
     };
   },

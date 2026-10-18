@@ -67,13 +67,10 @@ function readSessionEntries(sessionDir: string): SessionEntry[] {
     .flatMap((line) => parseEntry(line) ?? []);
 }
 
-function createProfile(skillDir: string): { name: string; dir: string } {
-  const name = `ws-${crypto.randomUUID().slice(0, 8)}`;
-  const dir = join(homedir(), ".omp", "profiles", name);
+function populateProfile(dir: string, skillDir: string): void {
   mkdirSync(join(dir, "agent"), { recursive: true });
   copyFileSync(join(homedir(), ".omp", "agent", "agent.db"), join(dir, "agent", "agent.db"));
   cpSync(skillDir, join(dir, "agent", "skills", SKILL_NAME), { recursive: true });
-  return { name, dir };
 }
 
 async function* readFrames(stream: ReadableStream<Uint8Array>): AsyncGenerator<Frame> {
@@ -96,8 +93,10 @@ export async function runTrial<S>(
   options: { model: string; skillDir: string },
 ): Promise<{ run: Run; state: S }> {
   const root = mkdtempSync(join(tmpdir(), "ws-"));
-  const profile = createProfile(options.skillDir);
+  const profile = `ws-${crypto.randomUUID().slice(0, 8)}`;
+  const profileDir = join(homedir(), ".omp", "profiles", profile);
   try {
+    populateProfile(profileDir, options.skillDir);
     const workdir = join(root, "acme-docs");
     const sessionDir = join(root, "sessions");
     mkdirSync(workdir);
@@ -110,7 +109,7 @@ export async function runTrial<S>(
         "--mode",
         "rpc",
         "--profile",
-        profile.name,
+        profile,
         "--session-dir",
         sessionDir,
         "--no-extensions",
@@ -170,7 +169,7 @@ export async function runTrial<S>(
     const state = scenario.inspect ? await scenario.inspect(workdir, setupState) : setupState;
     return { run: { turns }, state };
   } finally {
-    rmSync(profile.dir, { recursive: true, force: true });
+    rmSync(profileDir, { recursive: true, force: true });
     rmSync(root, { recursive: true, force: true });
   }
 }
