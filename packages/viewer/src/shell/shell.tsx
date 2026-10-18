@@ -100,9 +100,6 @@ export function Shell({
             {icons.menu}
           </button>
           <a className="brand" href={homeHref(site, locale)}>
-            <span className="brand-mark" aria-hidden="true">
-              {strings.brandMark}
-            </span>
             <span>{site.title}</span>
           </a>
           <button

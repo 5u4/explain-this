@@ -3,7 +3,6 @@ import type { Strings } from "./strings.ts";
 export const en: Strings = {
   skip: "Skip to content",
   loading: "Typesetting…",
-  brandMark: "注",
   openNav: "Open navigation",
   navLabel: "Site navigation",
   tocLabel: "On this page",

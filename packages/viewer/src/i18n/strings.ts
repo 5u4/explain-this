@@ -6,7 +6,6 @@ import { zhCN } from "./zh-CN.ts";
 export interface Strings {
   readonly skip: string;
   readonly loading: string;
-  readonly brandMark: string;
   readonly openNav: string;
   readonly navLabel: string;
   readonly tocLabel: string;
