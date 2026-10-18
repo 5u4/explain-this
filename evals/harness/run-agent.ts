@@ -1,5 +1,6 @@
 import { mkdirSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
+import { installExplain } from "./cli.ts";
 import { shutDown, withScratch } from "./scratch.ts";
 import type { Run, Scenario, SessionEntry, ToolCall, Turn } from "./types.ts";
 
@@ -76,14 +77,16 @@ async function* readFrames(stream: ReadableStream<Uint8Array>): AsyncGenerator<F
 
 export async function runTrial<S>(
   scenario: Pick<Scenario<S>, "setup" | "turns" | "inspect">,
-  options: { model: string; skillDir: string },
+  options: { model: string; skillDir: string; timeoutMs: number },
 ): Promise<{ run: Run; state: S }> {
   const skill = { name: SKILL_NAME, dir: options.skillDir };
   return withScratch({ skill }, async ({ name, root }) => {
     const workdir = join(root, "acme-docs");
     const sessionDir = join(root, "sessions");
+    const binDir = join(root, "bin");
     mkdirSync(workdir);
     mkdirSync(sessionDir);
+    installExplain(binDir);
     const setupState = await scenario.setup(workdir);
 
     const agent = Bun.spawn(
@@ -100,7 +103,14 @@ export async function runTrial<S>(
         "--model",
         options.model,
       ],
-      { cwd: workdir, stdin: "pipe", stdout: "pipe", stderr: "pipe", timeout: TRIAL_TIMEOUT_MS },
+      {
+        cwd: workdir,
+        env: { ...process.env, PATH: `${binDir}${delimiter}${process.env.PATH ?? ""}` },
+        stdin: "pipe",
+        stdout: "pipe",
+        stderr: "pipe",
+        timeout: options.timeoutMs,
+      },
     );
     const stderr = new Response(agent.stderr).text();
     const frames = readFrames(agent.stdout);

@@ -15,6 +15,7 @@ export type Run = { turns: Turn[] };
 export type Scenario<S> = {
   setup(workdir: string): Promise<S>;
   turns: string[];
+  timeoutMs?: number;
   inspect?(workdir: string, state: S): Promise<S>;
   grade(run: Run, state: S): Grade | Promise<Grade>;
 };

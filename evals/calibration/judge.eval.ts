@@ -3,7 +3,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type CalibrationCase, defineCalibration } from "../harness/eval.ts";
 import type { JudgedStatus } from "../harness/judge.ts";
-import { INIT_REPLY_RUBRIC, PAGE_RUBRIC, type PageCheck, pageMaterial } from "../harness/rubric.ts";
+import {
+  INIT_REPLY_RUBRIC,
+  PAGE_RUBRIC,
+  type PageCheck,
+  pageMaterial,
+  replyMaterial,
+  WRITE_REPLY_RUBRIC,
+} from "../harness/rubric.ts";
 import { exportTargetRepo } from "../harness/target-repo.ts";
 
 const goldEn = readFileSync(new URL("./citation.en.md", import.meta.url), "utf8");
@@ -127,6 +134,17 @@ const reply = (text: string, status: JudgedStatus) => ({
   expected: { "tells-user-to-init": status },
 });
 
+const WRITTEN = ["en/citation-parsing.md", "zh/citation-parsing.md"];
+
+const REAL_WRITE_REPLY =
+  "Wrote:\n- `en/citation-parsing.md`\n- `zh/citation-parsing.md`\n\nCovers parsing, file resolution, pane highlighting, excerpts, and direct source navigation. Registered the repo and pages in `explain.json`.\n\nFinal validation output:\n```text\n2 pages valid\n```\n\nFreshness synced for both pages, tracking 20 source files each.\n\nView with:\n```sh\nexplain dev\n```\n";
+
+const writeReply = (text: string, status: JudgedStatus) => ({
+  material: replyMaterial(text, WRITTEN),
+  criteria: WRITE_REPLY_RUBRIC,
+  expected: { "reports-pages": status },
+});
+
 const cases: Record<string, CalibrationCase> = {
   "gold-en": page(goldEn, { ...PAGE_PASSES, "terms-stay-in-english": "n/a" }),
   "gold-zh": page(goldZh, PAGE_PASSES),
@@ -147,6 +165,14 @@ const cases: Record<string, CalibrationCase> = {
     "trace-one-case": "fail",
   }),
   "translated-terms-zh": page(translated, { "terms-stay-in-english": "fail" }),
+  "verb-cite-zh": page(
+    mutate(
+      mutate(goldZh, "cited code 是否真的存在", "被引用的 code 是否真的存在"),
+      "列出改动过的 cited file",
+      "列出改动过的、被 page 引用的 file",
+    ),
+    { "terms-stay-in-english": "pass" },
+  ),
   "real-reply": reply(
     "`explain.json` is missing from the doc root. Run:\n\n```sh\nexplain init --locales=<a,b>\n```\n\nReplace `<a,b>` with the locales you want, such as `en`.",
     "pass",
@@ -161,6 +187,23 @@ const cases: Record<string, CalibrationCase> = {
   ),
   "no-init-reply": reply(
     "`explain.json` is missing from this directory, so I stopped before writing anything.",
+    "fail",
+  ),
+  "real-write-reply": writeReply(REAL_WRITE_REPLY, "pass"),
+  "no-dev-write-reply": writeReply(
+    mutate(REAL_WRITE_REPLY, "\n\nView with:\n```sh\nexplain dev\n```", ""),
+    "fail",
+  ),
+  "summarized-validate-write-reply": writeReply(
+    mutate(
+      REAL_WRITE_REPLY,
+      "Final validation output:\n```text\n2 pages valid\n```",
+      "Validation passed.",
+    ),
+    "fail",
+  ),
+  "missing-page-write-reply": writeReply(
+    mutate(REAL_WRITE_REPLY, "\n- `zh/citation-parsing.md`", ""),
     "fail",
   ),
 };

@@ -17,6 +17,8 @@ export type CalibrationCase = {
   expected: Record<string, JudgedStatus>;
 };
 
+const GRADING_CLI_MS = 20_000;
+
 const SETTLED: Record<Verdict["status"], boolean> = {
   pass: true,
   "n/a": true,
@@ -125,15 +127,16 @@ function defineTrials(
 
 export function defineEval<S>(name: string, scenario: Scenario<S>): void {
   const config = evalConfig();
+  const agentMs = scenario.timeoutMs ?? TRIAL_TIMEOUT_MS;
   defineTrials(
     name,
     config.trials,
     { model: config.model, judge: config.judgeModel, skill: config.skillDir },
     async () => {
-      const { run, state } = await runTrial(scenario, config);
+      const { run, state } = await runTrial(scenario, { ...config, timeoutMs: agentMs });
       return gradeRun(scenario, run, state);
     },
-    TRIAL_TIMEOUT_MS + JUDGE_TIMEOUT_MS + 2 * EXIT_GRACE_MS,
+    agentMs + JUDGE_TIMEOUT_MS + 2 * EXIT_GRACE_MS + GRADING_CLI_MS,
   );
 }
 
