@@ -54,9 +54,6 @@ export function Rail({
     >
       <div className="rail-inner">
         <a className="brand" href={homeHref(site, locale)}>
-          <span className="brand-mark" aria-hidden="true">
-            {strings.brandMark}
-          </span>
           <span>{site.title}</span>
         </a>
         <button type="button" className="search-trigger" onClick={openSearch}>
