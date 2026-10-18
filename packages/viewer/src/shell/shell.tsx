@@ -6,7 +6,7 @@ import { stringsFor } from "../i18n/strings.ts";
 import { icons } from "../icons.tsx";
 import { PaneController } from "../pane/controller.ts";
 import { SourcePane } from "../pane/source-pane.tsx";
-import { pageHref, savedScroll } from "../router.ts";
+import { pageHref, revealEntry } from "../router.ts";
 import { Rail } from "./rail.tsx";
 import { SearchDialog } from "./search-dialog.tsx";
 import { openSearch } from "./search-opener.ts";
@@ -19,12 +19,12 @@ export const homeHref = (site: Site, locale: string): string => {
 };
 
 const revealPage = () => {
-  const saved = savedScroll();
-  if (saved !== null) scrollTo(0, saved);
-  else if (location.hash === "") scrollTo(0, 0);
-  else document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView();
+  const release = revealEntry();
   document.body.classList.add("ready");
-  return () => document.body.classList.remove("ready");
+  return () => {
+    release();
+    document.body.classList.remove("ready");
+  };
 };
 
 export function Shell({
