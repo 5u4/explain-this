@@ -35,7 +35,6 @@
       "name": "@explain/contract",
       "version": "0.1.0",
       "dependencies": {
-        "beautiful-mermaid": "catalog:",
         "effect": "catalog:",
         "github-slugger": "catalog:",
         "mdast-util-from-markdown": "catalog:",
@@ -43,6 +42,7 @@
         "mdast-util-mdx-jsx": "catalog:",
         "micromark-extension-gfm": "catalog:",
         "micromark-extension-mdx-jsx": "catalog:",
+        "pele": "catalog:",
       },
       "devDependencies": {
         "@types/mdast": "catalog:",
@@ -84,6 +84,7 @@
     "mdast-util-mdx-jsx": "3.2.0",
     "micromark-extension-gfm": "3.0.0",
     "micromark-extension-mdx-jsx": "3.0.2",
+    "pele": "1.10.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "shiki": "4.5.0",
@@ -477,6 +478,8 @@
     "oniguruma-to-es": ["oniguruma-to-es@4.3.6", "", { "dependencies": { "oniguruma-parser": "^0.12.2", "regex": "^6.1.0", "regex-recursion": "^6.0.2" } }, "sha512-csuQ9x3Yr0cEIs/Zgx/OEt9iBw9vqIunAPQkx19R/fiMq2oGVTgcMqO/V3Ybqefr1TBvosI6jU539ksaBULJyA=="],
 
     "parse-entities": ["parse-entities@4.0.2", "", { "dependencies": { "@types/unist": "^2.0.0", "character-entities-legacy": "^3.0.0", "character-reference-invalid": "^2.0.0", "decode-named-character-reference": "^1.0.0", "is-alphanumerical": "^2.0.0", "is-decimal": "^2.0.0", "is-hexadecimal": "^2.0.0" } }, "sha512-GG2AQYWoLgL877gQIKeRPGO1xF9+eG1ujIb5soS5gPvLQ1y2o8FL90w2QWNdf9I361Mpp7726c+lj3U0qK1uGw=="],
+
+    "pele": ["pele@1.10.0", "", {}, "sha512-hDMEM+GQ01pZin8tst3PRXGeB/xFATvXBreHHtjx2glSNAQ7nHFq7EbMuNJGTbqkYgueWPboLjyUBsAudsb1qQ=="],
 
     "picocolors": ["picocolors@1.1.1", "", {}, "sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA=="],
 

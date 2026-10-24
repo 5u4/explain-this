@@ -11,14 +11,14 @@
     "./parse-page": "./src/parse-page/parse-page.ts"
   },
   "dependencies": {
-    "beautiful-mermaid": "catalog:",
     "effect": "catalog:",
     "github-slugger": "catalog:",
     "mdast-util-from-markdown": "catalog:",
     "mdast-util-gfm": "catalog:",
     "mdast-util-mdx-jsx": "catalog:",
     "micromark-extension-gfm": "catalog:",
-    "micromark-extension-mdx-jsx": "catalog:"
+    "micromark-extension-mdx-jsx": "catalog:",
+    "pele": "catalog:"
   },
   "devDependencies": {
     "@types/mdast": "catalog:"
