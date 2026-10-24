@@ -19,19 +19,22 @@ export function Mermaid({ source }: { readonly source: string }): ReactNode {
         onRender: () => setFailure(undefined),
       };
       const previous = live.current;
-      // Loaded on demand so pages without diagrams keep pele's core out of the entry chunk.
+      const mount = (): Promise<Mounted | undefined> =>
+        // Loaded on demand so pages without diagrams keep pele's core out of the entry chunk.
+        import("pele/lazy")
+          .then(({ mountAsync }) => mountAsync(element, source, options))
+          .catch(fail);
       const handle =
         previous?.element === element
           ? previous.handle.then(async (mounted) => {
+              if (mounted === undefined) return mount();
               await import("pele/lazy")
                 .then(({ detectType, load }) => load(detectType(source)))
                 .catch(fail);
-              mounted?.update(source);
+              mounted.update(source);
               return mounted;
             })
-          : import("pele/lazy")
-              .then(({ mountAsync }) => mountAsync(element, source, options))
-              .catch(fail);
+          : mount();
       live.current = { element, handle };
       return () => {
         // React runs this cleanup before reattaching on a source change; only a real unmount destroys.
