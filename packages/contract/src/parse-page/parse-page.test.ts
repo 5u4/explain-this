@@ -436,6 +436,19 @@ describe("parsePage checks mermaid against the viewer's renderer", () => {
     ]);
   });
 
+  it("maps columns through the indentation each body line actually lost", () => {
+    const errors = (page: string) => parsePage(page, "t").errors;
+    expect(errors("# T\n\n  ```mermaid\nflowchartt TD\n  ```\n")).toEqual([
+      { line: 4, column: 1, message: "Expecting 'GRAPH', 'SPACE', 'NEWLINE', got 'NODE_STRING'" },
+    ]);
+    expect(errors("# T\n\n  ```mermaid\ngraph TD\n A -> B\n  ```\n")).toEqual([
+      { line: 5, column: 4, message: "Expecting 'SEMI', 'NEWLINE', 'EOF', got 'MINUS'" },
+    ]);
+    expect(errors("# T\n\n- item\n\n  ```mermaid\n  graph TD\n      A -> B\n  ```\n")).toEqual([
+      { line: 7, column: 9, message: "Expecting 'SEMI', 'NEWLINE', 'EOF', got 'MINUS'" },
+    ]);
+  });
+
   it("reports a semantic error at the fence with the full message", () => {
     expect(
       mermaid("gantt", "  dateFormat YYYY-MM-DD", "  section S", "  Task :a1, 2024-13-45, 3d"),
