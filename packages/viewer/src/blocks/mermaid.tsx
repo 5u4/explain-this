@@ -1,73 +1,59 @@
-import { type ReactNode, Suspense, use } from "react";
+import type { Mounted, MountOptions } from "pele/lazy";
+import { type ReactNode, useCallback, useRef, useState } from "react";
 import { useViewer } from "../context.ts";
 
-type Diagram =
-  | { readonly status: "ready"; readonly svg: string; readonly kind: string }
-  | { readonly status: "failed"; readonly message: string };
-
-const theme = {
-  bg: "var(--surface-page)",
-  fg: "var(--diagram-fg)",
-  line: "var(--diagram-line)",
-  accent: "var(--diagram-accent)",
-  muted: "var(--diagram-muted)",
-  surface: "var(--diagram-surface)",
-  border: "var(--diagram-border)",
-  font: "Inter",
-  transparent: true,
-  padding: 16,
-  nodeSpacing: 28,
-  layerSpacing: 44,
-};
-
-const diagrams = new Map<string, Promise<Diagram>>();
-
-const renderDiagram = (source: string): Promise<Diagram> => {
-  const cached = diagrams.get(source);
-  if (cached !== undefined) return cached;
-  const rendering = import("beautiful-mermaid")
-    .then(
-      (mermaid): Diagram => ({
-        status: "ready",
-        svg: mermaid
-          .renderMermaidSVG(source, theme)
-          .replace(/@import url\([^)]*\);/g, "")
-          .replace(
-            /'Inter', system-ui, sans-serif/g,
-            "Inter, 'PingFang SC', 'Noto Sans SC', system-ui, sans-serif",
-          ),
-        kind: /^\s*([\w-]+)/.exec(source)?.[1] ?? "",
-      }),
-    )
-    .catch((error: unknown): Diagram => ({ status: "failed", message: String(error) }));
-  diagrams.set(source, rendering);
-  return rendering;
-};
-
 export function Mermaid({ source }: { readonly source: string }): ReactNode {
-  return (
-    <Suspense fallback={<figure className="diagram" />}>
-      <RenderedMermaid source={source} />
-    </Suspense>
-  );
-}
-
-function RenderedMermaid({ source }: { readonly source: string }): ReactNode {
   const { strings } = useViewer();
-  const diagram = use(renderDiagram(source));
+  const live = useRef<{ element: HTMLDivElement; handle: Promise<Mounted | undefined> }>(undefined);
+  const [failure, setFailure] = useState<string | undefined>(undefined);
+  const kind = /^\s*([\w-]+)/.exec(source)?.[1] ?? "";
+
+  const attach = useCallback(
+    (element: HTMLDivElement) => {
+      const fail = (error: unknown): undefined => {
+        setFailure(error instanceof Error ? error.message : String(error));
+      };
+      const options: MountOptions = {
+        zoom: "auto",
+        onError: fail,
+        onRender: () => setFailure(undefined),
+      };
+      const previous = live.current;
+      const mount = (): Promise<Mounted | undefined> =>
+        // Loaded on demand so pages without diagrams keep pele's core out of the entry chunk.
+        import("pele/lazy")
+          .then(({ mountAsync }) => mountAsync(element, source, options))
+          .catch(fail);
+      const handle =
+        previous?.element === element
+          ? previous.handle.then(async (mounted) => {
+              if (mounted === undefined) return mount();
+              await import("pele/lazy")
+                .then(({ detectType, load }) => load(detectType(source)))
+                .catch(fail);
+              mounted.update(source);
+              return mounted;
+            })
+          : mount();
+      live.current = { element, handle };
+      return () => {
+        // React runs this cleanup before reattaching on a source change; only a real unmount destroys.
+        queueMicrotask(() => {
+          if (live.current?.handle !== handle) return;
+          live.current = undefined;
+          void handle.then((mounted) => mounted?.destroy());
+        });
+      };
+    },
+    [source],
+  );
+
   return (
-    <figure className="diagram" data-kind={diagram.status === "ready" ? diagram.kind : undefined}>
-      {diagram.status === "ready" && (
-        <div
-          className="diagram-canvas"
-          role="img"
-          aria-label={diagram.kind}
-          dangerouslySetInnerHTML={{ __html: diagram.svg }}
-        />
-      )}
-      {diagram.status === "failed" && (
+    <figure className="diagram" data-kind={kind}>
+      <div ref={attach} className="diagram-canvas" role="group" aria-label={kind} />
+      {failure !== undefined && (
         <div className="err">
-          {strings.diagramFailed}: {diagram.message}
+          {strings.diagramFailed}: {failure}
           <details>
             <summary>{strings.diagramSource}</summary>
             <pre>{source}</pre>

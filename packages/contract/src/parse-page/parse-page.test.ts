@@ -329,11 +329,6 @@ describe("parsePage reports the cause of Markdown it cannot render", () => {
 describe("parsePage checks mermaid against the viewer's renderer", () => {
   const mermaid = (...lines: ReadonlyArray<string>) =>
     parsePage(`# T\n\n\`\`\`mermaid\n${lines.join("\n")}\n\`\`\`\n`, "t").errors;
-  const dropped = (line: number) => ({
-    line,
-    column: 1,
-    message: "mermaid line would be dropped by the renderer",
-  });
 
   it("accepts diagrams of every type the renderer draws in full", () => {
     expect(
@@ -343,8 +338,7 @@ describe("parsePage checks mermaid against the viewer's renderer", () => {
         "  A[Start] --> B{ok?};",
         "  B -->|yes| C & D",
         "  B -. maybe .-> E",
-        "  Q &amp; R --> S",
-        "  classDef hot fill:#f00,",
+        "  classDef hot fill:#f00",
         "  class A hot",
         "  style B fill:#0f0",
         "  linkStyle 0 stroke:#00f",
@@ -414,48 +408,50 @@ describe("parsePage checks mermaid against the viewer's renderer", () => {
     ).toEqual([]);
   });
 
-  it("reports the renderer's error for a header it rejects", () => {
+  it("accepts syntax the renderer draws", () => {
+    expect(
+      mermaid(
+        "graph TD",
+        "  A --> B; B --> C",
+        "  A -.label.-> B",
+        '  click A href "https://example.com"',
+        "  X@{ shape: rect }",
+      ),
+    ).toEqual([]);
+    expect(mermaid("stateDiagram-v2", "  A --> B", "  note right of A : hi")).toEqual([]);
+    expect(
+      mermaid("gantt", "  dateFormat YYYY-MM-DD", "  section S", "  Task :a1, 2024-01-01, 3d"),
+    ).toEqual([]);
+  });
+
+  it("reports a rejected header on the first body line", () => {
     expect(mermaid("flowchartt TD", "  A --> B")).toEqual([
-      {
-        line: 3,
-        column: 1,
-        message:
-          'Invalid mermaid header: "flowchartt TD". Expected "graph TD", "flowchart LR", "stateDiagram-v2", etc.',
-      },
+      { line: 4, column: 1, message: "Expecting 'GRAPH', 'SPACE', 'NEWLINE', got 'NODE_STRING'" },
     ]);
-    expect(mermaid("gantt", "  title Plan")[0]?.message).toMatch(
-      /^Invalid mermaid header: "gantt"/,
-    );
   });
 
-  it("reports flowchart lines the renderer would drop", () => {
-    expect(mermaid("graph TD", "  A -.label.-> B")).toEqual([dropped(5)]);
-    expect(mermaid("graph TD", "  A -> B")).toEqual([dropped(5)]);
-    expect(mermaid("graph TD", "  A -->", "  this is garbage")).toEqual([dropped(5), dropped(6)]);
-    expect(mermaid("graph TD", "  A[a ] b] --> B", "  B --> C")).toEqual([dropped(5)]);
-    expect(mermaid("graph TD", "  A --> B; B --> C")).toEqual([dropped(5)]);
+  it("reports a syntax error at its absolute line and column", () => {
+    expect(mermaid("graph TD", "  A -> B")).toEqual([
+      { line: 5, column: 5, message: "Expecting 'SEMI', 'NEWLINE', 'EOF', got 'MINUS'" },
+    ]);
   });
 
-  it("reports lines the renderer drops in the other diagram types", () => {
-    expect(mermaid("stateDiagram-v2", "  A --> B", "  A : described too late")).toEqual([
-      dropped(6),
+  it("maps columns through the indentation each body line actually lost", () => {
+    const errors = (page: string) => parsePage(page, "t").errors;
+    expect(errors("# T\n\n  ```mermaid\nflowchartt TD\n  ```\n")).toEqual([
+      { line: 4, column: 1, message: "Expecting 'GRAPH', 'SPACE', 'NEWLINE', got 'NODE_STRING'" },
     ]);
-    expect(mermaid("sequenceDiagram", "  A->>B: hi", "  activate B", "  A->>B")).toEqual([
-      dropped(6),
-      dropped(7),
+    expect(errors("# T\n\n  ```mermaid\ngraph TD\n A -> B\n  ```\n")).toEqual([
+      { line: 5, column: 4, message: "Expecting 'SEMI', 'NEWLINE', 'EOF', got 'MINUS'" },
     ]);
-    expect(mermaid("classDiagram", "  A <|-- B", '  note for B "hi"')).toEqual([dropped(6)]);
-    expect(mermaid("erDiagram", "  A ||--o{ B : has", "  A")).toEqual([dropped(6)]);
-    expect(mermaid("xychart-beta", "  bar [1, 2]", "  pie [1]")).toEqual([dropped(6)]);
+    expect(errors("# T\n\n- item\n\n  ```mermaid\n  graph TD\n      A -> B\n  ```\n")).toEqual([
+      { line: 7, column: 9, message: "Expecting 'SEMI', 'NEWLINE', 'EOF', got 'MINUS'" },
+    ]);
   });
 
-  it("names known unsupported syntax once instead of reporting it as dropped", () => {
-    expect(mermaid("graph TD", "  A --> B", "  click A call", "  C@{ shape: rect }")).toEqual([
-      { line: 6, column: 1, message: "mermaid click is not supported" },
-      { line: 7, column: 1, message: "mermaid @{} shapes are not supported" },
-    ]);
-    expect(mermaid("stateDiagram-v2", "  A --> B", "  note right of A : hi")).toEqual([
-      { line: 6, column: 1, message: "mermaid state diagram notes are not supported" },
-    ]);
+  it("reports a semantic error at the fence with the full message", () => {
+    expect(
+      mermaid("gantt", "  dateFormat YYYY-MM-DD", "  section S", "  Task :a1, 2024-13-45, 3d"),
+    ).toEqual([{ line: 3, column: 1, message: "Invalid date:2024-13-45" }]);
   });
 });

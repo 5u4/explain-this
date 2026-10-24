@@ -34,7 +34,7 @@ button {
   color: inherit;
   cursor: pointer;
 }
-svg {
+svg:where(:not(.pele)) {
   stroke: currentColor;
   fill: none;
   stroke-width: 1.5;
