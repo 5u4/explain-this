@@ -71,9 +71,17 @@ with `/` separators, and 1-based line ranges `N` or `N-M`, comma-separated, in a
 
 A fence with `file=<citation>` is an excerpt: its body stays empty and the viewer reads the code from
 the repo. A fence without `file=` is literal code. A `mermaid` fence is a diagram, rendered with
-beautiful-mermaid:
+pele:
 
-- `explain validate` reports a mermaid header beautiful-mermaid rejects and each line it would drop.
+- Every diagram type pele supports works: flowchart, sequence, state, class, ER, gantt, pie,
+  gitGraph, mindmap, timeline, journey, xychart, quadrantChart, sankey, C4, block, architecture, and
+  more.
+- A diagram wider than its column shrinks to fit, and readers can zoom and pan it. In a column
+  narrower than 640px, a wide `LR` graph switches to `TB` if that is narrower.
+- A `click` link opens with `rel="noopener"`. A link that starts with `//`, or whose scheme is not
+  `http`, `https`, `mailto`, or `tel`, is dropped.
+- `explain validate` reports pele's first syntax error at its absolute line and column in the page.
+  It reports a semantic error, such as an invalid gantt date, at the fence line.
 - Prefer `TD` over wide `LR` graphs.
 - A state diagram with self-loops or parallel edges, or a branch-only decision tree, reads better as a
   table.
