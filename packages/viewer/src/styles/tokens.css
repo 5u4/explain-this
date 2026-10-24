@@ -104,6 +104,16 @@
   --diagram-muted: var(--ink-6);
   --diagram-surface: var(--ink-2);
   --diagram-border: var(--ink-4);
+  --diagram-surface-alt: var(--ink-3);
+  --diagram-critical: var(--zhu-4);
+  --diagram-series-1: var(--sky-6);
+  --diagram-series-2: var(--amber-6);
+  --diagram-series-3: var(--rose-6);
+  --diagram-series-4: var(--jade-6);
+  --diagram-series-5: var(--violet-6);
+  --diagram-series-6: var(--leaf-6);
+  --diagram-series-7: var(--indigo-6);
+  --diagram-series-8: var(--zhu-6);
 
   --size-caption: 0.75rem;
   --size-ui-lg: 0.875rem;

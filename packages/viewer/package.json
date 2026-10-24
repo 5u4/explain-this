@@ -8,7 +8,7 @@
     "./package.json": "./package.json"
   },
   "dependencies": {
-    "beautiful-mermaid": "catalog:",
+    "pele": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "shiki": "catalog:"
