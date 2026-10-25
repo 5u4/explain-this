@@ -25,6 +25,52 @@ const filesUnder = (dir: string) =>
     .filter((file) => statSync(join(dir, file)).isFile())
     .sort();
 
+const diagramFetches = (out: string) => {
+  const assets = join(out, "assets");
+  const scripts = new Map(
+    readdirSync(assets)
+      .filter((file) => file.endsWith(".js"))
+      .map((file) => [file, readFileSync(join(assets, file), "utf8")]),
+  );
+  const targets = (file: string, pattern: RegExp) =>
+    [...(scripts.get(file) ?? "").matchAll(pattern)].flatMap(([, target]) =>
+      target === undefined ? [] : [target],
+    );
+  const closure = (roots: ReadonlyArray<string>) => {
+    const seen = new Set<string>();
+    const visit = (file: string) => {
+      if (seen.has(file)) return;
+      seen.add(file);
+      for (const next of targets(file, /(?:\bfrom|\bimport)\s*["'`]\.\/([^"'`]+\.js)["'`]/g)) {
+        visit(next);
+      }
+    };
+    for (const root of roots) visit(root);
+    return seen;
+  };
+  const dynamicImports = (files: Iterable<string>) =>
+    [...files].flatMap((file) => targets(file, /\bimport\(\s*["'`]\.\/([^"'`]+\.js)["'`]\s*\)/g));
+  const entryFile = /<script type="module"[^>]* src="\/assets\/([^"]+\.js)"/.exec(
+    readFileSync(join(out, "index.html"), "utf8"),
+  )?.[1];
+  if (entryFile === undefined) throw new Error("index.html loads no module script");
+  const entry = closure([entryFile]);
+  const pele = dynamicImports(entry).find((file) =>
+    /\bexport\s*\{[^}]*\bas mountAsync\b/.test(scripts.get(file) ?? ""),
+  );
+  if (pele === undefined) throw new Error("no lazily imported chunk exports mountAsync");
+  const bytes = (files: Iterable<string>) =>
+    [...files].reduce((sum, file) => sum + statSync(join(assets, file)).size, 0);
+  const perType = dynamicImports([...closure([pele])].filter((file) => !entry.has(file))).map(
+    (loader) => [...closure([pele, loader])].filter((file) => !entry.has(file)),
+  );
+  return {
+    requests: perType.map((fetched) => fetched.length),
+    bytes: perType.map(bytes),
+    everyTypeBytes: bytes(new Set(perType.flat())),
+  };
+};
+
 const fixture = () => {
   const base = mkdtempSync(join(tmpdir(), "explain-build-"));
   const repo = join(base, "repo");
@@ -113,5 +159,18 @@ describe("buildSite", () => {
     expect(Exit.isFailure(refused)).toBe(true);
     expect(existsSync(join(foreign, "keep.txt"))).toBe(true);
     expect(existsSync(join(foreign, "index.html"))).toBe(false);
+  });
+
+  it("loads any one diagram type with at most three scripts and without every type's code", async () => {
+    const { base, root } = fixture();
+    const loaded = await run(loadDocRoot(root));
+    if (!Exit.isSuccess(loaded)) throw new Error(String(loaded.cause));
+    const out = join(base, "out");
+    expect(Exit.isSuccess(await run(buildSite(loaded.value, out)))).toBe(true);
+
+    const { requests, bytes, everyTypeBytes } = diagramFetches(out);
+    expect(requests.length).toBeGreaterThan(1);
+    expect(Math.max(...requests)).toBeLessThanOrEqual(3);
+    expect(Math.min(...bytes)).toBeLessThan(everyTypeBytes);
   });
 });
