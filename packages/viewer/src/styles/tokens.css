@@ -55,7 +55,9 @@
   --step-0: 1.0625em;
   --step-1: 1.1875em;
   --step-2: 1.625em;
-  --size-prose: clamp(1rem, 0.7731rem + 0.2679vw, 1.1765rem);
+  --size-prose: 1rem;
+  /* PingFang SC ideographs advance 1.02em, so 34 and 40 full characters need 34.75rem and 40.85rem. */
+  --measure: clamp(34.75rem, 26.907rem + 9.259vw, 40.85rem);
   --size-code: calc(var(--size-prose) * 0.796875);
 
   --space-1: 4px;
@@ -141,7 +143,7 @@
     0 2px 6px oklch(0 0 0 / 0.35);
 
   --rail-w: 232px;
-  --prose-w: calc(var(--size-prose) * 34 + 126px);
+  --prose-w: calc(var(--measure) + 128px);
   --pane-min: 440px;
   --pane-max: calc(100 * 0.6 * var(--size-code) + 100px);
 }
