@@ -91,7 +91,23 @@ export const buildSite = Effect.fnUntraced(function* (docRoot: DocRoot, out: str
         configFile: false,
         root: viewer,
         logLevel: "warn",
-        build: { outDir: out, emptyOutDir: false },
+        build: {
+          outDir: out,
+          emptyOutDir: false,
+          rolldownOptions: {
+            output: {
+              codeSplitting: {
+                groups: [
+                  {
+                    name: "pele",
+                    test: /[\\/]node_modules[\\/]pele[\\/]dist[\\/]esm[\\/]/,
+                    minShareCount: 2,
+                  },
+                ],
+              },
+            },
+          },
+        },
         plugins: [viewerImportGuard(viewer, path.sep)],
       }),
     catch: (cause) =>
