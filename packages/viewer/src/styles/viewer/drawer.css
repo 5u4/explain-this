@@ -1,6 +1,6 @@
 @media (max-width: 1359px) {
   .shell {
-    grid-template-columns: var(--prose-w) minmax(var(--pane-min), 1fr);
+    grid-template-columns: minmax(0, var(--prose-w)) minmax(var(--pane-min), 1fr);
     grid-template-areas: "top pane" "main pane";
     grid-template-rows: auto 1fr;
   }
