@@ -83,8 +83,6 @@ pele:
 - `explain validate` reports pele's first syntax error at its absolute line and column in the page.
   It reports a semantic error, such as an invalid gantt date, at the fence line.
 - Prefer `TD` over wide `LR` graphs.
-- A state diagram with self-loops or parallel edges, or a branch-only decision tree, reads better as a
-  table.
 
 ### Alerts and disclosure
 

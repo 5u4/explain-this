@@ -13,6 +13,9 @@ where those promise an answer. Every rule below ends in a check.
   The page reads whole with every `<details>` closed.
 - **Curse of knowledge.** Define each project term at first use, and keep one name per concept for
   the whole page.
+- **Glossary on a trigger.** When the page uses three or more project terms the reader must hold
+  at once, a short glossary under the first paragraph defines them; each term still gets its
+  first-use definition in the prose. A page with fewer such terms has no glossary.
 
 ## Examples
 
@@ -34,6 +37,46 @@ where those promise an answer. Every rule below ends in a check.
   only the ranges that carry the point; several ranges in one citation skip the lines between. An
   excerpt longer than about ten lines becomes an `<AnnotatedSource>` whose notes label each chunk
   with its purpose (validate input, resolve target, dispatch).
+
+## Pictures
+
+There is no diagram quota: no page or paragraph must have a diagram. Content triggers a picture;
+the count of pictures is never a goal. Diagram syntax and rendering are in `format.md`.
+
+- **Draw on a trigger.** Draw only when the content matches a trigger, using its form:
+  - three or more things related non-linearly (calls, dependencies, ownership): a `flowchart`;
+  - states and the transitions between them: a `stateDiagram`;
+  - three or more actors passing messages over time, even in one fixed order: a `sequenceDiagram`;
+  - one data shape changing across steps: a `<Tabs>` with one `<Tab>` per step, each showing the
+    shape at that step.
+
+  These are not triggers: a linear process one actor runs that fits a numbered list (write the
+  list), including tabs that each describe a step in words or commands rather than show the data
+  shape at that step; logic inside one function (cite it); a concept one sentence explains (write
+  the sentence).
+  Before drawing, name the trigger to yourself; the page does not justify its diagrams. With no
+  trigger, do not draw.
+- **Tables for comparisons.** Options compared across shared dimensions go in a table, one row per
+  option. A state diagram with self-loops or parallel edges, or a branch-only decision tree, is
+  also a table.
+
+A picture is a mermaid diagram or a step-snapshot `<Tabs>`: one whose tabs are the ordered steps of
+one process. A `<Tabs>` offering alternatives (languages, platforms, variants) is not a picture.
+Every picture passes these checks; edges labeled and node cap apply to mermaid diagrams only:
+
+- **Question named.** The last sentence before the picture, directly above its fence or `<Tabs>`,
+  names the question it answers: "Which process tells the browser to reload?". A heading alone
+  does not count.
+- **Edges labeled.** Every edge and message carries a label saying what flows or happens along it:
+  `A -->|calls on save| B`. An unlabeled arrow fails.
+- **Node cap.** At most 7 nodes, participants, or states. This is a legibility ceiling: past it,
+  split the diagram by question or move detail to prose.
+- **Nodes cited.** Every in-repo node, and every tab's shape, names something the page's prose
+  cites to code, so a reader can go from each box or step to its lines. An actor outside the repo
+  (browser, user, external service) passes when the prose names it as outside the repo.
+- **Earns its place.** Words that narrate the same thing as the picture, prose or a list, are the
+  pairing: keep it. Delete the picture only when it redraws a table or another picture on the same
+  page, or depicts a single relation the sentence directly above it states in full.
 
 ## Pages in another language
 

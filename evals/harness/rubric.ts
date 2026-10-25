@@ -21,6 +21,21 @@ export const PAGE_RUBRIC = {
 
 export type PageCheck = keyof typeof PAGE_RUBRIC;
 
+const EACH_PICTURE =
+  "A picture is a ```mermaid fence, or a step-snapshot <Tabs>: one whose tabs are the ordered steps of one process, whatever each tab contains. A <Tabs> whose tabs offer alternatives (languages, platforms, variants) is not a picture; ignore it. Applies to every picture in the page; the status is n/a only when the page has no picture. Judge each picture on its own and fail if any picture misses this check, quoting its first line or first tab label.";
+
+const EACH_MERMAID =
+  "Applies to every ```mermaid fence in the page; the status is n/a only when the page has no mermaid fence. A <Tabs> is never judged by this check. Judge each diagram on its own and fail if any diagram misses this check, quoting that diagram's first line.";
+
+export const DIAGRAM_RUBRIC = {
+  "draw-on-a-trigger": `${EACH_PICTURE} Using the page text and the cited code, decide whether the content the picture depicts matches a trigger: three or more things related non-linearly (calls that branch, merge, or recurse; dependencies; ownership), states with transitions between them, several actors (three or more processes, components, or parties) passing messages over time, even when the messages run in one fixed order, or one data shape changing across steps (the tabs show that same value or structure at each step). Content that is not a trigger: a linear sequence of steps one actor performs that fits a numbered list (including tabs that each describe a step in words or commands rather than show the data shape at that step), logic inside one function, or a concept one sentence explains. Judge only whether the depicted content is a trigger; labels, size, citations, and repetition of nearby prose are other checks and do not affect this one. Fail if a picture depicts non-trigger content, and say which non-trigger it is.`,
+  "question-named": `${EACH_PICTURE} The sentence immediately before the picture (prose, not a heading), directly above its fence or <Tabs>, names the question the picture answers, either as a question or as "which/how/what ..." wording. Fail if the picture follows a heading, an excerpt, or a sentence that only announces a picture ("The flow is shown below") without naming a question.`,
+  "edges-labeled": `${EACH_MERMAID} Every edge in a flowchart or state diagram carries a text label (such as -->|label| or : label), and every sequence-diagram message has text. Fail if any edge or arrow has no label.`,
+  "node-cap": `${EACH_MERMAID} Count the distinct nodes, participants, or states the diagram declares or uses. Pass if each diagram has at most 7. Fail if any diagram has 8 or more, and give the count.`,
+  "nodes-cited": `${EACH_PICTURE} Every in-repo node, participant, or state, and every tab's shape, names a thing (a function, file, process, or value) that the page's prose cites to code with a citation link or excerpt somewhere in the page. An actor outside the repo (a browser, a user, an external service) passes without a citation when the prose names it as outside the repo. Fail if any in-repo node or tab names something the page never cites, and name it.`,
+  "earns-its-place": `${EACH_PICTURE} Words that narrate the same thing as the picture, whether prose or a numbered or bulleted list, are the intended pairing and never make it redundant: pass. Delete the picture only when it redraws a table or another picture on the same page, or depicts a single relation the sentence directly above it states in full; fail only then. Judge only this: whether the content type warrants a picture at all is a different check and does not affect this one.`,
+} as const satisfies Criteria;
+
 export const INIT_REPLY_RUBRIC = {
   "tells-user-to-init":
     "The reply tells the user to run `explain init` themselves (with or without flags such as `--locales`) so that the work can continue. Fail if the reply does not ask the user to run it, if it says `explain init` was already run or that the assistant ran it, or if it tells the user to skip `explain init` or do something else instead of it.",
