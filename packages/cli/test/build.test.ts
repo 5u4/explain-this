@@ -171,6 +171,6 @@ describe("buildSite", () => {
     const { requests, bytes, everyTypeBytes } = diagramFetches(out);
     expect(requests.length).toBeGreaterThan(1);
     expect(Math.max(...requests)).toBeLessThanOrEqual(3);
-    expect(Math.min(...bytes)).toBeLessThan(everyTypeBytes);
+    expect(Math.max(...bytes)).toBeLessThan(everyTypeBytes);
   });
 });
