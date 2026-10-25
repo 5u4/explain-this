@@ -1,7 +1,7 @@
 .shell {
   display: grid;
   --gutter: max(0px, (100% - var(--rail-w) - var(--prose-w) - var(--pane-max)) / 2);
-  grid-template-columns: var(--gutter) var(--rail-w) var(--prose-w) minmax(var(--pane-min), 1fr);
+  grid-template-columns: var(--gutter) var(--rail-w) minmax(0, var(--prose-w)) minmax(var(--pane-min), 1fr);
   grid-template-areas: ". rail main pane";
   min-height: 100vh;
 }
