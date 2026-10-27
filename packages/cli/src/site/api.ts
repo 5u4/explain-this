@@ -4,16 +4,13 @@ import * as Effect from "effect/Effect";
 import type * as FileSystem from "effect/FileSystem";
 import type * as Path from "effect/Path";
 import type * as PlatformError from "effect/PlatformError";
-import type { Diagnostic, DocRoot } from "../doc-root/types.ts";
+import { escapesMessage, missingKeyMessage } from "../doc-dir/resolve-source.ts";
+import type { Diagnostic, DocDir } from "../doc-dir/types.ts";
 import { pageResponse, siteResponse } from "./api-bodies.ts";
 
 export type DevState =
-  | { readonly status: "ok"; readonly docRoot: DocRoot }
-  | {
-      readonly status: "invalid";
-      readonly root: string;
-      readonly errors: ReadonlyArray<Diagnostic>;
-    };
+  | { readonly status: "ok"; readonly docDir: DocDir }
+  | { readonly status: "invalid"; readonly errors: ReadonlyArray<Diagnostic> };
 
 export interface DevResponse {
   readonly status: number;
@@ -39,19 +36,18 @@ const decodeSegments = (segments: ReadonlyArray<string>): ReadonlyArray<string> 
   }
 };
 
-const invalidState = json(503, { error: "explain.json is invalid; see /@explain/api/site.json" });
+const invalidState = json(503, {
+  error: "the doc dir could not be read; see /@explain/api/site.json",
+});
 
 const sourceResponse = Effect.fnUntraced(function* (
-  docRoot: DocRoot,
+  docDir: DocDir,
   repo: string,
   path: string,
 ): Effect.fn.Return<DevResponse, PlatformError.PlatformError> {
-  if (!Object.hasOwn(docRoot.config.repos, repo)) {
-    return json(404, { error: `unknown repo "${repo}"` });
-  }
   const ref = parseRef(`${repo}:${path}`);
   if (ref._tag === "Failure") return json(403, { error: ref.failure });
-  const resolved = yield* docRoot.resolveSource(repo, path);
+  const resolved = yield* docDir.resolveSource(repo, path);
   switch (resolved.status) {
     case "file":
       return json(200, {
@@ -64,11 +60,11 @@ const sourceResponse = Effect.fnUntraced(function* (
     case "missing":
       return json(200, { status: "missing", repo, path });
     case "escapes":
-      return json(403, { error: `${repo}:${path} resolves outside the repo` });
+      return json(403, { error: escapesMessage(repo, path) });
     case "not-a-file":
       return json(403, { error: `${repo}:${path} is not a file` });
-    case "unknown-repo":
-      return json(404, { error: `unknown repo "${repo}"` });
+    case "missing-key":
+      return json(404, { error: missingKeyMessage(repo) });
   }
 });
 
@@ -92,18 +88,18 @@ export const handleExplainRequest = Effect.fnUntraced(function* (
     if (state.status === "invalid") {
       return json(200, { status: "invalid", errors: state.errors } satisfies SiteResponse);
     }
-    return json(200, siteResponse(state.docRoot));
+    return json(200, siteResponse(state.docDir));
   }
   if (state.status === "invalid") return invalidState;
-  const { docRoot } = state;
+  const { docDir } = state;
   const [first, ...more] = args;
   if (route === "page" && first !== undefined && more.length === 0) {
-    const page = docRoot.pages.find((page) => page.id === first);
+    const page = docDir.pages.find((page) => page.id === first);
     if (page === undefined) return json(404, { error: `no page ${first}` });
     return json(200, pageResponse(page));
   }
   if (route === "source" && first !== undefined && more.length > 0) {
-    return yield* sourceResponse(docRoot, first, more.join("/"));
+    return yield* sourceResponse(docDir, first, more.join("/"));
   }
   return json(404, { error: `no route for ${rawPath}` });
 });

@@ -5,7 +5,6 @@
   "type": "module",
   "exports": {
     "./citation": "./src/citation.ts",
-    "./config": "./src/config.ts",
     "./page": "./src/page.ts",
     "./parse-page": "./src/parse-page/parse-page.ts"
   },

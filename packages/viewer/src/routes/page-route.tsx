@@ -4,26 +4,20 @@ import { Blocks } from "../blocks/blocks.tsx";
 import { Inlines } from "../blocks/inlines.tsx";
 import { type Site, useViewer } from "../context.ts";
 import { loadPage } from "../data.ts";
-import { icons } from "../icons.tsx";
-import { homeHref, Shell } from "../shell/shell.tsx";
+import { Shell } from "../shell/shell.tsx";
 import { DevErrors } from "./dev-errors.tsx";
 import { Pager } from "./pager.tsx";
 
 export interface Placement {
   readonly page: NavPage;
-  readonly group: string | null;
   readonly index: number;
-  readonly order: ReadonlyArray<{ readonly page: NavPage; readonly group: string }>;
+  readonly order: ReadonlyArray<NavPage>;
 }
 
 const placement = (site: Site, id: string): Placement => {
-  const order = site.nav.flatMap((group) =>
-    group.pages.map((page) => ({ page, group: group.title })),
-  );
-  const index = order.findIndex((entry) => entry.page.id === id);
-  const found = order[index];
-  if (found !== undefined) return { page: found.page, group: found.group, index, order };
-  return { page: { id, title: id }, group: null, index: -1, order };
+  const order = site.nav;
+  const index = order.findIndex((page) => page.id === id);
+  return { page: order[index] ?? { id, title: id }, index, order };
 };
 
 export function PageRoute({ site, id }: { readonly site: Site; readonly id: string }): ReactNode {
@@ -53,11 +47,9 @@ function PageContent({
   const { site, strings } = useViewer();
   const eyebrow = (
     <p className="eyebrow">
-      {place.group === null ? (
-        <span>{site.title}</span>
-      ) : (
+      <span>{site.title}</span>
+      {place.index >= 0 && (
         <>
-          <span>{place.group}</span>
           <span aria-hidden="true">／</span>
           <span>{strings.pageOf(place.index + 1, place.order.length)}</span>
         </>
@@ -67,29 +59,6 @@ function PageContent({
   const siteErrors = site.errors.length > 0 && (
     <DevErrors title={strings.siteErrors(site.errors.length)} errors={site.errors} />
   );
-
-  if (response.status === "missing") {
-    return (
-      <article className="page" data-page={response.id}>
-        <header className="page-head">
-          {eyebrow}
-          <h1>{place.page.title}</h1>
-        </header>
-        <div className="missing-state">
-          <p className="missing-kicker">
-            {icons.search} {strings.missingPage}
-          </p>
-          <p>{strings.missingPageBody(response.file)}</p>
-          <p>
-            <a className="btn" href={homeHref(site)}>
-              {icons.arrowLeft} {strings.backHome}
-            </a>
-          </p>
-        </div>
-        <Pager place={place} />
-      </article>
-    );
-  }
 
   if (response.status === "invalid") {
     return (

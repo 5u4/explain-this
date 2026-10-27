@@ -1,5 +1,7 @@
 import type { Ref } from "./citation.ts";
 
+export const pageIdPattern = /^[a-z0-9][a-z0-9-]*$/;
+
 export interface Position {
   readonly line: number;
   readonly column: number;

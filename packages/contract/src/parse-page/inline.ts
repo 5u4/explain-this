@@ -1,6 +1,5 @@
 import type { PhrasingContent } from "mdast";
-import { pageIdPattern } from "../config.ts";
-import type { Inline, Position } from "../page.ts";
+import { type Inline, type Position, pageIdPattern } from "../page.ts";
 import { citation, type ParseContext, report } from "./context.ts";
 import { describeNode, htmlNotSupported, isHtmlTag, positionOf } from "./markdown.ts";
 

@@ -16,12 +16,7 @@ export const sourceApiPath = (repo: string, path: string): ApiPath =>
 
 export type Diagnostic = Located & { readonly file: string };
 
-export type PageDiagnosticTag =
-  | "MissingPage"
-  | "Parse"
-  | "CitationRepo"
-  | "CitationFile"
-  | "PageLink";
+export type PageDiagnosticTag = "Parse" | "CitationRepo" | "CitationFile" | "PageLink";
 
 export type PageDiagnostic = {
   readonly [Tag in PageDiagnosticTag]: Diagnostic & { readonly _tag: Tag };
@@ -32,17 +27,12 @@ export interface NavPage {
   readonly title: string;
 }
 
-export interface NavGroup {
-  readonly title: string;
-  readonly pages: ReadonlyArray<NavPage>;
-}
-
 export type SiteResponse =
   | {
       readonly status: "ok";
       readonly title: string;
       readonly errors: ReadonlyArray<Diagnostic>;
-      readonly nav: ReadonlyArray<NavGroup>;
+      readonly nav: ReadonlyArray<NavPage>;
     }
   | { readonly status: "invalid"; readonly errors: ReadonlyArray<Diagnostic> };
 
@@ -52,7 +42,6 @@ interface PageAddress {
 }
 
 export type PageResponse =
-  | (PageAddress & { readonly status: "missing" })
   | (PageAddress & {
       readonly status: "invalid";
       readonly diagnostics: ReadonlyArray<PageDiagnostic>;

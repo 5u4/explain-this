@@ -3,17 +3,17 @@ import type { ParseResult } from "@explain/contract/parse-page";
 import * as Effect from "effect/Effect";
 import { PageDiagnostic } from "./page-diagnostic.ts";
 import { refProblem } from "./resolve-source.ts";
-import type { DocPage, DocRoot } from "./types.ts";
+import type { DocDir, DocPage } from "./types.ts";
 
 export interface PageContext {
   readonly existing: ReadonlySet<string>;
-  readonly resolve: DocRoot["resolveSource"];
+  readonly resolve: DocDir["resolveSource"];
 }
 
 export const checkPage = Effect.fnUntraced(function* (
   { existing, resolve }: PageContext,
   id: string,
-  parsed: ParseResult | undefined,
+  parsed: ParseResult,
 ) {
   const file = `${id}.md`;
   const diagnostics: Array<PageDiagnostic> = [];
@@ -22,14 +22,6 @@ export const checkPage = Effect.fnUntraced(function* (
     position: Position,
     message: string,
   ) => diagnostics.push(make({ file, line: position.line, column: position.column, message }));
-  if (parsed === undefined) {
-    at(
-      PageDiagnostic.MissingPage,
-      { line: 1, column: 1 },
-      `${file} is missing; nav lists page "${id}"`,
-    );
-    return { id, file, status: "missing", diagnostics } satisfies DocPage;
-  }
 
   for (const error of parsed.errors) at(PageDiagnostic.Parse, error, error.message);
   const page = parsed.page;
@@ -42,7 +34,7 @@ export const checkPage = Effect.fnUntraced(function* (
     const problem = refProblem(ref, resolved);
     if (problem === undefined) continue;
     at(
-      resolved.status === "unknown-repo" || resolved.status === "escapes"
+      resolved.status === "missing-key" || resolved.status === "escapes"
         ? PageDiagnostic.CitationRepo
         : PageDiagnostic.CitationFile,
       position,

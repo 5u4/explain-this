@@ -52,24 +52,16 @@ export function Rail({
         <a className="brand" href={homeHref(site)}>
           <span>{site.title}</span>
         </a>
-        {site.nav.map((group) => (
-          <section className="nav-section" key={group.title}>
-            <h2 className="nav-group">{group.title}</h2>
-            <ul>
-              {group.pages.map((page) => (
-                <li key={page.id}>
-                  <a
-                    href={pageHref(page.id)}
-                    aria-current={page.id === current ? "page" : undefined}
-                  >
-                    {page.title}
-                  </a>
-                  {tocList(page.id)}
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
+        <ul className="nav-list">
+          {site.nav.map((page) => (
+            <li key={page.id}>
+              <a href={pageHref(page.id)} aria-current={page.id === current ? "page" : undefined}>
+                {page.title}
+              </a>
+              {tocList(page.id)}
+            </li>
+          ))}
+        </ul>
       </div>
     </nav>
   );

@@ -4,17 +4,6 @@
   border-radius: var(--radius-xl);
   border: 1px dashed var(--border-strong);
 }
-.missing-kicker {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-strong);
-  font-weight: 600;
-}
-.missing-kicker svg {
-  width: 18px;
-  height: 18px;
-}
 .btn {
   display: inline-flex;
   align-items: center;
@@ -40,7 +29,4 @@
 .btn svg {
   width: 16px;
   height: 16px;
-}
-body[data-missing] .pane {
-  opacity: 0.6;
 }
