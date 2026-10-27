@@ -5,13 +5,13 @@ import { pageHref } from "../router.ts";
 import type { Placement } from "./page-route.tsx";
 
 export function Pager({ place }: { readonly place: Placement }): ReactNode {
-  const { locale, strings } = useViewer();
+  const { strings } = useViewer();
   if (place.index < 0) return null;
   const card = (entry: Placement["order"][number] | undefined, direction: "prev" | "next") =>
     entry === undefined ? (
       <span />
     ) : (
-      <a className={`pager-card ${direction}`} href={pageHref(locale, entry.page.id)}>
+      <a className={`pager-card ${direction}`} href={pageHref(entry.page.id)}>
         <span className="pager-kicker">
           {direction === "prev" ? (
             <>

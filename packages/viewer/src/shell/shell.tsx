@@ -1,21 +1,17 @@
 import type { TocEntry } from "@explain/contract/page";
 import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
-import type { SourceEntry } from "../api.ts";
 import { type Site, type Viewer, ViewerContext } from "../context.ts";
-import { stringsFor } from "../i18n/strings.ts";
+import { strings } from "../i18n/strings.ts";
 import { icons } from "../icons.tsx";
 import { PaneController } from "../pane/controller.ts";
 import { SourcePane } from "../pane/source-pane.tsx";
 import { pageHref, revealEntry } from "../router.ts";
 import { Rail } from "./rail.tsx";
-import { SearchDialog } from "./search-dialog.tsx";
-import { openSearch } from "./search-opener.ts";
 
-export const homeHref = (site: Site, locale: string): string => {
-  const ids =
-    site.byLocale[locale]?.nav.flatMap((group) => group.pages.map((page) => page.id)) ?? [];
+export const homeHref = (site: Site): string => {
+  const ids = site.nav.flatMap((group) => group.pages.map((page) => page.id));
   const id = ids.includes("index") ? "index" : ids[0];
-  return id === undefined ? `/${encodeURIComponent(locale)}` : pageHref(locale, id);
+  return id === undefined ? "/" : pageHref(id);
 };
 
 const revealPage = () => {
@@ -29,24 +25,19 @@ const revealPage = () => {
 
 export function Shell({
   site,
-  locale,
   current,
   title,
   toc = [],
-  sources = [],
   pane = false,
   children,
 }: {
   readonly site: Site;
-  readonly locale: string;
   readonly current: string | null;
   readonly title: string | null;
   readonly toc?: ReadonlyArray<TocEntry>;
-  readonly sources?: ReadonlyArray<SourceEntry>;
   readonly pane?: boolean;
   readonly children: ReactNode;
 }): ReactNode {
-  const strings = stringsFor(locale);
   const [controller, setController] = useState<PaneController | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -56,10 +47,7 @@ export function Shell({
     setAnnouncement("");
     requestAnimationFrame(() => setAnnouncement(message));
   }, []);
-  const viewer = useMemo<Viewer>(
-    () => ({ site, locale, strings, sources, status }),
-    [site, locale, strings, sources, status],
-  );
+  const viewer = useMemo<Viewer>(() => ({ site, strings, status }), [site, status]);
   const startPane = useCallback((main: HTMLElement) => {
     const next = new PaneController(main);
     setController(next);
@@ -101,17 +89,9 @@ export function Shell({
           >
             {icons.menu}
           </button>
-          <a className="brand" href={homeHref(site, locale)}>
+          <a className="brand" href={homeHref(site)}>
             <span>{site.title}</span>
           </a>
-          <button
-            type="button"
-            className="icon-btn search-btn-top"
-            aria-label={strings.search}
-            onClick={openSearch}
-          >
-            {icons.search}
-          </button>
         </header>
         <Rail current={current} toc={toc} onNavigate={() => setDrawerOpen(false)} />
         <main
@@ -131,7 +111,6 @@ export function Shell({
           ))}
         <div className="drawer-scrim" aria-hidden="true" onClick={() => setDrawerOpen(false)} />
       </div>
-      <SearchDialog />
       <div className="sr" role="status">
         {announcement}
       </div>

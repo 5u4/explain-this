@@ -27,6 +27,3 @@
 .dev-errors code {
   color: var(--text-strong);
 }
-.sources .dev-errors {
-  margin-top: 16px;
-}

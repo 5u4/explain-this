@@ -1,18 +1,11 @@
 import { parseRef } from "@explain/contract/citation";
-import type {
-  Citer,
-  PageResponse,
-  SearchIndex,
-  SiteResponse,
-  SourceResponse,
-} from "@explain/viewer/api";
+import type { PageResponse, SiteResponse, SourceResponse } from "@explain/viewer/api";
 import * as Effect from "effect/Effect";
 import type * as FileSystem from "effect/FileSystem";
 import type * as Path from "effect/Path";
 import type * as PlatformError from "effect/PlatformError";
 import type { Diagnostic, DocRoot } from "../doc-root/types.ts";
-import { pageResponse, pageTitle, siteResponse } from "./api-bodies.ts";
-import { searchEntries } from "./search.ts";
+import { pageResponse, siteResponse } from "./api-bodies.ts";
 
 export type DevState =
   | { readonly status: "ok"; readonly docRoot: DocRoot }
@@ -28,12 +21,7 @@ export interface DevResponse {
   readonly body: string | Uint8Array;
 }
 
-type JsonBody =
-  | SiteResponse
-  | PageResponse
-  | SourceResponse
-  | SearchIndex
-  | { readonly error: string };
+type JsonBody = SiteResponse | PageResponse | SourceResponse | { readonly error: string };
 
 const json = (status: number, body: JsonBody): DevResponse => ({
   status,
@@ -64,13 +52,6 @@ const sourceResponse = Effect.fnUntraced(function* (
   const ref = parseRef(`${repo}:${path}`);
   if (ref._tag === "Failure") return json(403, { error: ref.failure });
   const resolved = yield* docRoot.resolveSource(repo, path);
-  const citedBy: ReadonlyArray<Citer> = docRoot.pages
-    .filter(
-      (page) =>
-        page.status === "parsed" &&
-        page.page.refs.some(({ ref }) => ref.repo === repo && ref.path === path),
-    )
-    .map((page) => ({ locale: page.locale, id: page.id, title: pageTitle(page) }));
   switch (resolved.status) {
     case "file":
       return json(200, {
@@ -79,10 +60,9 @@ const sourceResponse = Effect.fnUntraced(function* (
         path,
         text: textDecoder.decode(resolved.bytes),
         lines: resolved.lines,
-        citedBy,
       });
     case "missing":
-      return json(200, { status: "missing", repo, path, citedBy });
+      return json(200, { status: "missing", repo, path });
     case "escapes":
       return json(403, { error: `${repo}:${path} resolves outside the repo` });
     case "not-a-file":
@@ -117,24 +97,13 @@ export const handleExplainRequest = Effect.fnUntraced(function* (
   if (state.status === "invalid") return invalidState;
   const { docRoot } = state;
   const [first, ...more] = args;
-  if (route === "page" && first !== undefined && more.length === 1 && more[0] !== undefined) {
-    const page = docRoot.pages.find((page) => page.locale === first && page.id === more[0]);
-    if (page === undefined) return json(404, { error: `no page ${first}/${more[0]}` });
+  if (route === "page" && first !== undefined && more.length === 0) {
+    const page = docRoot.pages.find((page) => page.id === first);
+    if (page === undefined) return json(404, { error: `no page ${first}` });
     return json(200, pageResponse(page));
   }
   if (route === "source" && first !== undefined && more.length > 0) {
     return yield* sourceResponse(docRoot, first, more.join("/"));
-  }
-  if (route === "search" && first !== undefined && more.length === 0) {
-    if (!docRoot.config.locales.includes(first)) {
-      return json(404, { error: `unknown locale "${first}"` });
-    }
-    return json(
-      200,
-      docRoot.pages.flatMap((page) =>
-        page.locale === first && page.status === "parsed" ? searchEntries(page) : [],
-      ),
-    );
   }
   return json(404, { error: `no route for ${rawPath}` });
 });

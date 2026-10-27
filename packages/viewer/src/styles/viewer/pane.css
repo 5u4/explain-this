@@ -56,13 +56,6 @@
   color: var(--mark-text);
   font-variant-numeric: tabular-nums;
 }
-.pane-flag {
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: var(--stale-wash);
-  color: var(--stale);
-  font-family: var(--font-body);
-}
 .pane-mode {
   display: flex;
   align-items: center;

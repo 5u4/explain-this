@@ -13,13 +13,11 @@
 @import "./viewer/sources-pager.css";
 @import "./viewer/pane.css";
 @import "./viewer/pane-view.css";
-@import "./viewer/search.css";
 @import "./viewer/missing-page.css";
 @import "./viewer/entrance.css";
 @import "./viewer/drawer.css";
 @import "./viewer/bottom-sheet.css";
 @import "./viewer/source-page.css";
 @import "./viewer/prose-elements.css";
-@import "./viewer/nav-flags.css";
 @import "./viewer/file-gone.css";
 @import "./viewer/dev-errors.css";

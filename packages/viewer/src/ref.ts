@@ -1,6 +1,5 @@
 import type { LineRange, Ref } from "@explain/contract/citation";
 import type { Strings } from "./i18n/strings.ts";
-import { sourceRouteHref } from "./router.ts";
 
 const rangePattern = /^([1-9][0-9]*)(?:-([1-9][0-9]*))?$/;
 
@@ -36,11 +35,6 @@ export const rangeLabel = (ref: Ref, strings: Strings): string =>
   ref.ranges.length === 0
     ? strings.wholeFile
     : ref.ranges.map((range) => strings.lines(range.from, range.to)).join(", ");
-
-export const sourceHref = (locale: string, ref: Ref): string => {
-  const first = ref.ranges[0];
-  return `${sourceRouteHref(locale, ref.repo, ref.path)}${first === undefined ? "" : `#L${first.from}`}`;
-};
 
 export const citedLines = (ref: Ref, lines: ReadonlyArray<string>): string =>
   ref.ranges.length === 0

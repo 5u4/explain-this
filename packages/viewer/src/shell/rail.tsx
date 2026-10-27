@@ -1,9 +1,7 @@
 import type { TocEntry } from "@explain/contract/page";
 import { type ReactNode, useSyncExternalStore } from "react";
 import { useViewer } from "../context.ts";
-import { icons } from "../icons.tsx";
 import { pageHref } from "../router.ts";
-import { openSearch } from "./search-opener.ts";
 import { homeHref } from "./shell.tsx";
 
 export function Rail({
@@ -15,8 +13,7 @@ export function Rail({
   readonly toc: ReadonlyArray<TocEntry>;
   readonly onNavigate: () => void;
 }): ReactNode {
-  const { site, locale, strings } = useViewer();
-  const localeSite = site.byLocale[locale];
+  const { site, strings } = useViewer();
   const sections = toc.filter((entry) => entry.depth === 2);
   const spied = useSyncExternalStore(subscribeScroll, () => {
     let active = sections[0]?.id ?? null;
@@ -28,7 +25,6 @@ export function Rail({
     }
     return active;
   });
-  if (localeSite === undefined) return <nav className="rail" id="rail" />;
   const tocList = (id: string) =>
     id === current &&
     sections.length > 0 && (
@@ -53,32 +49,20 @@ export function Rail({
       }}
     >
       <div className="rail-inner">
-        <a className="brand" href={homeHref(site, locale)}>
+        <a className="brand" href={homeHref(site)}>
           <span>{site.title}</span>
         </a>
-        <button type="button" className="search-trigger" onClick={openSearch}>
-          {icons.search}
-          <span>{strings.searchSite}</span>
-          <kbd>⌘K</kbd>
-        </button>
-        {localeSite.nav.map((group) => (
+        {site.nav.map((group) => (
           <section className="nav-section" key={group.title}>
             <h2 className="nav-group">{group.title}</h2>
             <ul>
               {group.pages.map((page) => (
-                <li key={page.id} className={page.status === "missing" ? "unbuilt" : undefined}>
+                <li key={page.id}>
                   <a
-                    href={pageHref(locale, page.id)}
+                    href={pageHref(page.id)}
                     aria-current={page.id === current ? "page" : undefined}
                   >
                     {page.title}
-                    {page.status !== "fresh" && page.status !== "missing" && (
-                      <span
-                        className="nav-flag"
-                        data-status={page.status}
-                        title={page.status === "stale" ? strings.stale : strings.pageErrors(1)}
-                      />
-                    )}
                   </a>
                   {tocList(page.id)}
                 </li>
@@ -86,23 +70,6 @@ export function Rail({
             </ul>
           </section>
         ))}
-        <div className="rail-foot">
-          <span>{locale}</span>
-          {site.locales.length > 1 && (
-            <nav className="locale-switch" aria-label={strings.language}>
-              {site.locales.map((other) => (
-                <a
-                  key={other}
-                  lang={other}
-                  href={current === null ? homeHref(site, other) : pageHref(other, current)}
-                  aria-current={other === locale ? "true" : undefined}
-                >
-                  {other}
-                </a>
-              ))}
-            </nav>
-          )}
-        </div>
       </div>
     </nav>
   );

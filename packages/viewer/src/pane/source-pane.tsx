@@ -19,7 +19,7 @@ import type { Anchor, NoteMarker } from "./model.ts";
 import { SourceView } from "./source-view.tsx";
 
 export function SourcePane({ controller }: { readonly controller: PaneController }): ReactNode {
-  const { strings, sources } = useViewer();
+  const { strings } = useViewer();
   const state = useSyncExternalStore(controller.subscribe, controller.getState);
   const pane = useRef<HTMLElement>(null);
   const [files, setFiles] = useState<ReadonlyArray<{ repo: string; path: string }>>([]);
@@ -40,16 +40,6 @@ export function SourcePane({ controller }: { readonly controller: PaneController
     [controller],
   );
 
-  const entry =
-    shown === null
-      ? undefined
-      : sources.find((source) => source.repo === shown.ref.repo && source.path === shown.ref.path);
-  const flag =
-    entry?.state === "missing"
-      ? strings.paneGone
-      : entry?.state === "changed"
-        ? strings.paneChanged
-        : null;
   const path = shown?.ref.path ?? "";
   const dir = path.includes("/") ? path.slice(0, path.lastIndexOf("/") + 1) : "";
   const range = shown === null ? "" : rangeLabel(shown.ref, strings);
@@ -87,10 +77,6 @@ export function SourcePane({ controller }: { readonly controller: PaneController
           </div>
           <div className="pane-meta">
             <span className="pane-range">{range}</span>
-            <span className="pane-hash" title={strings.recordedHash}>
-              {entry?.recorded?.hash.slice(0, 7) ?? ""}
-            </span>
-            {flag !== null && <span className="pane-flag">{flag}</span>}
           </div>
           <div className="pane-mode">
             <span className="pane-state" role="status" tabIndex={-1}>

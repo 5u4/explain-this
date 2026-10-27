@@ -4,7 +4,7 @@ import { useViewer } from "../context.ts";
 import { loadSourceLines } from "../data.ts";
 import { highlightLines, languageOf, plainLines } from "../highlight.ts";
 import { icons } from "../icons.tsx";
-import { citedLines, formatRef, rangeLabel, sourceHref } from "../ref.ts";
+import { citedLines, formatRef, rangeLabel } from "../ref.ts";
 
 export function CopyButton({
   text,
@@ -137,18 +137,12 @@ export function MissingFile({ path }: { readonly path: string }): ReactNode {
 }
 
 export function Excerpt({ refValue }: { readonly refValue: Ref }): ReactNode {
-  const { locale, strings } = useViewer();
+  const { strings } = useViewer();
   const key = formatRef(refValue);
   return (
     <figure className="excerpt" data-ref={key} data-kind="excerpt">
       <div className="code-head">
-        <a
-          className="cite excerpt-path"
-          href={sourceHref(locale, refValue)}
-          data-ref={key}
-          data-kind="cite"
-          data-follow="0"
-        >
+        <a className="cite excerpt-path" href="#" data-ref={key} data-kind="cite" data-follow="0">
           {refValue.path}
           <span className="excerpt-range">{rangeLabel(refValue, strings)}</span>
         </a>

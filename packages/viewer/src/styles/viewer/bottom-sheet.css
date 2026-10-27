@@ -102,9 +102,6 @@
   .pane-actions .copy-text {
     display: none;
   }
-  .pane-meta .pane-hash {
-    display: none;
-  }
   .pane .pane-peek {
     display: block;
     padding: 2px 20px 14px;

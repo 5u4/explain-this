@@ -1,14 +1,12 @@
 import { createContext, useContext } from "react";
-import type { SiteResponse, SourceEntry } from "./api.ts";
+import type { SiteResponse } from "./api.ts";
 import type { Strings } from "./i18n/strings.ts";
 
 export type Site = Extract<SiteResponse, { readonly status: "ok" }>;
 
 export interface Viewer {
   readonly site: Site;
-  readonly locale: string;
   readonly strings: Strings;
-  readonly sources: ReadonlyArray<SourceEntry>;
   readonly status: (message: string) => void;
 }
 
