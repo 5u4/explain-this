@@ -1,10 +1,4 @@
-import {
-  type ApiPath,
-  pageApiPath,
-  searchApiPath,
-  siteApiPath,
-  sourceApiPath,
-} from "@explain/viewer/api";
+import { type ApiPath, pageApiPath, siteApiPath, sourceApiPath } from "@explain/viewer/api";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
@@ -24,24 +18,16 @@ const staticSite = (docRoot: DocRoot) => {
   const sources = new Map<string, { readonly repo: string; readonly path: string }>();
   for (const page of docRoot.pages) {
     if (page.status !== "parsed") continue;
-    for (const { repo, path } of [
-      ...page.page.refs.map(({ ref }) => ref),
-      ...(page.recorded ?? []),
-    ]) {
-      sources.set(`${repo}\u0000${path}`, { repo, path });
+    for (const { ref } of page.page.refs) {
+      sources.set(`${ref.repo}\u0000${ref.path}`, { repo: ref.repo, path: ref.path });
     }
   }
-  const { locales } = docRoot.config;
   const requests: ReadonlyArray<ApiPath> = [
     siteApiPath,
-    ...docRoot.pages.map((page) => pageApiPath(page.locale, page.id)),
-    ...locales.map(searchApiPath),
+    ...docRoot.pages.map((page) => pageApiPath(page.id)),
     ...[...sources.values()].map(({ repo, path }) => sourceApiPath(repo, path)),
   ];
-  const routes: ReadonlyArray<ReadonlyArray<string>> = [
-    ...locales.flatMap((locale) => [[locale], [locale, "source"]]),
-    ...docRoot.pages.map((page) => [page.locale, page.id]),
-  ];
+  const routes = docRoot.pages.map((page) => [page.id]);
   return {
     requests,
     routes,

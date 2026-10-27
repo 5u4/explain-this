@@ -3,7 +3,7 @@ import type { DiffChange } from "@explain/contract/page";
 import { type ReactNode, Suspense, use, useMemo, useState } from "react";
 import { useViewer } from "../context.ts";
 import { loadSourceLines, type SourceLines } from "../data.ts";
-import { formatRef, rangeLabel, sourceHref } from "../ref.ts";
+import { formatRef, rangeLabel } from "../ref.ts";
 import { MissingFile } from "./code.tsx";
 import { type DiffRow, foldContext, lineDiff } from "./line-diff.ts";
 
@@ -74,7 +74,7 @@ function DiffFigure({
   readonly before: SourceLines;
   readonly after: SourceLines;
 }): ReactNode {
-  const { locale, strings } = useViewer();
+  const { strings } = useViewer();
   const [opened, setOpened] = useState<ReadonlySet<number>>(new Set());
   const beforeRef = change.kind === "added" ? null : change.before;
   const afterRef = change.kind === "deleted" ? null : change.after;
@@ -90,13 +90,7 @@ function DiffFigure({
     const line = side.from + index;
     const lineRef: Ref = { ...side.ref, ranges: [{ from: line, to: line }] };
     return (
-      <a
-        className="n"
-        href={sourceHref(locale, lineRef)}
-        data-ref={formatRef(lineRef)}
-        data-kind="cite"
-        data-follow="0"
-      >
+      <a className="n" href="#" data-ref={formatRef(lineRef)} data-kind="cite" data-follow="0">
         {line}
       </a>
     );
@@ -185,11 +179,11 @@ function DiffHead({
   readonly change: DiffChange;
   readonly stat: { readonly removed: number; readonly added: number } | null;
 }): ReactNode {
-  const { locale, strings } = useViewer();
+  const { strings } = useViewer();
   const beforeRef = change.kind === "added" ? null : change.before;
   const afterRef = change.kind === "deleted" ? null : change.after;
   const citation = (ref: Ref) => (
-    <a className="cite excerpt-path" href={sourceHref(locale, ref)} data-ref={formatRef(ref)}>
+    <a className="cite excerpt-path" href="#" data-ref={formatRef(ref)}>
       <span className="diff-repo">{ref.repo}</span>:{ref.path}
       <span className="excerpt-range">{rangeLabel(ref, strings)}</span>
     </a>

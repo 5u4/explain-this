@@ -1,7 +1,5 @@
 import type { ExplainConfig } from "@explain/contract/config";
 import type { Page } from "@explain/contract/page";
-import type { Freshness, SourceFile } from "@explain/contract/sources";
-import type * as Crypto from "effect/Crypto";
 import type * as Effect from "effect/Effect";
 import type * as FileSystem from "effect/FileSystem";
 import type * as Path from "effect/Path";
@@ -16,25 +14,15 @@ export interface Diagnostic {
 }
 
 interface CheckedPage {
-  readonly locale: string;
   readonly id: string;
   readonly file: string;
-  readonly sourcesFile: string;
   readonly diagnostics: ReadonlyArray<PageDiagnostic>;
 }
-
-export type ParsedDocPage = CheckedPage & {
-  readonly status: "parsed";
-  readonly page: Page;
-  readonly sources: ReadonlyArray<SourceFile>;
-  readonly recorded: ReadonlyArray<SourceFile> | undefined;
-  readonly freshness: Freshness;
-};
 
 export type DocPage =
   | (CheckedPage & { readonly status: "missing" })
   | (CheckedPage & { readonly status: "invalid" })
-  | ParsedDocPage;
+  | (CheckedPage & { readonly status: "parsed"; readonly page: Page });
 
 export type Resolved =
   | { readonly status: "file"; readonly bytes: Uint8Array; readonly lines: number }
@@ -55,4 +43,4 @@ export interface DocRoot {
   ) => Effect.Effect<Resolved, PlatformError.PlatformError>;
 }
 
-export type DocRootServices = FileSystem.FileSystem | Path.Path | Crypto.Crypto;
+export type DocRootServices = FileSystem.FileSystem | Path.Path;

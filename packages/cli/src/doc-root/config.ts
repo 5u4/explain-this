@@ -34,7 +34,7 @@ export const findDocRoot = Effect.fnUntraced(function* (from: string) {
   }
 });
 
-export const decodeConfig = (text: string) =>
+const decodeConfig = (text: string) =>
   Schema.decodeUnknownEffect(Schema.fromJsonString(ExplainConfig))(text, {
     errors: "all",
     onExcessProperty: "error",

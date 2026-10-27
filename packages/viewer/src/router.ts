@@ -1,14 +1,8 @@
 import { useSyncExternalStore } from "react";
 
 export type Route =
-  | { readonly kind: "home"; readonly locale: string | null }
-  | { readonly kind: "page"; readonly locale: string; readonly id: string }
-  | {
-      readonly kind: "source";
-      readonly locale: string;
-      readonly repo: string;
-      readonly path: string;
-    }
+  | { readonly kind: "home" }
+  | { readonly kind: "page"; readonly id: string }
   | { readonly kind: "unknown"; readonly path: string };
 
 export const parseRoute = (pathname: string, search: string): Route => {
@@ -16,23 +10,14 @@ export const parseRoute = (pathname: string, search: string): Route => {
     .split("/")
     .filter((part) => part !== "")
     .map(decodeURIComponent);
-  const [locale, id, ...rest] = segments;
-  if (locale === undefined) return { kind: "home", locale: null };
-  if (id === undefined) return { kind: "home", locale };
+  const [id, ...rest] = segments;
+  if (id === undefined) return { kind: "home" };
   if (rest.length > 0) return { kind: "unknown", path: pathname + search };
-  if (id !== "source") return { kind: "page", locale, id };
-  const [repo, ...path] = search.slice(1).split("/").map(decodeURIComponent);
-  if (repo === undefined || repo === "" || path.length === 0) {
-    return { kind: "unknown", path: pathname + search };
-  }
-  return { kind: "source", locale, repo, path: path.join("/") };
+  return { kind: "page", id };
 };
 
-export const pageHref = (locale: string, id: string, anchor?: string | null): string =>
-  `/${encodeURIComponent(locale)}/${encodeURIComponent(id)}${anchor ? `#${encodeURIComponent(anchor)}` : ""}`;
-
-export const sourceRouteHref = (locale: string, repo: string, path: string): string =>
-  `/${encodeURIComponent(locale)}/source?${encodeURIComponent(repo)}/${path.split("/").map(encodeURIComponent).join("/")}`;
+export const pageHref = (id: string, anchor?: string | null): string =>
+  `/${encodeURIComponent(id)}${anchor ? `#${encodeURIComponent(anchor)}` : ""}`;
 
 type Redirect = (pathname: string, search: string) => string | null;
 

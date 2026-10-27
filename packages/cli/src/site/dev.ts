@@ -1,3 +1,4 @@
+import { pageIdPattern } from "@explain/contract/config";
 import * as Effect from "effect/Effect";
 import * as Path from "effect/Path";
 import * as Queue from "effect/Queue";
@@ -28,7 +29,6 @@ export const serveDocRoot = Effect.fnUntraced(function* (
   const lock = yield* Semaphore.make(1);
   const changes = yield* Queue.unbounded<string>();
   let state: DevState = { status: "ok", docRoot: initial };
-  let locales = initial.config.locales;
   let watched: ReadonlySet<string> = new Set([root, ...initial.repos.values()]);
 
   const reload = Effect.fnUntraced(function* (server: ViteDevServer) {
@@ -53,7 +53,6 @@ export const serveDocRoot = Effect.fnUntraced(function* (
       ),
     );
     if (next.status === "ok") {
-      locales = next.docRoot.config.locales;
       const repos = new Set([root, ...next.docRoot.repos.values()]);
       server.watcher.unwatch([...watched].filter((directory) => !repos.has(directory)));
       server.watcher.add([...repos].filter((directory) => !watched.has(directory)));
@@ -93,11 +92,12 @@ export const serveDocRoot = Effect.fnUntraced(function* (
           }, next);
           return;
         }
-        const first = rawPath.split("/")[1] ?? "";
+        const [, first, ...rest] = rawPath.split("/");
         if (
           req.method === "GET" &&
           req.headers.accept?.includes("text/html") &&
-          (first === "" || locales.includes(first))
+          rest.length === 0 &&
+          (first === "" || (first !== undefined && pageIdPattern.test(first)))
         ) {
           req.url = "/index.html";
         }

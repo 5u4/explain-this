@@ -7,9 +7,7 @@ import { loadPage } from "../data.ts";
 import { icons } from "../icons.tsx";
 import { homeHref, Shell } from "../shell/shell.tsx";
 import { DevErrors } from "./dev-errors.tsx";
-import { Freshness } from "./freshness.tsx";
 import { Pager } from "./pager.tsx";
-import { Sources } from "./sources.tsx";
 
 export interface Placement {
   readonly page: NavPage;
@@ -18,37 +16,26 @@ export interface Placement {
   readonly order: ReadonlyArray<{ readonly page: NavPage; readonly group: string }>;
 }
 
-const placement = (site: Site, locale: string, id: string): Placement => {
-  const localeSite = site.byLocale[locale];
-  const order = (localeSite?.nav ?? []).flatMap((group) =>
+const placement = (site: Site, id: string): Placement => {
+  const order = site.nav.flatMap((group) =>
     group.pages.map((page) => ({ page, group: group.title })),
   );
   const index = order.findIndex((entry) => entry.page.id === id);
   const found = order[index];
   if (found !== undefined) return { page: found.page, group: found.group, index, order };
-  return { page: { id, title: id, status: "missing" }, group: null, index: -1, order };
+  return { page: { id, title: id }, group: null, index: -1, order };
 };
 
-export function PageRoute({
-  site,
-  locale,
-  id,
-}: {
-  readonly site: Site;
-  readonly locale: string;
-  readonly id: string;
-}): ReactNode {
-  const response = use(loadPage(locale, id));
-  const place = placement(site, locale, id);
+export function PageRoute({ site, id }: { readonly site: Site; readonly id: string }): ReactNode {
+  const response = use(loadPage(id));
+  const place = placement(site, id);
   const parsed = response.status === "parsed" ? response : null;
   return (
     <Shell
       site={site}
-      locale={locale}
       current={id}
       title={place.page.title}
       toc={parsed?.page.toc ?? []}
-      sources={parsed?.sources ?? []}
       pane={parsed !== null}
     >
       <PageContent response={response} place={place} />
@@ -63,7 +50,7 @@ function PageContent({
   readonly response: PageResponse;
   readonly place: Placement;
 }): ReactNode {
-  const { site, locale, strings } = useViewer();
+  const { site, strings } = useViewer();
   const eyebrow = (
     <p className="eyebrow">
       {place.group === null ? (
@@ -90,11 +77,11 @@ function PageContent({
         </header>
         <div className="missing-state">
           <p className="missing-kicker">
-            {icons.search} {strings.missingPage(locale)}
+            {icons.search} {strings.missingPage}
           </p>
           <p>{strings.missingPageBody(response.file)}</p>
           <p>
-            <a className="btn" href={homeHref(site, locale)}>
+            <a className="btn" href={homeHref(site)}>
               {icons.arrowLeft} {strings.backHome}
             </a>
           </p>
@@ -121,12 +108,6 @@ function PageContent({
     );
   }
 
-  const citation = response.diagnostics.filter(
-    (diagnostic) => diagnostic._tag === "CitationRepo" || diagnostic._tag === "CitationFile",
-  );
-  const other = response.diagnostics.filter(
-    (diagnostic) => diagnostic._tag !== "CitationRepo" && diagnostic._tag !== "CitationFile",
-  );
   return (
     <article className="page" data-page={response.id}>
       <header className="page-head">
@@ -134,14 +115,17 @@ function PageContent({
         <h1>
           <Inlines inlines={response.page.title} />
         </h1>
-        <Freshness response={response} />
       </header>
-      {other.length > 0 && <DevErrors title={strings.pageErrors(other.length)} errors={other} />}
+      {response.diagnostics.length > 0 && (
+        <DevErrors
+          title={strings.pageErrors(response.diagnostics.length)}
+          errors={response.diagnostics}
+        />
+      )}
       {siteErrors}
       <div className="page-body">
         <Blocks blocks={response.page.blocks} lede />
       </div>
-      <Sources entries={response.sources} problems={citation} />
       <Pager place={place} />
     </article>
   );

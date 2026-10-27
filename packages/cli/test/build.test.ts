@@ -78,24 +78,18 @@ const fixture = () => {
   mkdirSync(join(repo, "src"), { recursive: true });
   writeFileSync(join(repo, "src", "数据.ts"), "export const a = 1;\n");
   writeFileSync(join(repo, "src", "index.html"), "<p>home</p>\n");
-  mkdirSync(join(root, "zh-CN"), { recursive: true });
+  mkdirSync(root);
   writeFileSync(
     join(root, "explain.json"),
     JSON.stringify({
       title: "t",
-      locales: ["zh-CN"],
-      defaultLocale: "zh-CN",
       repos: { fold: repo },
       nav: [{ title: "入门", pages: ["index"] }],
     }),
   );
   writeFileSync(
-    join(root, "zh-CN", "index.md"),
+    join(root, "index.md"),
     "# 首页\n\n见 [a](fold:src/数据.ts:1)、[b](fold:src/index.html:1)。\n",
-  );
-  writeFileSync(
-    join(root, "zh-CN", "index.sources.json"),
-    JSON.stringify({ files: [{ repo: "fold", path: "src/old.ts", hash: "0".repeat(40) }] }),
   );
   return { base, root };
 };
@@ -110,17 +104,15 @@ describe("buildSite", () => {
 
     const out = join(base, "out");
     expect(Exit.isSuccess(await run(buildSite(docRoot, out)))).toBe(true);
-    expect(await run(buildSite(docRoot, out))).toEqual(Exit.succeed({ pages: 1, sources: 3 }));
+    expect(await run(buildSite(docRoot, out))).toEqual(Exit.succeed({ pages: 1, sources: 2 }));
 
     const explain = join(out, "@explain");
     const written = filesUnder(explain);
     expect(written).toEqual(
       [
-        "api/page/zh-CN/index.json",
-        "api/search/zh-CN.json",
+        "api/page/index.json",
         "api/site.json",
         "api/source/fold/src/index.html.json",
-        "api/source/fold/src/old.ts.json",
         "api/source/fold/src/数据.ts.json",
       ].sort(),
     );
@@ -139,15 +131,7 @@ describe("buildSite", () => {
     const routes = filesUnder(out).filter(
       (file) => !file.startsWith("@explain/") && !file.startsWith("assets/"),
     );
-    expect(routes).toEqual(
-      [
-        "404.html",
-        "index.html",
-        "zh-CN/index.html",
-        "zh-CN/source/index.html",
-        "zh-CN/index/index.html",
-      ].sort(),
-    );
+    expect(routes).toEqual(["404.html", "index.html", "index/index.html"].sort());
     for (const route of routes) {
       expect(readFileSync(join(out, route), "utf8")).toBe(html);
     }

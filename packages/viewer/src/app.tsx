@@ -1,20 +1,14 @@
 import { Component, type ReactNode, Suspense, use } from "react";
 import type { Site } from "./context.ts";
 import { loadSite } from "./data.ts";
-import { stringsFor } from "./i18n/strings.ts";
+import { strings } from "./i18n/strings.ts";
 import { parseRoute, type Route, useLocation } from "./router.ts";
 import { PageRoute } from "./routes/page-route.tsx";
-import { SourceRoute } from "./routes/source-route.tsx";
 import { homeHref, Shell } from "./shell/shell.tsx";
-
-export const siteLocale = (site: Site, route: Route): string =>
-  route.kind === "unknown" || route.locale === null || !site.locales.includes(route.locale)
-    ? site.defaultLocale
-    : route.locale;
 
 export const homeRedirect = (site: Site, route: Route, pathname: string): string | null => {
   if (route.kind !== "home") return null;
-  const home = homeHref(site, siteLocale(site, route));
+  const home = homeHref(site);
   return home === pathname ? null : home;
 };
 
@@ -22,7 +16,6 @@ export function App(): ReactNode {
   const site = use(loadSite());
   const where = useLocation();
   if (site.status === "invalid") {
-    const strings = stringsFor(navigator.language);
     return (
       <main className="prose-col">
         <article className="page">
@@ -42,46 +35,33 @@ export function App(): ReactNode {
     );
   }
   const route = parseRoute(location.pathname, location.search);
-  const locale = siteLocale(site, route);
   if (route.kind === "home") {
-    return homeRedirect(site, route, location.pathname) === null ? (
-      <EmptyHome site={site} locale={locale} />
-    ) : null;
+    return homeRedirect(site, route, location.pathname) === null ? <EmptyHome site={site} /> : null;
   }
-  if (route.kind === "unknown" || !site.locales.includes(route.locale)) {
-    return <NotFound site={site} locale={locale} path={location.pathname + location.search} />;
+  if (route.kind === "unknown") {
+    return <NotFound site={site} path={location.pathname + location.search} />;
   }
   const key = where.split("#")[0];
   return (
-    <ErrorBoundary key={key} site={site} locale={locale}>
+    <ErrorBoundary key={key} site={site}>
       <Suspense
         fallback={
-          <Shell
-            site={site}
-            locale={locale}
-            current={route.kind === "page" ? route.id : null}
-            title={null}
-          >
+          <Shell site={site} current={route.id} title={null}>
             <div className="page-loading" role="status">
-              {stringsFor(locale).loading}
+              {strings.loading}
             </div>
           </Shell>
         }
       >
-        {route.kind === "page" ? (
-          <PageRoute site={site} locale={locale} id={route.id} />
-        ) : (
-          <SourceRoute site={site} locale={locale} repo={route.repo} path={route.path} />
-        )}
+        <PageRoute site={site} id={route.id} />
       </Suspense>
     </ErrorBoundary>
   );
 }
 
-function EmptyHome({ site, locale }: { readonly site: Site; readonly locale: string }): ReactNode {
-  const strings = stringsFor(locale);
+function EmptyHome({ site }: { readonly site: Site }): ReactNode {
   return (
-    <Shell site={site} locale={locale} current={null} title={null}>
+    <Shell site={site} current={null} title={null}>
       <article className="page">
         <header className="page-head">
           <h1>{site.title}</h1>
@@ -94,18 +74,9 @@ function EmptyHome({ site, locale }: { readonly site: Site; readonly locale: str
   );
 }
 
-function NotFound({
-  site,
-  locale,
-  path,
-}: {
-  readonly site: Site;
-  readonly locale: string;
-  readonly path: string;
-}): ReactNode {
-  const strings = stringsFor(locale);
+function NotFound({ site, path }: { readonly site: Site; readonly path: string }): ReactNode {
   return (
-    <Shell site={site} locale={locale} current={null} title={strings.notFound}>
+    <Shell site={site} current={null} title={strings.notFound}>
       <article className="page">
         <header className="page-head">
           <h1>{strings.notFound}</h1>
@@ -113,7 +84,7 @@ function NotFound({
         <div className="missing-state">
           <p>{strings.notFoundBody(path)}</p>
           <p>
-            <a className="btn" href={homeHref(site, locale)}>
+            <a className="btn" href={homeHref(site)}>
               {strings.backHome}
             </a>
           </p>
@@ -124,7 +95,7 @@ function NotFound({
 }
 
 class ErrorBoundary extends Component<
-  { readonly site: Site; readonly locale: string; readonly children: ReactNode },
+  { readonly site: Site; readonly children: ReactNode },
   { readonly error: Error | null }
 > {
   override state: { readonly error: Error | null } = { error: null };
@@ -136,9 +107,8 @@ class ErrorBoundary extends Component<
   override render(): ReactNode {
     const { error } = this.state;
     if (error === null) return this.props.children;
-    const strings = stringsFor(this.props.locale);
     return (
-      <Shell site={this.props.site} locale={this.props.locale} current={null} title={null}>
+      <Shell site={this.props.site} current={null} title={null}>
         <article className="page">
           <p className="err">{strings.loadFailed(error.message)}</p>
         </article>

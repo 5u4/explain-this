@@ -27,7 +27,3 @@
 .pane-error .file-gone {
   padding: 0;
 }
-.page > .file-gone {
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-m);
-}

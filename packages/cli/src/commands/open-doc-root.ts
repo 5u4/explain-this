@@ -1,7 +1,7 @@
 import * as Console from "effect/Console";
 import * as Effect from "effect/Effect";
 import * as Path from "effect/Path";
-import { findDocRoot, type InvalidConfig } from "../doc-root/config.ts";
+import { findDocRoot } from "../doc-root/config.ts";
 import { loadDocRoot } from "../doc-root/load.ts";
 import type { Diagnostic, DocPage, DocRoot } from "../doc-root/types.ts";
 import { ExitWith } from "./exit-with.ts";
@@ -17,18 +17,17 @@ const printDiagnosticsWith =
       { discard: true },
     );
 
-export const reportInvalidConfig = (display: (file: string) => string) => (error: InvalidConfig) =>
-  printDiagnosticsWith(display)(error.diagnostics).pipe(
-    Effect.andThen(Effect.fail(new ExitWith({ code: 2 }))),
-  );
-
 export const openDocRoot = Effect.gen(function* () {
   const path = yield* Path.Path;
   const cwd = path.resolve();
   const root = yield* findDocRoot(cwd);
   const display = (file: string) => path.relative(cwd, path.join(root, file)) || ".";
   const docRoot = yield* loadDocRoot(root).pipe(
-    Effect.catchTag("InvalidConfig", reportInvalidConfig(display)),
+    Effect.catchTag("InvalidConfig", (error) =>
+      printDiagnosticsWith(display)(error.diagnostics).pipe(
+        Effect.andThen(Effect.fail(new ExitWith({ code: 2 }))),
+      ),
+    ),
   );
   return { cwd, docRoot, display, printDiagnostics: printDiagnosticsWith(display) };
 }).pipe(

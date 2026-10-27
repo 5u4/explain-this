@@ -1,7 +1,6 @@
 import type { Inline } from "@explain/contract/page";
 import type { ReactNode } from "react";
-import { useViewer } from "../context.ts";
-import { formatRef, sourceHref } from "../ref.ts";
+import { formatRef } from "../ref.ts";
 import { pageHref } from "../router.ts";
 
 export function Inlines({ inlines }: { readonly inlines: ReadonlyArray<Inline> }): ReactNode {
@@ -9,7 +8,6 @@ export function Inlines({ inlines }: { readonly inlines: ReadonlyArray<Inline> }
 }
 
 function InlineView({ inline }: { readonly inline: Inline }): ReactNode {
-  const { locale } = useViewer();
   switch (inline.type) {
     case "text":
       return inline.value;
@@ -45,7 +43,7 @@ function InlineView({ inline }: { readonly inline: Inline }): ReactNode {
       return (
         <a
           className="cite"
-          href={sourceHref(locale, inline.ref)}
+          href="#"
           data-ref={formatRef(inline.ref)}
           data-kind={inline.ref.ranges.length === 0 ? "file" : "cite"}
         >
@@ -54,7 +52,7 @@ function InlineView({ inline }: { readonly inline: Inline }): ReactNode {
       );
     case "pageLink":
       return (
-        <a href={pageHref(locale, inline.page, inline.anchor)}>
+        <a href={pageHref(inline.page, inline.anchor)}>
           <Inlines inlines={inline.children} />
         </a>
       );

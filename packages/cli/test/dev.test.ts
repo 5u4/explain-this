@@ -28,7 +28,7 @@ const makeDocRoot = () => {
   const repo = join(root, "repo");
   const docs = join(root, "docs");
   mkdirSync(repo);
-  mkdirSync(join(docs, "zh-CN"), { recursive: true });
+  mkdirSync(docs);
   writeFileSync(join(repo, "fold.ts"), foldSource);
   writeFileSync(join(root, "secret.txt"), secret);
   symlinkSync(join(root, "secret.txt"), join(repo, "leak.txt"));
@@ -36,13 +36,11 @@ const makeDocRoot = () => {
     join(docs, "explain.json"),
     JSON.stringify({
       title: "测试",
-      locales: ["zh-CN"],
-      defaultLocale: "zh-CN",
       repos: { src: repo },
       nav: [{ title: "入门", pages: ["index"] }],
     }),
   );
-  writeFileSync(join(docs, "zh-CN", "index.md"), "# 折叠\n\n`fold` 在 [这里](src:fold.ts:1-2)。\n");
+  writeFileSync(join(docs, "index.md"), "# 折叠\n\n`fold` 在 [这里](src:fold.ts:1-2)。\n");
   return docs;
 };
 
@@ -75,6 +73,32 @@ const startDev = async (docs: string) => {
 };
 
 describe("explain dev", () => {
+  it("serves the site, its pages, and the viewer at a page path", async () => {
+    const base = await startDev(makeDocRoot());
+
+    const site = await fetch(`${base}/@explain/api/site.json`);
+    expect(await site.json()).toEqual({
+      status: "ok",
+      title: "测试",
+      errors: [],
+      nav: [{ title: "入门", pages: [{ id: "index", title: "折叠" }] }],
+    });
+
+    const page = await fetch(`${base}/@explain/api/page/index.json`);
+    expect(page.status).toBe(200);
+    expect(await page.json()).toMatchObject({
+      status: "parsed",
+      id: "index",
+      file: "index.md",
+      diagnostics: [],
+    });
+    expect((await fetch(`${base}/@explain/api/page/later.json`)).status).toBe(404);
+
+    const html = await fetch(`${base}/index`, { headers: { accept: "text/html" } });
+    expect(html.status).toBe(200);
+    expect(html.headers.get("content-type")).toContain("text/html");
+  });
+
   it("serves a cited file and refuses paths that escape the repo", async () => {
     const base = await startDev(makeDocRoot());
 
@@ -88,7 +112,6 @@ describe("explain dev", () => {
       path: "fold.ts",
       text: foldSource,
       lines: 3,
-      citedBy: [{ locale: "zh-CN", id: "index", title: "折叠" }],
     });
 
     expect((await fetch(`${base}/@explain/api/source/src/fold.ts`)).status).toBe(404);

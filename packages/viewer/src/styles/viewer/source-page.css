@@ -13,40 +13,6 @@
 .shell.no-pane .prose-col {
   max-width: calc(var(--prose-w) + 320px);
 }
-.source-page {
-  max-width: none;
-}
-.source-title {
-  font: 500 clamp(1.5rem, 1rem + 1.4vw, 2.25rem) / 1.2 var(--font-mono);
-  letter-spacing: -0.01em;
-  overflow-wrap: anywhere;
-}
-.source-title code {
-  font: inherit;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-}
-.cited-by {
-  margin: 8px 0 32px;
-}
-.cited-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: var(--size-ui-lg);
-}
-.source-file .lined .t {
-  white-space: pre;
-}
-.lined .ln.target {
-  background: var(--mark-wash);
-  box-shadow: inset 2px 0 0 var(--mark);
-}
 .lined .ln.gap .n {
   color: var(--text-faint);
 }

@@ -8,8 +8,6 @@ const decode = (input: unknown) =>
 
 const valid = {
   title: "维基",
-  locales: ["zh-CN"],
-  defaultLocale: "zh-CN",
   repos: { fold: "/repos/fold" },
   nav: [{ title: "入门", pages: ["index", "fold"] }],
 };
@@ -24,27 +22,22 @@ describe("ExplainConfig", () => {
     expect(decode(relative)).toEqual(Exit.succeed(relative));
   });
 
-  it("defaults defaultLocale to the first locale and leaves title optional", () => {
-    expect(decode({ locales: ["zh-CN", "en"], repos: { fold: "/repos/fold" }, nav: [] })).toEqual(
-      Exit.succeed({
-        locales: ["zh-CN", "en"],
-        defaultLocale: "zh-CN",
-        repos: { fold: "/repos/fold" },
-        nav: [],
-      }),
-    );
+  it("leaves title optional", () => {
+    const untitled = { repos: { fold: "/repos/fold" }, nav: [] };
+    expect(decode(untitled)).toEqual(Exit.succeed(untitled));
+  });
+
+  it("accepts source as a page id", () => {
+    const source = { ...valid, nav: [{ title: "a", pages: ["source"] }] };
+    expect(decode(source)).toEqual(Exit.succeed(source));
   });
 
   it.each([
-    ["an empty locale list", { locales: [] }],
-    ["a repeated locale", { locales: ["zh-CN", "zh-CN"] }],
-    ["a default locale that is not listed", { defaultLocale: "en" }],
-    ["a nav title given per locale", { nav: [{ title: { "zh-CN": "a" }, pages: ["fold"] }] }],
+    ["a nav title given as an object", { nav: [{ title: { en: "a" }, pages: ["fold"] }] }],
     ["a reserved repo key", { repos: { http: "/x" } }],
     ["a malformed repo key", { repos: { Fold: "/x" } }],
     ["an empty repo path", { repos: { fold: "" } }],
     ["a repo given as an object", { repos: { fold: { path: "/repos/fold" } } }],
-    ["a reserved page id", { nav: [{ title: "a", pages: ["source"] }] }],
     ["a malformed page id", { nav: [{ title: "a", pages: ["Fold"] }] }],
     [
       "a page listed twice",

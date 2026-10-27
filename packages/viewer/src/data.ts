@@ -2,10 +2,8 @@ import {
   type ApiPath,
   type PageResponse,
   pageApiPath,
-  type SearchIndex,
   type SiteResponse,
   type SourceResponse,
-  searchApiPath,
   siteApiPath,
   sourceApiPath,
 } from "./api.ts";
@@ -28,13 +26,10 @@ const getJson = <T>(path: ApiPath): Promise<T> => {
 
 export const loadSite = (): Promise<SiteResponse> => getJson(siteApiPath);
 
-export const loadPage = (locale: string, id: string): Promise<PageResponse> =>
-  getJson(pageApiPath(locale, id));
+export const loadPage = (id: string): Promise<PageResponse> => getJson(pageApiPath(id));
 
 export const loadSource = (repo: string, path: string): Promise<SourceResponse> =>
   getJson(sourceApiPath(repo, path));
-
-export const loadSearch = (locale: string): Promise<SearchIndex> => getJson(searchApiPath(locale));
 
 export type SourceLines =
   | {

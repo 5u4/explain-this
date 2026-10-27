@@ -1,24 +1,18 @@
 import type { Diagnostic as Located, Page } from "@explain/contract/page";
-import type { Freshness, SourceFile } from "@explain/contract/sources";
 
 export type ApiPath =
   | "/@explain/api/site.json"
-  | `/@explain/api/page/${string}/${string}.json`
-  | `/@explain/api/source/${string}/${string}.json`
-  | `/@explain/api/search/${string}.json`;
+  | `/@explain/api/page/${string}.json`
+  | `/@explain/api/source/${string}/${string}.json`;
 
 const segment = encodeURIComponent;
 
 export const siteApiPath: ApiPath = "/@explain/api/site.json";
 
-export const pageApiPath = (locale: string, id: string): ApiPath =>
-  `/@explain/api/page/${segment(locale)}/${segment(id)}.json`;
+export const pageApiPath = (id: string): ApiPath => `/@explain/api/page/${segment(id)}.json`;
 
 export const sourceApiPath = (repo: string, path: string): ApiPath =>
   `/@explain/api/source/${segment(repo)}/${path.split("/").map(segment).join("/")}.json`;
-
-export const searchApiPath = (locale: string): ApiPath =>
-  `/@explain/api/search/${segment(locale)}.json`;
 
 export type Diagnostic = Located & { readonly file: string };
 
@@ -27,19 +21,15 @@ export type PageDiagnosticTag =
   | "Parse"
   | "CitationRepo"
   | "CitationFile"
-  | "PageLink"
-  | "SourcesRecord";
+  | "PageLink";
 
 export type PageDiagnostic = {
   readonly [Tag in PageDiagnosticTag]: Diagnostic & { readonly _tag: Tag };
 }[PageDiagnosticTag];
 
-export type PageStatus = "fresh" | "stale" | "invalid" | "missing";
-
 export interface NavPage {
   readonly id: string;
   readonly title: string;
-  readonly status: PageStatus;
 }
 
 export interface NavGroup {
@@ -47,33 +37,16 @@ export interface NavGroup {
   readonly pages: ReadonlyArray<NavPage>;
 }
 
-export interface LocaleSite {
-  readonly nav: ReadonlyArray<NavGroup>;
-}
-
 export type SiteResponse =
   | {
       readonly status: "ok";
       readonly title: string;
-      readonly locales: ReadonlyArray<string>;
-      readonly defaultLocale: string;
       readonly errors: ReadonlyArray<Diagnostic>;
-      readonly byLocale: Readonly<Record<string, LocaleSite>>;
+      readonly nav: ReadonlyArray<NavGroup>;
     }
   | { readonly status: "invalid"; readonly errors: ReadonlyArray<Diagnostic> };
 
-export type SourceState = "fresh" | "changed" | "missing" | "not-recorded" | "not-cited";
-
-export interface SourceEntry {
-  readonly repo: string;
-  readonly path: string;
-  readonly state: SourceState;
-  readonly recorded: SourceFile | null;
-  readonly current: SourceFile | null;
-}
-
 interface PageAddress {
-  readonly locale: string;
   readonly id: string;
   readonly file: string;
 }
@@ -88,15 +61,7 @@ export type PageResponse =
       readonly status: "parsed";
       readonly page: Page;
       readonly diagnostics: ReadonlyArray<PageDiagnostic>;
-      readonly freshness: Freshness;
-      readonly sources: ReadonlyArray<SourceEntry>;
     });
-
-export interface Citer {
-  readonly locale: string;
-  readonly id: string;
-  readonly title: string;
-}
 
 export type SourceResponse =
   | {
@@ -105,21 +70,9 @@ export type SourceResponse =
       readonly path: string;
       readonly text: string;
       readonly lines: number;
-      readonly citedBy: ReadonlyArray<Citer>;
     }
   | {
       readonly status: "missing";
       readonly repo: string;
       readonly path: string;
-      readonly citedBy: ReadonlyArray<Citer>;
     };
-
-export interface SearchEntry {
-  readonly page: string;
-  readonly pageTitle: string;
-  readonly heading: string;
-  readonly anchor: string | null;
-  readonly text: string;
-}
-
-export type SearchIndex = ReadonlyArray<SearchEntry>;

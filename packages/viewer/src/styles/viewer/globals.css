@@ -42,7 +42,6 @@ svg:where(:not(.pele)) {
   stroke-linejoin: round;
 }
 code,
-kbd,
 pre,
 .mono {
   font-family: var(--font-mono);
