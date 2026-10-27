@@ -1,14 +1,24 @@
+import * as Cause from "effect/Cause";
 import * as Console from "effect/Console";
 import * as Argument from "effect/cli/Argument";
 import * as Command from "effect/cli/Command";
 import * as Flag from "effect/cli/Flag";
 import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
+import * as Runtime from "effect/Runtime";
 import { docDirDiagnostics, loadDocDir, pageIdError } from "../doc-dir/load.ts";
 import { serveDocDir } from "../site/serve.ts";
 import { diagnosticPrinter, exitWithError } from "./doc-dir.ts";
 import { ExitWith } from "./exit-with.ts";
+
+let serving = false;
+
+export const openTeardown: Runtime.Teardown = (exit, onExit) =>
+  serving && Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)
+    ? onExit(0)
+    : Runtime.defaultTeardown(exit, onExit);
 
 export const open = Command.make(
   "open",
@@ -54,6 +64,7 @@ export const open = Command.make(
       ),
     );
     yield* Console.log(`explain open: ${url}${entry}`);
+    serving = true;
     return yield* Effect.never;
   }, Effect.scoped),
 ).pipe(
