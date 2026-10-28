@@ -1,38 +1,30 @@
-# Doc root format
+# Doc dir format
 
 ```text
-<doc root>/
-├── explain.json                 site settings, repos, nav
-└── <locale>/                    one directory per entry in "locales"
-    ├── <page>.md                page source
-    └── <page>.sources.json      written by `explain freshness sync`
+~/.explain/<YYYYMMDD>-<slug>/
+├── 01-overview.md               page source; the first by filename is the entry page
+├── 02-<topic>.md                page source
+└── code/
+    └── <key>/                   one directory per copied version of a repo
+        └── <repo-relative path> whole file, copied by shell command
 ```
 
-Write each locale from the code on its own rather than translating another locale, so its pages may
-cite different files.
+## Pages
 
-## explain.json
+- Pages are the top-level `*.md` files of the doc dir. Files under `code/` are never pages.
+- A page's id is its filename without `.md` and must match `^[a-z0-9][a-z0-9-]*$`. A dir with no
+  page is an error.
+- Navigation lists every page sorted by filename, labeled with its `# Title` (the id when it has
+  none). The first page is the entry page, and its title is the document title. The pager follows
+  the navigation.
 
-```json
-{
-  "title": "explain-this",
-  "locales": ["zh", "en"],
-  "repos": { "explain": ".." },
-  "nav": [
-    { "title": "contract", "pages": ["citation", "parse-page"] },
-    { "title": "cli", "pages": ["validate", "freshness"] }
-  ]
-}
-```
+## Code directory
 
-- `title` and each nav `title` are single strings shared by every locale; the document `title` is
-  optional and defaults to `Document`.
-- `defaultLocale` is optional and defaults to the first of `locales`.
-- `repos` maps a key to the path of a work tree, relative to the directory holding `explain.json`
-  or absolute. Citations read the files on disk,
-  including uncommitted, untracked, and ignored files.
-- `nav` lists page ids in reading order, which the pager follows. Each id is a `<locale>/<id>.md` in
-  every locale.
+A citation `<key>:<path>` resolves to `<dir>/code/<key>/<path>`. `explain validate` reports an error
+when `code/<key>/` is missing, when the file is missing or is not a file, when a line range runs past
+the file's end, and when the path reaches through a symlink to a file outside `code/<key>/`.
+
+Files under `node_modules/`, `.git/`, or `test-results/` inside `code/<key>/` do not trigger reload in `explain open`.
 
 ## Page source
 
@@ -43,9 +35,8 @@ literal attribute values, and `<details>` and `<summary>` as its only raw HTML.
 - Each heading's id comes from its text, or from an explicit `{#id}` suffix. Give an explicit id to
   any heading another page links to.
 
-The viewer generates navigation, search, the table of contents, the freshness badge, the sources
-panel, previous/next links, and a source viewer listing the pages that cite each file. A page holds
-only its own content.
+The viewer generates navigation, the table of contents, and previous/next links. A page holds only
+its own content.
 
 ### Links
 
@@ -56,11 +47,12 @@ The link target decides the kind.
 | `[parseRef](explain:packages/contract/src/citation.ts:62-72)` | citation |
 | `[parseRef](explain:packages/contract/src/citation.ts:62-72,77-80)` | citation of several ranges |
 | `[citation.ts](explain:packages/contract/src/citation.ts)` | citation of a whole file |
-| `[解析页面](./parse-page.md)`, `[...](./parse-page.md#links)`, `[...](#links)` | page link within this locale |
+| `[解析页面](./parse-page.md)`, `[...](./parse-page.md#links)`, `[...](#links)` | page link within this doc |
 | `[spec](https://...)` | external link |
 
-A citation is `<repo>:<path>[:<ranges>]`: a key of `explain.json` `repos`, a path from the repo root
-with `/` separators, and 1-based line ranges `N` or `N-M`, comma-separated, in ascending order.
+A citation is `<key>:<path>[:<ranges>]`: a directory name under `code/` matching
+`^[a-z][a-z0-9-]*$` (not `http`, `https`, or `mailto`), a path from the repo root with `/`
+separators, and 1-based line ranges `N` or `N-M`, comma-separated, in ascending order.
 
 ### Code
 
@@ -70,7 +62,7 @@ with `/` separators, and 1-based line ranges `N` or `N-M`, comma-separated, in a
 ````
 
 A fence with `file=<citation>` is an excerpt: its body stays empty and the viewer reads the code from
-the repo. A fence without `file=` is literal code. A `mermaid` fence is a diagram, rendered with
+`code/`. A fence without `file=` is literal code. A `mermaid` fence is a diagram, rendered with
 pele:
 
 - Every diagram type pele supports works: flowchart, sequence, state, class, ER, gantt, pie,
@@ -101,10 +93,4 @@ content. Task lists (`- [ ]`) render as static checkboxes.
 | `<Diff before="<citation>" after="<citation>" />` | `before` and `after`: citations of at most one range; omit `before` for an added file, `after` for a deleted one | none |
 
 Use `<Diff>` rather than `<BeforeAfter>` whenever both sides are code. Its sides may cite different
-repo keys, paths (a rename), and ranges.
-
-## Freshness
-
-`explain freshness sync` records every file a page cites, in links, excerpts, `AnnotatedSource file`, and `Diff
-before` and `after`. The page goes stale when it cites a different set of files
-or any recorded file changes on disk.
+keys, paths (a rename), and ranges.

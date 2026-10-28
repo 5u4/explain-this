@@ -6,11 +6,24 @@ const MAIN = join(REPO_ROOT, "packages", "cli", "src", "main.ts");
 
 export type CliResult = { code: number; output: string };
 
-export function installExplain(binDir: string): void {
+export function installExplain(root: string): { binDir: string; openLog: string } {
+  const binDir = join(root, "bin");
+  const openLog = join(root, "open.log");
   mkdirSync(binDir);
   const shim = join(binDir, "explain");
-  writeFileSync(shim, `#!/bin/sh\nexec bun '${MAIN}' "$@"\n`);
+  writeFileSync(
+    shim,
+    `#!/bin/sh
+if [ "$1" = open ]; then
+  printf '%s\\n' "$*" >> '${openLog}'
+  echo http://127.0.0.1:4321/
+  exit 0
+fi
+exec bun '${MAIN}' "$@"
+`,
+  );
   chmodSync(shim, 0o755);
+  return { binDir, openLog };
 }
 
 export async function explain(cwd: string, args: string[]): Promise<CliResult> {

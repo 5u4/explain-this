@@ -1,7 +1,8 @@
-import { mkdirSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { delimiter, join } from "node:path";
 import { installExplain } from "./cli.ts";
 import { shutDown, withScratch } from "./scratch.ts";
+import { exportTargetRepo } from "./target-repo.ts";
 import type { Run, Scenario, SessionEntry, ToolCall, Turn } from "./types.ts";
 
 const SKILL_NAME = "explain-this";
@@ -90,18 +91,18 @@ async function* readFrames(stream: ReadableStream<Uint8Array>): AsyncGenerator<F
 }
 
 export async function runTrial<S>(
-  scenario: Pick<Scenario<S>, "setup" | "turns" | "inspect">,
+  scenario: Pick<Scenario<S>, "turns" | "inspect">,
   options: { model: string; skillDir: string; timeoutMs: number },
 ): Promise<{ run: Run; state: S }> {
   const skill = { name: SKILL_NAME, dir: options.skillDir };
-  return withScratch({ skill }, async ({ name, root }) => {
-    const workdir = join(root, "acme-docs");
+  return withScratch({ skill }, async ({ name, root, home }) => {
+    const cwd = join(root, "explain-this");
     const sessionDir = join(root, "sessions");
-    const binDir = join(root, "bin");
-    mkdirSync(workdir);
     mkdirSync(sessionDir);
-    installExplain(binDir);
-    const setupState = await scenario.setup(workdir);
+    const { binDir, openLog } = installExplain(root);
+    await exportTargetRepo(cwd);
+
+    const startedAt = new Date();
 
     const agent = Bun.spawn(
       [
@@ -118,8 +119,12 @@ export async function runTrial<S>(
         options.model,
       ],
       {
-        cwd: workdir,
-        env: { ...process.env, PATH: `${binDir}${delimiter}${process.env.PATH ?? ""}` },
+        cwd,
+        env: {
+          ...process.env,
+          HOME: home,
+          PATH: `${binDir}${delimiter}${process.env.PATH ?? ""}`,
+        },
         stdin: "pipe",
         stdout: "pipe",
         stderr: "pipe",
@@ -172,8 +177,14 @@ export async function runTrial<S>(
       throw error;
     }
     await shutDown(agent, () => agent.stdin.end());
+    const endedAt = new Date();
 
-    const state = scenario.inspect ? await scenario.inspect(workdir, setupState) : setupState;
-    return { run: { turns }, state };
+    const openCalls = existsSync(openLog)
+      ? readFileSync(openLog, "utf8")
+          .split("\n")
+          .filter((line) => line !== "")
+      : [];
+    const state = await scenario.inspect({ home, cwd });
+    return { run: { turns, startedAt, endedAt, openCalls }, state };
   });
 }

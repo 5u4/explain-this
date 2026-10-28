@@ -75,7 +75,7 @@ function defineTrials(
   name: string,
   trials: number,
   meta: Record<string, string>,
-  gradeTrial: () => Promise<Grade>,
+  gradeTrial: () => Promise<{ grade: Grade; openCalls?: string[] }>,
   timeout?: number,
 ): void {
   const stamp = new Date().toISOString().replaceAll(":", "-");
@@ -83,7 +83,11 @@ function defineTrials(
   const resultsFile = join(resultsDir, `${stamp}-${name}.jsonl`);
   const grades: Grade[] = [];
   let errored = 0;
-  const record = (fields: { trial: number; grade: Grade } | { trial: number; error: string }) => {
+  const record = (
+    fields:
+      | { trial: number; grade: Grade; openCalls?: string[] }
+      | { trial: number; error: string },
+  ) => {
     mkdirSync(resultsDir, { recursive: true });
     appendFileSync(resultsFile, `${JSON.stringify({ ...meta, eval: name, ...fields })}\n`);
   };
@@ -105,16 +109,17 @@ function defineTrials(
       test.concurrent(
         `trial ${trial}`,
         async () => {
-          let grade: Grade;
+          let graded: { grade: Grade; openCalls?: string[] };
           try {
-            grade = await gradeTrial();
+            graded = await gradeTrial();
           } catch (error) {
             errored++;
             record({ trial, error: String(error) });
             throw error;
           }
+          const { grade } = graded;
           grades.push(grade);
-          record({ trial, grade });
+          record({ trial, ...graded });
           expect(Object.entries(grade).filter(([, verdict]) => !SETTLED[verdict.status])).toEqual(
             [],
           );
@@ -134,7 +139,7 @@ export function defineEval<S>(name: string, scenario: Scenario<S>): void {
     { model: config.model, judge: config.judgeModel, skill: config.skillDir },
     async () => {
       const { run, state } = await runTrial(scenario, { ...config, timeoutMs: agentMs });
-      return gradeRun(scenario, run, state);
+      return { grade: await gradeRun(scenario, run, state), openCalls: run.openCalls };
     },
     agentMs + JUDGE_TIMEOUT_MS + 2 * EXIT_GRACE_MS + GRADING_CLI_MS,
   );
@@ -165,6 +170,6 @@ export function defineCalibration(name: string, cases: Record<string, Calibratio
         ),
       ),
     );
-    return Object.assign({}, ...grades);
+    return { grade: Object.assign({}, ...grades) };
   });
 }

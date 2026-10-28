@@ -4,7 +4,6 @@ import { join } from "node:path";
 import type { Subprocess } from "bun";
 
 export const EXIT_GRACE_MS = 10_000;
-const PROFILES_DIR = join(homedir(), ".omp", "profiles");
 const OWNED_NAME = /^ws-(\d+)-[0-9a-f]{8}$/;
 
 function isAlive(pid: number): boolean {
@@ -25,20 +24,19 @@ let swept = false;
 function sweepOrphans(): void {
   if (swept) return;
   swept = true;
-  mkdirSync(PROFILES_DIR, { recursive: true });
-  for (const dir of [PROFILES_DIR, tmpdir()])
-    for (const name of readdirSync(dir).filter(isOrphaned))
-      rmSync(join(dir, name), { recursive: true, force: true });
+  for (const name of readdirSync(tmpdir()).filter(isOrphaned))
+    rmSync(join(tmpdir(), name), { recursive: true, force: true });
 }
 
 export async function withScratch<T>(
   options: { skill?: { name: string; dir: string } },
-  use: (scratch: { name: string; root: string }) => Promise<T>,
+  use: (scratch: { name: string; root: string; home: string }) => Promise<T>,
 ): Promise<T> {
   sweepOrphans();
   const name = `ws-${process.pid}-${crypto.randomUUID().slice(0, 8)}`;
   const root = join(tmpdir(), name);
-  const profileDir = join(PROFILES_DIR, name);
+  const home = join(root, "home");
+  const profileDir = join(home, ".omp", "profiles", name);
   mkdirSync(root, { mode: 0o700 });
   try {
     mkdirSync(join(profileDir, "agent"), { recursive: true });
@@ -50,9 +48,8 @@ export async function withScratch<T>(
       cpSync(options.skill.dir, join(profileDir, "agent", "skills", options.skill.name), {
         recursive: true,
       });
-    return await use({ name, root });
+    return await use({ name, root, home });
   } finally {
-    rmSync(profileDir, { recursive: true, force: true });
     rmSync(root, { recursive: true, force: true });
   }
 }
