@@ -1,39 +1,40 @@
 ---
 name: explain-this
-description: Write or refresh pages in an explain doc root.
+description: Write a throwaway explain doc under ~/.explain that answers the user's question about code.
 disable-model-invocation: true
 ---
 
 # Explain this
 
-The doc root is the current directory. Confirm both preconditions first; when one fails, tell the user and stop:
+Confirm `explain` is on `PATH` first. When it is not, tell the user the `explain` CLI is not installed and stop.
 
-- `explain.json` exists. When it is missing, ask the user to run `explain init --locales=<a,b>`.
-- `explain` is on `PATH`. When it is not, tell the user the `explain` CLI is not installed.
-
-[format.md](format.md) is the format of every file in the doc root; read it before writing a page.
+[format.md](format.md) is the format of every file in the doc dir; read it before writing a page.
 
 [writing.md](writing.md) is how a page reads; read it before writing a page.
 
-Pick the branch:
+The user's question is the scope.
 
-- **Write**: the user asks to explain something, or follows up on something already explained.
-- **Refresh**: the user asks for stale pages, or names pages that are out of date.
+## Steps
 
-## Write
+1. **Dir.** Run `date +%Y%m%d` and pick a short kebab-case slug from the question. The doc dir is `~/.explain/<date>-<slug>/`. When that dir exists, pick another slug. A follow-up on the same question uses the same dir. Done when the dir exists and is yours.
+2. **Code.** Copy every file you will cite, whole, with shell commands only. Never write a file under `code/` with a write or edit tool. From a work tree:
 
-1. **Scope.** Settle with the user what to cover: which repos, which parts of them, or which PR or commit range. A follow-up question is its own scope. Done when the user has named the scope.
-2. **Survey.** Split the scope into components: parts a reader can understand one at a time. Add each repo to `explain.json` `repos`. Done when every component has a name and the paths it covers.
-3. **Pages.** Write one or more pages per component, in every locale of `explain.json`. Pages are free form. Cite the code behind each claim as `repo:path:ranges`, reading the cited lines as you write the sentence; mark what you could not confirm in code as inference. For a follow-up, extend existing pages or add new ones. Done when every component has its pages in every locale and each page passes every check in `writing.md`.
-4. **Nav.** Edit `explain.json`: set `title` if it has none, and place every new page in `nav` where a reader would look for it. Done when every page you wrote is in `nav`.
-5. **Validate.** Run `explain validate` on the pages you wrote or changed and fix every diagnostic; it always validates `explain.json` too. Then run `explain freshness sync` on those same pages. Done when `explain validate <your pages>` exits 0 and the sync succeeded.
+   ```sh
+   mkdir -p <dir>/code/<key>/<parent>
+   cp <path> <dir>/code/<key>/<path>
+   ```
 
-## Refresh
+   From a revision:
 
-1. Run `explain freshness check`. It lists each stale page with the source files that make it stale. When the user named pages, refresh those.
-2. Read each listed source file in full, find what changed against the page's claims, and rewrite the affected parts. When check names no source file because the page's sources file is missing or malformed, read every file the page cites instead. When the change opens a part the page does not cover, survey it and write pages as in **Write** step 3 and 4.
-3. Validate as in **Write** step 5, on every page you refreshed, including those whose claims still hold.
+   ```sh
+   mkdir -p <dir>/code/<key>/<parent>
+   git show <rev>:<path> > <dir>/code/<key>/<path>
+   ```
+
+   `<path>` is the repo-relative path, kept as is, so line numbers and citations match the source. `<key>` matches `^[a-z][a-z0-9-]*$`. Two versions of the same code are two keys, such as `app-main` and `app-pr`; name the revision or sha in the prose. Done when every file you cite is under `code/<key>/`.
+3. **Pages.** Write top-level `*.md` files in the doc dir. Each filename stem matches `^[a-z0-9][a-z0-9-]*$`; prefix numbers (`01-overview.md`) when order matters. The first file by name is the entry page. Write the whole doc in one language, the language the user asked in. Cite the code behind each claim as `<key>:<path>[:<ranges>]`, reading the cited lines as you write the sentence; mark what you could not confirm in code as inference. For a follow-up, extend existing pages or add new ones. Done when the pages answer the question and each passes every check in `writing.md`.
+4. **Validate.** Run `explain validate <dir>` and fix every diagnostic. Done when it exits 0.
 
 ## Report
 
-Reply with the pages you wrote or changed, the final `explain validate` output, and the command to view them: `explain dev`.
+Reply with the pages you wrote or changed, the final `explain validate` output, and the command for the user to view them: `explain open <dir>`. Do not run `explain open` yourself; it serves until stopped.

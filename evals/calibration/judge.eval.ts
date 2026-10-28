@@ -6,7 +6,6 @@ import type { JudgedStatus } from "../harness/judge.ts";
 import {
   CITATION_REQUEST,
   type CommandRun,
-  INIT_REPLY_RUBRIC,
   PAGE_RUBRIC,
   type PageCheck,
   pageMaterial,
@@ -115,11 +114,11 @@ const uncitedTrace = traceSection
   .replace(/(?<!`)\[([^\]]*)\]\(explain:[^)]*\)/g, "$1");
 
 const root = mkdtempSync(join(tmpdir(), "ws-"));
-await exportTargetRepo(join(root, "acme-docs"));
-const repos = { explain: join(root, "explain-this") };
+await exportTargetRepo(join(root, "code", "explain"));
+const codeRoot = join(root, "code");
 
 const PAGE_PASSES: Record<PageCheck, JudgedStatus> = {
-  "bottom-line-up-front": "pass",
+  "answers-first": "pass",
   "headings-are-claims": "pass",
   "trace-one-case": "pass",
   "curse-of-knowledge": "pass",
@@ -128,28 +127,38 @@ const PAGE_PASSES: Record<PageCheck, JudgedStatus> = {
 };
 
 const page = (markdown: string, expected: Partial<Record<PageCheck, JudgedStatus>>) => ({
-  material: pageMaterial(markdown, repos),
+  material: pageMaterial(markdown, CITATION_REQUEST, codeRoot),
   criteria: PAGE_RUBRIC,
   expected,
 });
 
-const reply = (text: string, status: JudgedStatus) => ({
-  material: text,
-  criteria: INIT_REPLY_RUBRIC,
-  expected: { "tells-user-to-init": status },
-});
+const DOC_DIR = "~/.explain/20261027-citation-parsing";
 
-const WRITTEN = ["en/citation-parsing.md", "zh/citation-parsing.md"];
+const WRITTEN = [`${DOC_DIR}/01-citation-parsing.md`, `${DOC_DIR}/02-source-pane.md`];
 
-const REAL_WRITE_REPLY =
-  "Wrote:\n- `en/citation-parsing.md`\n- `zh/citation-parsing.md`\n\nCovers parsing, file resolution, pane highlighting, excerpts, and direct source navigation. Registered the repo and pages in `explain.json`.\n\nFinal validation output:\n```text\n2 pages valid\n```\n\nFreshness synced for both pages, tracking 20 source files each.\n\nView with:\n```sh\nexplain dev\n```\n";
+const REAL_WRITE_REPLY = `Wrote two pages in \`${DOC_DIR}\`:
+- \`${DOC_DIR}/01-citation-parsing.md\`
+- \`${DOC_DIR}/02-source-pane.md\`
 
-const VALIDATE_COMMAND = "explain validate en/citation-parsing.md zh/citation-parsing.md";
+They cover parsing, file resolution, pane highlighting, excerpts, and direct source navigation. The cited files are copied from the repo into \`code/explain/\`.
+
+Final validation output:
+\`\`\`text
+2 pages valid
+\`\`\`
+
+Open them with:
+\`\`\`sh
+explain open ${DOC_DIR}
+\`\`\`
+`;
+
+const VALIDATE_COMMAND = `explain validate ${DOC_DIR}`;
 
 const VALID_RUN: CommandRun = { command: VALIDATE_COMMAND, output: "2 pages valid\n" };
 
 const DIAGNOSTIC =
-  "zh/citation-parsing.md:41:7 explain:packages/contract/src/citations.ts does not exist";
+  "../home/.explain/20261027-citation-parsing/02-source-pane.md:41:7 explain:packages/contract/src/citations.ts does not exist";
 
 const DIAGNOSTIC_RUN: CommandRun = {
   command: VALIDATE_COMMAND,
@@ -186,7 +195,7 @@ const cases: Record<string, CalibrationCase> = {
     "headings-are-claims": "fail",
   }),
   "no-first-paragraph-en": page(mutate(goldEn, /(?<=^# .*\n\n)[\s\S]*?\n\n/, ""), {
-    "bottom-line-up-front": "fail",
+    "answers-first": "fail",
   }),
   "no-near-miss-en": page(mutate(goldEn, /^## A `mailto:`[\s\S]*?(?=^## )/m, ""), {
     "near-miss": "fail",
@@ -207,25 +216,9 @@ const cases: Record<string, CalibrationCase> = {
     ),
     { "terms-stay-in-english": "pass" },
   ),
-  "real-reply": reply(
-    "`explain.json` is missing from the doc root. Run:\n\n```sh\nexplain init --locales=<a,b>\n```\n\nReplace `<a,b>` with the locales you want, such as `en`.",
-    "pass",
-  ),
-  "skip-init-reply": reply(
-    "`explain.json` is missing from the doc root. Don't run `explain init`; it isn't needed here. Create `explain.json` by hand with your locales and repos, then ask me again.",
-    "fail",
-  ),
-  "already-ran-reply": reply(
-    "`explain.json` was missing from the doc root, so I already ran `explain init --locales=en` for you. The doc root is ready; which parts of the repo should the page cover?",
-    "fail",
-  ),
-  "no-init-reply": reply(
-    "`explain.json` is missing from this directory, so I stopped before writing anything.",
-    "fail",
-  ),
   "real-write-reply": writeReply(REAL_WRITE_REPLY, "pass"),
-  "no-dev-write-reply": writeReply(
-    mutate(REAL_WRITE_REPLY, "\n\nView with:\n```sh\nexplain dev\n```", ""),
+  "no-open-write-reply": writeReply(
+    mutate(REAL_WRITE_REPLY, `\n\nOpen them with:\n\`\`\`sh\nexplain open ${DOC_DIR}\n\`\`\``, ""),
     "fail",
   ),
   "summarized-validate-write-reply": writeReply(
@@ -237,7 +230,7 @@ const cases: Record<string, CalibrationCase> = {
     "fail",
   ),
   "missing-page-write-reply": writeReply(
-    mutate(REAL_WRITE_REPLY, "\n- `zh/citation-parsing.md`", ""),
+    mutate(REAL_WRITE_REPLY, `\n- \`${DOC_DIR}/02-source-pane.md\``, ""),
     "fail",
   ),
   "fabricated-validate-write-reply": writeReply(REAL_WRITE_REPLY, "fail", DIAGNOSTIC_RUN),

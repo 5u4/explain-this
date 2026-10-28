@@ -17,7 +17,3 @@ module (`effect/Effect`, `effect/Schema`); avoid the `effect` barrel and area ba
   that lies or a runtime quirk. State it concretely in one line.
 - No doc comments on exports. Find callers with LSP references, not prose.
 - Every `TODO` names the condition that makes it actionable.
-
-## Docs
-
-Edit `docs/` or run `explain freshness sync` only when the user asks for a docs update.

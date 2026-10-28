@@ -227,8 +227,8 @@ Each step runs once per page.
 const OLD_AUDIT = await Bun.$`git -C ${REPO_ROOT} show 44fc227^:docs/zh/parse-page.md`.text();
 
 const root = mkdtempSync(join(tmpdir(), "ws-"));
-await exportTargetRepo(join(root, "acme-docs"));
-const repos = { explain: join(root, "explain-this") };
+await exportTargetRepo(join(root, "code", "explain"));
+const codeRoot = join(root, "code");
 
 const CHECKS = Object.keys(DIAGRAM_RUBRIC) as DiagramCheck[];
 
@@ -244,7 +244,7 @@ function diagramCase(
   const status = (check: DiagramCheck): JudgedStatus =>
     fails.includes(check) ? "fail" : notApplicable.includes(check) ? "n/a" : otherwise;
   return {
-    material: pageMaterial(markdown, repos),
+    material: pageMaterial(markdown, undefined, codeRoot),
     criteria: Object.fromEntries(checks.map((check) => [check, DIAGRAM_RUBRIC[check]])),
     expected: Object.fromEntries(checks.map((check) => [check, status(check)])),
   };

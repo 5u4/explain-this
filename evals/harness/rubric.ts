@@ -5,8 +5,8 @@ import { parsePage } from "../../packages/contract/src/parse-page/parse-page.ts"
 import type { Criteria } from "./judge.ts";
 
 export const PAGE_RUBRIC = {
-  "bottom-line-up-front":
-    "The first paragraph after the page's # title says what the component is for and the one idea that makes it work, so a reader who stops after that paragraph can state both. Fail if the page opens on a detail, a code excerpt, a section heading, or background, or if its first paragraph gives only one of the two.",
+  "answers-first":
+    "The material holds the user's request under <request> and one page written for it under <page>. The first paragraph after the page's # title is every line up to the first blank line, read as a whole; it may define the terms its answer uses before giving the answer. That paragraph answers the request, or the part of it this page covers, so a reader who stops after it knows the answer. Fail if the page opens on a detail, a code excerpt, a section heading, or background, or if its first paragraph does not answer the request.",
   "headings-are-claims":
     'Every section heading (## to ####; the # page title is exempt) states what its section shows as a claim a reader could check, such as "Retries stop after the third failure", rather than a topic label such as "Retries", "The shape", or "Overview". Read in order, the headings alone outline the page. Fail if any section heading is a bare topic or noun phrase.',
   "trace-one-case":
@@ -36,14 +36,9 @@ export const DIAGRAM_RUBRIC = {
   "earns-its-place": `${EACH_PICTURE} Words that narrate the same thing as the picture, whether prose or a numbered or bulleted list, are the intended pairing and never make it redundant: pass. Delete the picture only when it redraws a table or another picture on the same page, or depicts a single relation the sentence directly above it states in full; fail only then. Judge only this: whether the content type warrants a picture at all is a different check and does not affect this one.`,
 } as const satisfies Criteria;
 
-export const INIT_REPLY_RUBRIC = {
-  "tells-user-to-init":
-    "The reply tells the user to run `explain init` themselves (with or without flags such as `--locales`) so that the work can continue. Fail if the reply does not ask the user to run it, if it says `explain init` was already run or that the assistant ran it, or if it tells the user to skip `explain init` or do something else instead of it.",
-} as const satisfies Criteria;
-
 export const WRITE_REPLY_RUBRIC = {
   "reports-pages":
-    "The material holds the page files the assistant wrote, under <pages-written>; the last shell command it ran that calls `explain validate`, with everything that command printed, under <validate-run>; and its final reply, under <reply>. The reply names every page listed in <pages-written> (by file path or page id), reports the output `explain validate` printed in <validate-run> faithfully (for example a line such as `2 pages valid`, or the diagnostics that run listed), and gives `explain dev` as the command to view the pages. Fail if the reply misses any listed page, only says that validation passed without its output, reports validation output that <validate-run> does not show or that contradicts it (such as saying the pages are valid when <validate-run> lists diagnostics), or does not give `explain dev`.",
+    "The material holds the page files the assistant wrote, under <pages-written>; the last shell command it ran that calls `explain validate`, with everything that command printed, under <validate-run>; and its final reply, under <reply>. The reply names every page listed in <pages-written> (by file path or page id), reports the output `explain validate` printed in <validate-run> faithfully (for example a line such as `2 pages valid`, or the diagnostics that run listed), and gives `explain open <dir>` naming the doc dir it wrote (the directory that holds the pages in <pages-written>) as the command to view the pages. Fail if the reply misses any listed page, only says that validation passed without its output, reports validation output that <validate-run> does not show or that contradicts it (such as saying the pages are valid when <validate-run> lists diagnostics), or does not give `explain open` with that doc dir.",
 } as const satisfies Criteria;
 
 export type CommandRun = { command: string; output: string };
@@ -53,7 +48,7 @@ export function replyMaterial(reply: string, pagesWritten: string[], validate: C
 }
 
 export const CITATION_REQUEST =
-  "/skill:explain-this I'd like a page on how citations get parsed in the explain-this repo (checked out at ../explain-this). Mostly the path from a `repo:path:ranges` string to what the viewer ends up showing.";
+  "/skill:explain-this I'd like a page on how citations get parsed in the explain-this repo, which is the current directory. Mostly the path from a `repo:path:ranges` string to what the viewer ends up showing.";
 
 export const SCOPE_RUBRIC = {
   "covers-requested-scope":
@@ -70,10 +65,9 @@ export function scopeMaterial(
   return `<request>\n${request}\n</request>\n\n<pages>\n${listed}\n</pages>`;
 }
 
-function citedLines(ref: Ref, repos: Record<string, string>): string {
-  const root = Object.hasOwn(repos, ref.repo) ? repos[ref.repo] : undefined;
-  const file = root === undefined ? undefined : join(root, ref.path);
-  if (file === undefined || !existsSync(file)) return "(not found)";
+function citedLines(ref: Ref, codeRoot: string): string {
+  const file = join(codeRoot, ref.repo, ref.path);
+  if (!existsSync(file)) return "(not found)";
   const lines = readFileSync(file, "utf8").split("\n");
   const ranges = ref.ranges.length === 0 ? [{ from: 1, to: lines.length }] : ref.ranges;
   return ranges
@@ -86,11 +80,28 @@ function citedLines(ref: Ref, repos: Record<string, string>): string {
     .join("\n…\n");
 }
 
-export function pageMaterial(markdown: string, repos: Record<string, string>): string {
+export function pageMaterial(
+  markdown: string,
+  request: string | undefined,
+  codeRoot: string,
+): string {
   const refs = parsePage(markdown, "page").page?.refs ?? [];
   const cited = new Map(refs.map(({ ref }) => [formatRef(ref), ref]));
   const code = [...cited]
-    .map(([citation, ref]) => `<code citation="${citation}">\n${citedLines(ref, repos)}\n</code>`)
+    .map(
+      ([citation, ref]) => `<code citation="${citation}">\n${citedLines(ref, codeRoot)}\n</code>`,
+    )
     .join("\n");
-  return `<page>\n${markdown}\n</page>\n\n<cited-code>\n${code}\n</cited-code>`;
+  const asked = request === undefined ? "" : `<request>\n${request}\n</request>\n\n`;
+  return `${asked}<page>\n${markdown}\n</page>\n\n<cited-code>\n${code}\n</cited-code>`;
+}
+
+export function trialDates(startedAt: Date, endedAt: Date): Set<string> {
+  const dates = new Set<string>();
+  const day = new Date(startedAt.getFullYear(), startedAt.getMonth(), startedAt.getDate());
+  for (; day <= endedAt; day.setDate(day.getDate() + 1))
+    dates.add(
+      `${day.getFullYear()}${String(day.getMonth() + 1).padStart(2, "0")}${String(day.getDate()).padStart(2, "0")}`,
+    );
+  return dates;
 }

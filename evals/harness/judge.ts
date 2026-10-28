@@ -61,7 +61,7 @@ function parseVerdicts(output: string, criteria: Criteria): Grade {
 }
 
 export async function judge(material: string, criteria: Criteria): Promise<Grade> {
-  return withScratch({}, async ({ name, root }) => {
+  return withScratch({}, async ({ name, root, home }) => {
     const omp = Bun.spawn(
       [
         "omp",
@@ -81,6 +81,7 @@ export async function judge(material: string, criteria: Criteria): Promise<Grade
       ],
       {
         cwd: root,
+        env: { ...process.env, HOME: home },
         stdin: new TextEncoder().encode(prompt(material, criteria)),
         stdout: "pipe",
         stderr: "pipe",

@@ -1,21 +1,18 @@
 # Writing a page
 
-The reader is an engineer new to this code. They scan headings and first sentences, and read on only
-where those promise an answer. Every rule below ends in a check.
+The reader is the person who asked the question. They scan headings and first sentences, and read
+on only where those promise an answer. Every rule below ends in a check.
 
 ## Page
 
-- **Bottom line up front.** The first paragraph says what the component is for and the one idea that
-  makes it work. A reader who stops there can say both.
+- **Bottom line up front.** The first paragraph answers the question. A reader who stops there has
+  the answer.
 - **Headings are claims.** Each heading states what its section shows: "Retries stop after the third
   failure" rather than "Retries". The headings alone outline the page.
 - **Fold detail.** Line-by-line walkthroughs and edge cases a first read can skip go in `<details>`.
   The page reads whole with every `<details>` closed.
 - **Curse of knowledge.** Define each project term at first use, and keep one name per concept for
   the whole page.
-- **Glossary on a trigger.** When the page uses three or more project terms the reader must hold
-  at once, a short glossary under the first paragraph defines them; each term still gets its
-  first-use definition in the prose. A page with fewer such terms has no glossary.
 
 ## Examples
 
@@ -78,13 +75,14 @@ Every picture passes these checks; edges labeled and node cap apply to mermaid d
   pairing: keep it. Delete the picture only when it redraws a table or another picture on the same
   page, or depicts a single relation the sentence directly above it states in full.
 
-## Pages in another language
+## Language
 
-- **Terms stay in English.** Write every word that names a thing or state in software in English:
-  skill, stale, citation, page, claim, file, command, directory, commit, exit code. The page's
-  language carries verbs, connectives, explanation, and the page naming itself (本页). The Curse of
-  knowledge definition is in the page's language; after it, the English term stands alone. Swapping
-  the page's language would leave every software term as it is.
+- **One language per doc.** Write every page in the language the user asked in.
+- **Terms stay in English.** In a doc not in English, write every word that names a thing or state
+  in software in English: skill, stale, citation, page, claim, file, command, directory, commit,
+  exit code. The doc's language carries verbs, connectives, explanation, and the page naming itself
+  (本页). The Curse of knowledge definition is in the doc's language; after it, the English term
+  stands alone. Swapping the doc's language would leave every software term as it is.
 
 ### Chinese
 

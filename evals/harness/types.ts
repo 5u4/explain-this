@@ -14,12 +14,13 @@ export type SessionEntry =
 
 export type Turn = { prompt: string; reply: string; entries: SessionEntry[] };
 
-export type Run = { turns: Turn[] };
+export type Run = { turns: Turn[]; startedAt: Date; endedAt: Date; openCalls: string[] };
+
+export type Workspace = { home: string; cwd: string };
 
 export type Scenario<S> = {
-  setup(workdir: string): Promise<S>;
   turns: string[];
   timeoutMs?: number;
-  inspect?(workdir: string, state: S): Promise<S>;
+  inspect(workspace: Workspace): Promise<S>;
   grade(run: Run, state: S): Grade | Promise<Grade>;
 };
