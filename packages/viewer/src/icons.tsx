@@ -19,7 +19,6 @@ export const icons = {
   up: svg(<path d="m5 12 5-5 5 5" />),
   down: svg(<path d="m5 8 5 5 5-5" />),
   chevron: svg(<path d="m8 5 5 5-5 5" />, "chev"),
-  search: svg([<circle key="c" cx="9" cy="9" r="5.5" />, <path key="p" d="m13 13 4 4" />]),
   close: svg(<path d="m5 5 10 10M15 5 5 15" />),
   arrowLeft: svg(<path d="M16 10H4m5-5-5 5 5 5" />),
   arrowRight: svg(<path d="M4 10h12m-5-5 5 5-5 5" />),

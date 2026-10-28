@@ -38,7 +38,3 @@
   font: 600 var(--step-1) / 1.4 var(--font-display);
   color: var(--text-strong);
 }
-.pager-group {
-  font-size: var(--size-caption);
-  color: var(--text-faint);
-}

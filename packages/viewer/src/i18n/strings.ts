@@ -54,8 +54,6 @@ export interface Strings {
   readonly nextCite: string;
   readonly openSheet: string;
   readonly closeSheet: string;
-  readonly missingPage: string;
-  readonly missingPageBody: (file: string) => string;
   readonly backHome: string;
   readonly noPages: string;
   readonly pageErrors: (count: number) => string;
@@ -127,8 +125,6 @@ export const strings: Strings = {
   nextCite: "Next citation (])",
   openSheet: "Open the source panel",
   closeSheet: "Close the source panel",
-  missingPage: "This page is not written yet",
-  missingPageBody: (file) => `The nav lists it, but ${file} does not exist.`,
   backHome: "Back to the first page",
   noPages: "No pages yet",
   pageErrors: (count) => `${count} ${count === 1 ? "error" : "errors"} on this page`,

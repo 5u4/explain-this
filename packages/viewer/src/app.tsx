@@ -3,6 +3,7 @@ import type { Site } from "./context.ts";
 import { loadSite } from "./data.ts";
 import { strings } from "./i18n/strings.ts";
 import { parseRoute, type Route, useLocation } from "./router.ts";
+import { DevErrors } from "./routes/dev-errors.tsx";
 import { PageRoute } from "./routes/page-route.tsx";
 import { homeHref, Shell } from "./shell/shell.tsx";
 
@@ -69,6 +70,9 @@ function EmptyHome({ site }: { readonly site: Site }): ReactNode {
         <div className="missing-state">
           <p>{strings.noPages}</p>
         </div>
+        {site.errors.length > 0 && (
+          <DevErrors title={strings.siteErrors(site.errors.length)} errors={site.errors} />
+        )}
       </article>
     </Shell>
   );

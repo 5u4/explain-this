@@ -9,9 +9,8 @@ import { pageHref, revealEntry } from "../router.ts";
 import { Rail } from "./rail.tsx";
 
 export const homeHref = (site: Site): string => {
-  const ids = site.nav.flatMap((group) => group.pages.map((page) => page.id));
-  const id = ids.includes("index") ? "index" : ids[0];
-  return id === undefined ? "/" : pageHref(id);
+  const entry = site.nav[0];
+  return entry === undefined ? "/" : pageHref(entry.id);
 };
 
 const revealPage = () => {

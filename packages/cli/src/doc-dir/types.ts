@@ -1,4 +1,3 @@
-import type { ExplainConfig } from "@explain/contract/config";
 import type { Page } from "@explain/contract/page";
 import type * as Effect from "effect/Effect";
 import type * as FileSystem from "effect/FileSystem";
@@ -20,21 +19,18 @@ interface CheckedPage {
 }
 
 export type DocPage =
-  | (CheckedPage & { readonly status: "missing" })
   | (CheckedPage & { readonly status: "invalid" })
   | (CheckedPage & { readonly status: "parsed"; readonly page: Page });
 
 export type Resolved =
   | { readonly status: "file"; readonly bytes: Uint8Array; readonly lines: number }
-  | { readonly status: "unknown-repo" }
+  | { readonly status: "missing-key" }
   | { readonly status: "missing" }
   | { readonly status: "escapes" }
   | { readonly status: "not-a-file" };
 
-export interface DocRoot {
+export interface DocDir {
   readonly root: string;
-  readonly config: ExplainConfig;
-  readonly repos: ReadonlyMap<string, string>;
   readonly pages: ReadonlyArray<DocPage>;
   readonly errors: ReadonlyArray<Diagnostic>;
   readonly resolveSource: (
@@ -43,4 +39,4 @@ export interface DocRoot {
   ) => Effect.Effect<Resolved, PlatformError.PlatformError>;
 }
 
-export type DocRootServices = FileSystem.FileSystem | Path.Path;
+export type DocDirServices = FileSystem.FileSystem | Path.Path;

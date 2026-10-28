@@ -1,4 +1,4 @@
-import { pageIdPattern } from "@explain/contract/config";
+import { pageIdPattern } from "@explain/contract/page";
 import * as Effect from "effect/Effect";
 import * as Path from "effect/Path";
 import * as Queue from "effect/Queue";
@@ -6,8 +6,8 @@ import * as Schema from "effect/Schema";
 import * as Semaphore from "effect/Semaphore";
 import * as Stream from "effect/Stream";
 import { createServer, type Plugin, type ViteDevServer } from "vite";
-import { loadDocRoot } from "../doc-root/load.ts";
-import type { Diagnostic, DocRoot, DocRootServices } from "../doc-root/types.ts";
+import { docDirDiagnostics, loadDocDir } from "../doc-dir/load.ts";
+import type { Diagnostic, DocDir, DocDirServices } from "../doc-dir/types.ts";
 import { type DevState, handleExplainRequest } from "./api.ts";
 import { viewerImportGuard, viewerRoot } from "./viewer.ts";
 
@@ -15,36 +15,31 @@ export class DevServerFailed extends Schema.TaggedError<DevServerFailed>()("DevS
   message: Schema.String,
 }) {}
 
-export const serveDocRoot = Effect.fnUntraced(function* (
-  initial: DocRoot,
-  listen: { readonly port: number; readonly strictPort: boolean },
+export const serveDocDir = Effect.fnUntraced(function* (
+  initial: DocDir,
+  listen: { readonly port: number; readonly strictPort: boolean; readonly open: string },
   printDiagnostics: (
     diagnostics: ReadonlyArray<Diagnostic>,
-  ) => Effect.Effect<void, never, DocRootServices>,
+  ) => Effect.Effect<void, never, DocDirServices>,
 ) {
   const path = yield* Path.Path;
-  const run = Effect.runPromiseWith(yield* Effect.context<DocRootServices>());
+  const run = Effect.runPromiseWith(yield* Effect.context<DocDirServices>());
   const viewer = yield* viewerRoot;
   const { root } = initial;
   const lock = yield* Semaphore.make(1);
   const changes = yield* Queue.unbounded<string>();
-  let state: DevState = { status: "ok", docRoot: initial };
-  let watched: ReadonlySet<string> = new Set([root, ...initial.repos.values()]);
+  let state: DevState = { status: "ok", docDir: initial };
 
   const reload = Effect.fnUntraced(function* (server: ViteDevServer) {
     const next = yield* lock.withPermit(
-      loadDocRoot(root).pipe(
-        Effect.map((docRoot): DevState => ({ status: "ok", docRoot })),
-        Effect.catchTags({
-          InvalidConfig: (error) =>
-            Effect.succeed<DevState>({ status: "invalid", root, errors: error.diagnostics }),
-          PlatformError: (error) =>
-            Effect.succeed<DevState>({
-              status: "invalid",
-              root,
-              errors: [{ file: ".", line: 1, column: 1, message: error.message }],
-            }),
-        }),
+      loadDocDir(root).pipe(
+        Effect.map((docDir): DevState => ({ status: "ok", docDir })),
+        Effect.catchTag("PlatformError", (error) =>
+          Effect.succeed<DevState>({
+            status: "invalid",
+            errors: [{ file: ".", line: 1, column: 1, message: error.message }],
+          }),
+        ),
         Effect.tap((next) =>
           Effect.sync(() => {
             state = next;
@@ -52,25 +47,18 @@ export const serveDocRoot = Effect.fnUntraced(function* (
         ),
       ),
     );
-    if (next.status === "ok") {
-      const repos = new Set([root, ...next.docRoot.repos.values()]);
-      server.watcher.unwatch([...watched].filter((directory) => !repos.has(directory)));
-      server.watcher.add([...repos].filter((directory) => !watched.has(directory)));
-      watched = repos;
-    } else yield* printDiagnostics(next.errors);
+    yield* printDiagnostics(next.status === "ok" ? docDirDiagnostics(next.docDir) : next.errors);
     server.ws.send({ type: "full-reload" });
   });
 
   const plugin: Plugin = {
     name: "explain",
     configureServer(server) {
-      server.watcher.add([...watched]);
+      server.watcher.add(root);
       server.watcher.on("all", (event, file) => {
         if (
           (event === "add" || event === "change" || event === "unlink") &&
-          [...watched].some(
-            (directory) => file === directory || file.startsWith(`${directory}${path.sep}`),
-          )
+          (file === root || file.startsWith(`${root}${path.sep}`))
         ) {
           Queue.offerUnsafe(changes, file);
         }

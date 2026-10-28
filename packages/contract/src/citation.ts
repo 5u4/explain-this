@@ -21,7 +21,7 @@ const reservedRepoKeys: Readonly<Record<string, true>> = {
 
 const rangePattern = /^([1-9][0-9]*)(?:-([1-9][0-9]*))?$/;
 
-export const repoKeyProblem = (key: string): string | undefined => {
+const repoKeyProblem = (key: string): string | undefined => {
   if (!repoKeyPattern.test(key)) return `repo key "${key}" must match ${repoKeyPattern.source}`;
   if (Object.hasOwn(reservedRepoKeys, key)) return `repo key "${key}" is reserved`;
   return undefined;

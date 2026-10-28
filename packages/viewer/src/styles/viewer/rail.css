@@ -16,24 +16,16 @@
   font-size: var(--size-ui-lg);
   letter-spacing: 0.01em;
 }
-.nav-section {
-  margin-top: 18px;
-}
-.nav-group {
-  margin: 0 0 6px;
-  padding: 0 10px;
-  font-size: var(--size-caption);
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  color: var(--text-muted);
-}
-.nav-section ul,
+.nav-list,
 .toc {
   list-style: none;
   margin: 0;
   padding: 0;
 }
-.nav-section > ul > li > a {
+.nav-list {
+  margin-top: 18px;
+}
+.nav-list > li > a {
   display: block;
   padding: 6px 10px;
   border-radius: var(--radius-s);
@@ -45,11 +37,11 @@
     background-color var(--dur-fast) var(--ease),
     color var(--dur-fast) var(--ease);
 }
-.nav-section > ul > li > a:hover {
+.nav-list > li > a:hover {
   background: var(--surface-raised);
   color: var(--text-strong);
 }
-.nav-section > ul > li > a[aria-current="page"] {
+.nav-list > li > a[aria-current="page"] {
   background: var(--surface-raised);
   color: var(--text-strong);
   font-weight: 500;
