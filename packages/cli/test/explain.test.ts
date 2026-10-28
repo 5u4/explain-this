@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -123,6 +123,23 @@ describe("explain validate", () => {
       encoding: "utf8",
     });
     expect(result.stderr).toBe("01-fold.md:3:3 no code/lib/ in doc dir\n");
+  });
+
+  it.each([
+    ["a sibling of the doc dir", "elsewhere", "../doc"],
+    ["the doc dir's code/", "doc/code", ".."],
+  ])("prints absolute diagnostic paths from %s", (_, cwd, target) => {
+    const workspace = makeWorkspace({
+      ...docWith("# 折叠\n\n见 [x](lib:fold.ts)。\n"),
+      "elsewhere/.keep": "",
+    });
+    const result = spawnSync("bun", [main, "validate", target], {
+      cwd: join(workspace.root, cwd),
+      encoding: "utf8",
+    });
+    expect(result.stderr).toBe(
+      `${join(realpathSync(workspace.root), "doc/01-fold.md")}:3:3 no code/lib/ in doc dir\n`,
+    );
   });
 
   it.each([

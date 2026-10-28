@@ -10,12 +10,18 @@ export const exitWithError = (message: string) =>
 export const diagnosticPrinter = Effect.fnUntraced(function* (root: string) {
   const path = yield* Path.Path;
   const cwd = path.resolve();
+  const shownPath = (file: string) => {
+    const relative = path.relative(cwd, file);
+    const outside =
+      relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative);
+    return outside ? file : relative || ".";
+  };
   return (diagnostics: ReadonlyArray<Diagnostic>) =>
     Effect.forEach(
       diagnostics,
       (diagnostic) =>
         Console.error(
-          `${path.relative(cwd, path.join(root, diagnostic.file)) || "."}:${diagnostic.line}:${diagnostic.column} ${diagnostic.message}`,
+          `${shownPath(path.join(root, diagnostic.file))}:${diagnostic.line}:${diagnostic.column} ${diagnostic.message}`,
         ),
       { discard: true },
     );
